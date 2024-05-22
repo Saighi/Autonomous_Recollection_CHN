@@ -31,20 +31,33 @@ for h in range(nb_phases):
     correlations_sleep_all[h] = np.array(correlations_sleep_all[h])
 #%%
 concatenated_trajs_all = []
+xcoords_all = []
 for h in range(nb_phases):
+    xcoords_all.append([])
     concatenated_trajs_all.append([[] for i in range(nb_patterns)])
+    added = 0
     for i in range(len(correlations_sleep_all[h])):
+        xcoords_all[-1].append(len(correlations_sleep_all[h][i])+added)
+        added += len(correlations_sleep_all[h][i])
         for j in range(len(correlations_sleep_all[h][i])):
             for k in range(len(correlations_sleep_all[h][i][j])):
                 concatenated_trajs_all[h][k].append(correlations_sleep_all[h][i][j][k])
 #%%
+xcoords_all
+#%%
+from matplotlib.ticker import ScalarFormatter
 for h in range(nb_phases):
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=False))
+    plt.gca().yaxis.get_offset_text().set_visible(False)
     plt.plot(np.array(concatenated_trajs_all[h][:h+1]).T)
     plt.ylabel("pearson coefficient")
     plt.xlabel("nombre d'itérations")
     plt.legend(["pattern 1","pattern 2","pattern 3","pattern 4","pattern 5","..."], loc="lower right")
     plt.title("SR for " + str(h+1)+" pattern(s)")
-    plt.savefig("SR for " + str(h+1)+" pattern(s)")
+    plt.savefig("figs\SR for " + str(h+1)+" pattern(s)")
+    xcoords = xcoords_all[h]
+    for xc in xcoords:
+        plt.axvline(x=xc,c = "red", linestyle = "--")
     plt.show()
 # # %%
 # plt.plot(correlations_sleep[:100])

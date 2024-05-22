@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv)
 {
     //WRITING RESULTS
-    std::string foldername = "../../../data/spontaneous_recollection_small_beta";
+    std::string foldername = "../../../data/spontaneous_recollection_all_betas";
     std::string filename = foldername + "/output_sleep_";
 
     // Create directory if it doesn't exist
@@ -49,77 +49,78 @@ int main(int argc, char **argv)
         0,0,1,0,0,
         0,0,1,0,0,
         0,1,0,1,0,
-        }
-    };
-
-    vector<vector<bool>> added_memory_list = {
+        },
         {
-            0,0,1,0,0,
-            0,0,1,0,0,
-            0,0,1,0,0,
-            0,0,1,0,0,
-            0,0,1,0,0,
-            },
-            {
-            0,0,0,0,1,
-            0,0,0,1,0,
-            0,0,1,0,0,
-            0,1,0,0,0,
-            1,0,0,0,0,
-            },
-            {
-            1,0,0,0,0,
-            0,1,0,0,0,
-            0,0,1,0,0,
-            0,0,0,1,0,
-            0,0,0,0,1,
-            },
-            {
-            0,1,0,0,0,
-            0,1,0,0,0,
-            0,1,0,0,0,
-            0,1,0,0,0,
-            0,1,0,0,0,
-            },
-            {
-            0,0,0,1,0,
-            0,0,0,1,0,
-            0,0,0,1,0,
-            0,0,0,1,0,
-            0,0,0,1,0,
-            },
-            {
-            0,0,0,0,0,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            1,1,1,1,1,
-            0,0,0,0,0,
-            },
-            {
-            0,0,0,0,0,
-            1,1,1,1,1,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            },
-            {
-            0,0,0,0,0,
-            0,0,0,0,0,
-            1,1,1,1,1,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            },
-
+        0,0,1,0,0,
+        0,0,1,0,0,
+        0,0,1,0,0,
+        0,0,1,0,0,
+        0,0,1,0,0,
+        },
+        {
+        0,0,0,0,1,
+        0,0,0,1,0,
+        0,0,1,0,0,
+        0,1,0,0,0,
+        1,0,0,0,0,
+        },
+        {
+        1,0,0,0,0,
+        0,1,0,0,0,
+        0,0,1,0,0,
+        0,0,0,1,0,
+        0,0,0,0,1,
+        },
+        {
+        0,1,0,0,0,
+        0,1,0,0,0,
+        0,1,0,0,0,
+        0,1,0,0,0,
+        0,1,0,0,0,
+        },
+        {
+        0,0,0,1,0,
+        0,0,0,1,0,
+        0,0,0,1,0,
+        0,0,0,1,0,
+        0,0,0,1,0,
+        },
+        {
+        0,0,0,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        1,1,1,1,1,
+        0,0,0,0,0,
+        },
+        {
+        0,0,0,0,0,
+        1,1,1,1,1,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        },
+        {
+        0,0,0,0,0,
+        0,0,0,0,0,
+        1,1,1,1,1,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        },
     };
+
+    // SIMULATION PARAMETERS
+    std::vector<double> betas = linspace(0.01, 0.5, 10);
+    int number_iter = 20;
+    // SIMULATION PARAMETERS
 
     int size_initial_patterns = initial_patterns.size();
-    int size_added_memory_list = added_memory_list.size();
 
     string end_filename;
     std::vector<std::vector<std::ofstream>> files;
-    for (int h = 0; h < size_added_memory_list; h++){
+    for (int h = 0; h < betas.size(); h++)
+    {
         files.emplace_back();
-        for (int i = 0; i < size_initial_patterns + size_added_memory_list; i++)
+        for (int i = 0; i < number_iter; i++)
         {
             end_filename = filename + to_string(h) + "_" + to_string(i) + ".data";
             std::ofstream file(end_filename, std::ios::app);
@@ -152,33 +153,12 @@ int main(int argc, char **argv)
         }
         initial_patterns_state_list[i] = state_input;
     }
-    vector<vector<double>> added_memory_state_list(size_added_memory_list);
-
-    for (int i = 0; i < size_added_memory_list; i++)
-    {
-        for (int j = 0; j < network_size; j++)
-        {
-            if (added_memory_list[i][j])
-            {
-                state_input[j] = target_up_rate;
-            }
-            else
-            {
-                state_input[j] = target_down_rate;
-            }
-        }
-        added_memory_state_list[i] = state_input;
-    }
 
     // WRITING the patterns to measure correlation later
     std::ofstream file_patterns(filename + "patterns.data", std::ios::app);
     for (int i = 0; i < size_initial_patterns; i++)
     {
         writeToCSV(file_patterns, initial_patterns_state_list[i]);
-    }
-    for (int i = 0; i < size_added_memory_list-1; i++)
-    {
-        writeToCSV(file_patterns, added_memory_state_list[i]);
     }
     file_patterns.close();
 
@@ -196,8 +176,6 @@ int main(int argc, char **argv)
     }
 
     Network net = Network(connectivity_matrix, network_size, leak);
-    Network net_2 = Network(connectivity_matrix, network_size, leak);
-
     // starting here chat gpt, change all the calls to use noisy iterations
     // The parameters for the gaussian noise should allow the network to settle 
     // to a stable state during the learning and during the testing. The noise 
@@ -221,20 +199,18 @@ int main(int argc, char **argv)
         }
     }
 
-    int nb_writted_patterns = size_initial_patterns;
     // Reading Network with sleep
     vector<bool> winning_units;
     vector<double> new_target_state;
-    vector<vector<double>> readed_state_list(size_initial_patterns+size_added_memory_list);
+    vector<vector<double>> readed_state_list(number_iter);
 
-    for(int h = 0; h<size_added_memory_list;h++){
+    for(int h = 0; h<betas.size();h++){
 
         // THIS PART ADD THE SLEEP RELEARNING, TO REMOVE IN ORDER TO REMOVE SLEEP
         std::cout << "READING THE NETWORK ATTRACTORS" << std::endl;
-        for (int r = 0; r < nb_writted_patterns; r++)
+        for (int r = 0; r < number_iter; r++)
         {
             // std::cout << "NEW ITER" << std::endl;
-
             net.set_state(vector<double>(network_size, 0.5));
             // std::cout << "Initial random state:" << std::endl;
             // show_state_grid(net, 3); // Show initial state
@@ -246,74 +222,46 @@ int main(int argc, char **argv)
             winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
             net.pot_inhib_bin(0.1, winning_units); // works with 0.005
 
-            std::cout << "State after convergence:" << std::endl;
-            show_state_grid(net, col_with);
-            show_vector_bool_grid(winning_units, col_with);
+            // std::cout << "State after convergence:" << std::endl;
+            // show_state_grid(net, col_with);
+            // show_vector_bool_grid(winning_units, col_with);
 
             new_target_state = assignStateToTopNValues(net.activity_list, nb_winners, target_up_rate, target_down_rate);
             readed_state_list[r] = new_target_state;
         }
 
-        // Training loop
-        std::cout << "TRAINING THE SECONDE NETWORK" << std::endl;
-
-        for (int i = 0; i < nb_iter_learning; i++)
-        {
-            net_2.set_state(added_memory_state_list[h]);
-            run_net_sim(net_2, 250, delta);
-            net_2.reinforce_attractor(added_memory_state_list[h], learning_rate);
-
-            // THIS PART ADD THE SLEEP RELEARNING, TO REMOVE IN ORDER TO REMOVE SLEEP
-            for(int j = 0; j<nb_writted_patterns;j++){
-                // std::cout << "NEW ITER" << std::endl;
-                net_2.set_state(readed_state_list[j]);
-                // if(i==1){
-                //     winning_units = assignBoolToTopNValues(net_2.activity_list, nb_winners);
-                //     show_vector_bool_grid(winning_units, col_with);
-                // }
-                run_net_sim(net_2, 250, delta);
-                // std::cout << "after convergence" << std::endl;
-                // show_state_grid(net, 3);
-                net_2.reinforce_attractor(readed_state_list[j], learning_rate);
-                // show_matrix(net.weight_matrix);
-
-            }
-        }
-        net.weight_matrix = net_2.weight_matrix;
         net.reset_inhib();
-        net_2.blank_init();
-        nb_writted_patterns+=1;
     }
 
-    // Querying
-    std::cout << "Querying initial memories" << std::endl;
-    for (int i = 0; i < size_initial_patterns; i++)
-    {
-        // std::cout << "NEW ITER" << std::endl;
-        net.set_state(initial_patterns_state_list[i]);
-        // show_state_grid(net, 3);
-        run_net_sim_noisy(net, 250, delta, 0.0, 0.01);
-        // std::cout << "after convergence" << std::endl;
-        winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
-        // appendToCSV(net.rate_list, filename);
-        show_vector_bool_grid(winning_units, col_with);
-        // show_state_grid(net, 5, 5);
-        // show_matrix(net.weight_matrix);
-    }
-        // Querying
-    std::cout << "Querying added memories" << std::endl;
-    for (int i = 0; i < size_added_memory_list; i++)
-    {
-        // std::cout << "NEW ITER" << std::endl;
-        net.set_state(added_memory_state_list[i]);
-        // show_state_grid(net, 3);
-        run_net_sim_noisy(net, 250, delta, 0.0, 0.01);
-        // std::cout << "after convergence" << std::endl;
-        winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
-        show_vector_bool_grid(winning_units, col_with);
-        // show_state_grid(net, 5, 5);
-        // show_matrix(net.weight_matrix);
-    }
+    // // Querying
+    // std::cout << "Querying initial memories" << std::endl;
+    // for (int i = 0; i < size_initial_patterns; i++)
+    // {
+    //     // std::cout << "NEW ITER" << std::endl;
+    //     net.set_state(initial_patterns_state_list[i]);
+    //     // show_state_grid(net, 3);
+    //     run_net_sim_noisy(net, 250, delta, 0.0, 0.01);
+    //     // std::cout << "after convergence" << std::endl;
+    //     winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
+    //     // appendToCSV(net.rate_list, filename);
+    //     show_vector_bool_grid(winning_units, col_with);
+    //     // show_state_grid(net, 5, 5);
+    //     // show_matrix(net.weight_matrix);
+    // }
+    //     // Querying
+    // std::cout << "Querying added memories" << std::endl;
+    // for (int i = 0; i < size_added_memory_list; i++)
+    // {
+    //     // std::cout << "NEW ITER" << std::endl;
+    //     net.set_state(added_memory_state_list[i]);
+    //     // show_state_grid(net, 3);
+    //     run_net_sim_noisy(net, 250, delta, 0.0, 0.01);
+    //     // std::cout << "after convergence" << std::endl;
+    //     winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
+    //     show_vector_bool_grid(winning_units, col_with);
+    //     // show_state_grid(net, 5, 5);
+    //     // show_matrix(net.weight_matrix);
+    // }
 
     return 0;
 }
