@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv)
 {
     //WRITING RESULTS
-    std::string foldername = "../../../data/spontaneous_recollection_small_beta";
+    std::string foldername = "../../data/spontaneous_recollection";
     std::string filename = foldername + "/output_sleep_";
 
     // Create directory if it doesn't exist
@@ -36,79 +36,79 @@ int main(int argc, char **argv)
     // int nb_iter_sim = 200;
 
     // Learning constants
-    double target_up_rate = 0.8;
-    double target_down_rate = 0.2;
-    double learning_rate = 0.08;
+    double target_up_rate = 0.7;
+    double target_down_rate = 0.3;
+    double learning_rate = 0.04;
     int nb_winners = col_with; // number of winning neurons
 
     // Building training data
     vector<vector<bool>> initial_patterns = {
         {
-        0,0,0,0,1,
+        1,1,1,1,0,
+        1,0,0,0,0,
         0,0,0,0,0,
-        0,0,1,0,0,
-        0,0,1,0,0,
-        0,1,0,1,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
         }
     };
 
     vector<vector<bool>> added_memory_list = {
         {
-            0,0,1,0,0,
-            0,0,1,0,0,
-            0,0,1,0,0,
-            0,0,1,0,0,
-            0,0,1,0,0,
-            },
-            {
-            0,0,0,0,1,
-            0,0,0,1,0,
-            0,0,1,0,0,
-            0,1,0,0,0,
-            1,0,0,0,0,
-            },
-            {
-            1,0,0,0,0,
-            0,1,0,0,0,
-            0,0,1,0,0,
-            0,0,0,1,0,
-            0,0,0,0,1,
-            },
-            {
-            0,1,0,0,0,
-            0,1,0,0,0,
-            0,1,0,0,0,
-            0,1,0,0,0,
-            0,1,0,0,0,
-            },
-            {
-            0,0,0,1,0,
-            0,0,0,1,0,
-            0,0,0,1,0,
-            0,0,0,1,0,
-            0,0,0,1,0,
-            },
-            {
-            0,0,0,0,0,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            1,1,1,1,1,
-            0,0,0,0,0,
-            },
-            {
-            0,0,0,0,0,
-            1,1,1,1,1,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            },
-            {
-            0,0,0,0,0,
-            0,0,0,0,0,
-            1,1,1,1,1,
-            0,0,0,0,0,
-            0,0,0,0,0,
-            },
+        0,1,1,1,1,
+        0,1,0,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        },
+        {
+        1,0,1,1,1,
+        0,0,0,1,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        },
+        {
+        1,1,0,1,1,
+        0,0,1,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        0,0,0,0,0,
+        },
+            // {
+            // 0,1,0,0,0,
+            // 0,1,0,0,0,
+            // 0,1,0,0,0,
+            // 0,1,0,0,0,
+            // 0,1,0,0,0,
+            // },
+            // {
+            // 0,0,0,1,0,
+            // 0,0,0,1,0,
+            // 0,0,0,1,0,
+            // 0,0,0,1,0,
+            // 0,0,0,1,0,
+            // },
+            // {
+            // 0,0,0,0,0,
+            // 0,0,0,0,0,
+            // 0,0,0,0,0,
+            // 1,1,1,1,1,
+            // 0,0,0,0,0,
+            // },
+            // {
+            // 0,0,0,0,0,
+            // 1,1,1,1,1,
+            // 0,0,0,0,0,
+            // 0,0,0,0,0,
+            // 0,0,0,0,0,
+            // },
+            // {
+            // 0,0,0,0,0,
+            // 0,0,0,0,0,
+            // 1,1,1,1,1,
+            // 0,0,0,0,0,
+            // 0,0,0,0,0,
+            // },
 
     };
 
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         }
     }
 
-    int nb_iter_learning = 300;
+    int nb_iter_learning = 1200;
 
     vector<double> state_input(network_size);
 

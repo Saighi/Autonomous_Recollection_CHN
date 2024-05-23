@@ -4,15 +4,15 @@ import matplotlib.pyplot as plt
 from scipy.stats.stats import pearsonr   
 
 #%%
-nb_phases = 8
+nb_phases = 3
 nb_patterns = nb_phases
 data_sleep_phases = [] 
 for h in range(nb_phases):
     data_sleep_phases.append([])
     for i in range(nb_phases):
-        data_sleep_phases[-1].append(np.loadtxt("../../../data/spontaneous_recollection/output_sleep_"+str(h)+"_"+str(i)+".data"))
+        data_sleep_phases[-1].append(np.loadtxt("../../data/spontaneous_recollection/output_sleep_"+str(h)+"_"+str(i)+".data"))
 data_sleep_phases = np.array(data_sleep_phases)
-patterns = np.loadtxt("../../../data/spontaneous_recollection/output_sleep_patterns.data")
+patterns = np.loadtxt("../../data/spontaneous_recollection/output_sleep_patterns.data")
 #%%
 patterns.size
 # %%

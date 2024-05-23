@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 int main(int argc, char **argv)
 {
     //WRITING RESULTS
-    std::string foldername = "../../../data/spontaneous_recollection_all_betas";
+    std::string foldername = "../../data/spontaneous_recollection_all_betas";
     std::string filename = foldername + "/output_sleep_";
 
     // Create directory if it doesn't exist
@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     // Learning constants
     double target_up_rate = 0.8;
     double target_down_rate = 0.2;
-    double learning_rate = 0.08;
+    double learning_rate = 0.04;
     int nb_winners = col_with; // number of winning neurons
 
     // Building training data
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     };
 
     // SIMULATION PARAMETERS
-    std::vector<double> betas = linspace(0.01, 0.5, 10);
+    std::vector<double> betas = linspace(0.005, 0.05, 20);
     int number_iter = 20;
     // SIMULATION PARAMETERS
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         }
     }
 
-    int nb_iter_learning = 300;
+    int nb_iter_learning = 600;
 
     vector<double> state_input(network_size);
 
@@ -216,11 +216,11 @@ int main(int argc, char **argv)
             // show_state_grid(net, 3); // Show initial state
 
             // Let the network converge
-            run_net_sim_noisy_depressed_save(net, 200, delta, 0.0, 0.01, files[h][r]); // Using utility function for noisy iterations and saving
+            run_net_sim_noisy_depressed_save(net, 400, delta, 0.0, 0.01, files[h][r]); // Using utility function for noisy iterations and saving
 
             // run_net_sim_noisy(net, 500, delta, 0.0, 0.01);           // Using utility function for noisy iterations
             winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
-            net.pot_inhib_bin(0.1, winning_units); // works with 0.005
+            net.pot_inhib_bin(betas[h], winning_units); // works with 0.005
 
             // std::cout << "State after convergence:" << std::endl;
             // show_state_grid(net, col_with);
@@ -232,6 +232,10 @@ int main(int argc, char **argv)
 
         net.reset_inhib();
     }
+    for(int h = 0; h<betas.size();h++){
+    std::cout << betas[h] << std::endl;
+    }
+
 
     // // Querying
     // std::cout << "Querying initial memories" << std::endl;
