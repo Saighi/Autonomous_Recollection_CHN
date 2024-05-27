@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     // Learning constants
     double target_up_rate = 0.7;
     double target_down_rate = 0.3;
-    double learning_rate = 0.04;
+    double learning_rate = 0.04 ;
     int nb_winners = col_with; // number of winning neurons
 
     // Building training data

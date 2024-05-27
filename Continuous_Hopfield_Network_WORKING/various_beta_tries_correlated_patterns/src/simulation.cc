@@ -38,11 +38,11 @@ int main(int argc, char **argv)
     // Learning constants
     double target_up_rate = 0.8;
     double target_down_rate = 0.2;
-    double learning_rate = 0.02;
+    double learning_rate = 0.04;
     int nb_winners = col_with; // number of winning neurons
 
     // Parameters for pattern generation
-    int num_patterns = 11;    // Number of patterns to generate
+    int num_patterns = 5;    // Number of patterns to generate
     double noise_level = 0.4; // Noise level for pattern correlation
     // Building training data
     std::cout << nb_winners << std::endl;
@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     }
 
     // SIMULATION PARAMETERS
-    std::vector<double> betas = linspace(0.005, 0.05, 20);
+    std::vector<double> betas = linspace(0.005, 1, 20);
     int number_iter = 20;
     // SIMULATION PARAMETERS
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         }
     }
 
-    int nb_iter_learning = 2400;
+    int nb_iter_learning = 1200;
 
     vector<double> state_input(network_size);
 

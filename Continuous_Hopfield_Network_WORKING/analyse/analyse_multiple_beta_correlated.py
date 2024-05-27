@@ -6,7 +6,7 @@ from scipy.stats.stats import pearsonr
 #%%
 nb_phases = 20
 nb_betas =  20
-nb_patterns = 11
+nb_patterns = 5
 data_sleep_phases = [] 
 for h in range(nb_betas):
     data_sleep_phases.append([])
@@ -78,7 +78,3 @@ for h in range(nb_betas):
 # plt.ylabel("pearson coefficient")
 # plt.legend(["sleep"], loc="lower right")
 # # %%
-
-# %%
-patterns[7]
-# %%
