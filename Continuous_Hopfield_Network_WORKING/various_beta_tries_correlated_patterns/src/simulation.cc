@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         for (int i = 0; i < number_iter; i++)
         {
             end_filename = filename + to_string(h) + "_" + to_string(i) + ".data";
-            std::ofstream file(end_filename, std::ios::app);
+            std::ofstream file(end_filename, std::ios::trunc);
             files[h].emplace_back(end_filename);
             if (!files[h].back().is_open())
             {
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     }
 
     // WRITING the patterns to measure correlation later
-    std::ofstream file_patterns(filename + "patterns.data", std::ios::app);
+    std::ofstream file_patterns(filename + "patterns.data", std::ios::trunc);
     for (int i = 0; i < size_initial_patterns; i++)
     {
         writeToCSV(file_patterns, initial_patterns_state_list[i]);

@@ -13,8 +13,6 @@
 #include <ctime>
 #include <random>
 
-using namespace std;
-
 void writeToCSV(std::ofstream &file, const std::vector<double> &data)
 {
     for (size_t i = 0; i < data.size(); ++i)
