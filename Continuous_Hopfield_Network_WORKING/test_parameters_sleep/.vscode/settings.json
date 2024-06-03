@@ -71,6 +71,10 @@
         "xhash": "cpp",
         "set": "cpp",
         "xtree": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "mutex": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "xstddef": "cpp"
     }
 }
