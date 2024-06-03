@@ -1,9 +1,0 @@
-leak=1.5
-nb_patterns=2
-delta=0.5
-noise_level=1
-nb_winners=10
-network_size=25
-learning_rate=0.01
-target_down_rate=0.25
-target_up_rate=0.75
