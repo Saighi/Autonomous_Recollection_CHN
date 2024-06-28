@@ -11,7 +11,7 @@ data_sleep_phases = []
 for h in range(nb_betas):
     data_sleep_phases.append([])
     for i in range(nb_phases):
-        data_sleep_phases[-1].append(np.loadtxt("../../data/larger_network/output_sleep_"+str(h)+"_"+str(i)+".data"))
+        data_sleep_phases[-1].append(np.loadtxt("../../../data/all_data_splited/sleep_parameter_test/output_sleep_"+str(h)+"_"+str(i)+".data"))
 data_sleep_phases = np.array(data_sleep_phases)
 patterns = np.loadtxt("../../data/larger_network/output_sleep_patterns.data")
 

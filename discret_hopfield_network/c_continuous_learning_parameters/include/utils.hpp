@@ -22,10 +22,10 @@
 // struct Compare;
 // void writeToCSV(std::ofstream &file, const std::vector<double> &data);
 // void writeBoolToCSV(std::ofstream &file, const std::vector<bool> &data);
-// std::vector<double> linspace(double start, double end, int num);
+std::vector<double> linspace(double start, double end, int num);
 std::vector<std::vector<bool>> generatePatterns(int K, int N, int nb_winning_units, double noiseLevel);
 // std::vector<std::vector<bool>> loadPatterns(const std::string &filename);
-// void createParameterFile(const std::string &directory, const std::unordered_map<std::string, double> &parameters);
+void createParameterFile(const std::string &directory, const std::unordered_map<std::string, double> &parameters);
 std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns);
 // std::vector<std::unordered_map<std::string, double>> generateCombinations(const std::unordered_map<std::string, std::vector<double>> &varying_params);
 std::vector<std::vector<bool>> generateCombinedPatterns(std::vector<std::vector<bool>> patterns);
@@ -39,5 +39,6 @@ std::vector<std::vector<double>> generateCombinedStates(std::vector<std::vector<
 // void writeBoolMatrixToFile(const std::vector<std::vector<bool>> &matrix, const std::string &filePath);
 // std::vector<std::vector<double>> readMatrixFromFile(const std::string &filePath);
 // std::vector<std::vector<bool>> readBoolMatrixFromFile(const std::string &filePath);
+std::vector<std::unordered_map<std::string, double>> generateCombinations(const std::unordered_map<std::string, std::vector<double>> &varying_params);
 
 #endif

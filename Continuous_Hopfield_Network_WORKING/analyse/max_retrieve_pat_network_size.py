@@ -135,7 +135,7 @@ def structure_data_max_retrieve_pattern_no_spurious(all_data):
     # structured_df = pd.DataFrame(structured_data)
     return structured_list
 #%% Collect data from all subfolders
-base_folder = "..\\..\\all_data_splited\sleep_simulations\\sleep_parameter_test"
+base_folder = "..\\..\\..\\data\\all_data_splited\\sleep_simulations\\sleep_parameter_test"
 all_data = collect_data(base_folder)
 #%% Structure the collected data
 structured_data = structure_data_max_retrieve_pattern(all_data)
@@ -144,13 +144,11 @@ structured_data_no_spurious = structure_data_max_retrieve_pattern_no_spurious(al
 #%% Plotting examples
 import matplotlib.pyplot as plt
 plt.plot(structured_data[0],structured_data[1])
-plt.xlabel("nb retrieved patterns")
-plt.ylabel("size_network")
+plt.xlabel("network size")
+plt.ylabel("number of retrieve patterns")
 plt.show()
 # %%
 plt.plot(structured_data_no_spurious[0],structured_data_no_spurious[1])
-plt.ylabel("nb retrieved patterns")
-plt.ylabel("size_network")
+plt.xlabel("network size")
+plt.ylabel("number of retrieve patterns")
 plt.show()
-
-# %%

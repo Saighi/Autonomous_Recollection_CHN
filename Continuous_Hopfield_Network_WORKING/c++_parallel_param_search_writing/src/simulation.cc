@@ -131,8 +131,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 
 int main(int argc, char **argv)
 {
-    string sim_name = "write_parameter_test_0.25_num_pattern";
-    string foldername_results = "../../all_data_splited/trained_networks/" + sim_name;
+    string sim_name = "write_parameter_correlation_fixed_size";
+    string foldername_results = "../../../data/all_data_splited/trained_networks/" + sim_name;
 
     // Create directory if it doesn't exist
     if (!fs::exists(foldername_results))
@@ -143,18 +143,18 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    vector<double> all_relative_num_patterns = linspace(0.1, 0.6,10);
-    vector<double> network_sizes = {15,20,25,30,40,45,50,55,60,65};
+    vector<double> all_relative_num_patterns = linspace(0.1,0.6,10);
+    vector<double> network_sizes = {50};
     unordered_map<string, vector<double>> varying_params = {
         {"num_flip", {0}},
         {"relative_num_patterns", all_relative_num_patterns},
         {"target_up_rate", {0.95}},
         {"target_down_rate", {0.05}},
-        {"learning_rate", {0.01}},  
+        {"learning_rate", {0.01}},
         {"network_size", network_sizes},
         // {"nb_winners", {5,7,9,11,13}},
         {"relative_nb_winner", {0.5}},
-        {"noise_level", {0.3}},
+        {"noise_level", {0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1}},
         {"leak", {1.3}},
         {"delta", {0.5}},
         {"nb_iter_learning", {2400}},

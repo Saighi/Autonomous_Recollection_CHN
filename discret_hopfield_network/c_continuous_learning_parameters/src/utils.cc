@@ -13,7 +13,7 @@
 #include <ctime>
 #include <random>
 #include <fstream>
-#include <sstream>
+// #include <sstream>
 #include <unordered_map>
 
 std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns)
@@ -182,8 +182,84 @@ std::vector<double> randomizeInitialState(const std::vector<double> &pattern, in
     return randomized_state;
 }
 
+std::vector<double> linspace(double start, double end, int num)
+{
+    std::vector<double> result;
+    if (num <= 0)
+    {
+        return result;
+    }
+    if (num == 1)
+    {
+        result.push_back(start);
+        return result;
+    }
+
+    double step = (end - start) / (num - 1);
+    for (int i = 0; i < num; ++i)
+    {
+        result.push_back(start + i * step);
+    }
+    return result;
+}
+
+std::vector<std::unordered_map<std::string, double>> generateCombinations(const std::unordered_map<std::string, std::vector<double>> &varying_params)
+{
+    std::vector<std::unordered_map<std::string, double>> combinations;
+
+    // Calculate the total number of combinations
+    size_t total_combinations = 1;
+    for (const auto &param : varying_params)
+    {
+        total_combinations *= param.second.size();
+    }
+
+    // Generate all combinations
+    for (size_t i = 0; i < total_combinations; ++i)
+    {
+        std::unordered_map<std::string, double> combination;
+        size_t index = i;
+        for (const auto &param : varying_params)
+        {
+            combination[param.first] = param.second[index % param.second.size()];
+            index /= param.second.size();
+        }
+        combinations.push_back(combination);
+    }
+
+    return combinations;
+}
+
+void createParameterFile(const std::string &directory, const std::unordered_map<std::string, double> &parameters)
+{
+    // Create the directory if it doesn't exist
+    std::filesystem::create_directories(directory);
+
+    // Create the full path to the file
+    std::string filePath = directory + "/parameters.data";
+
+    // Open a file stream to write the parameters
+    std::ofstream outFile(filePath);
+
+    // Check if the file was opened successfully
+    if (!outFile)
+    {
+        std::cerr << "Error: Could not create file " << filePath << std::endl;
+        return;
+    }
+
+    // Write each parameter to the file
+    for (const auto &param : parameters)
+    {
+        outFile << param.first << "=" << param.second << "\n";
+    }
+
+    // Close the file stream
+    outFile.close();
+
+}
 // function to compare two states
-bool comparestates(const std::vector<double> &state1, const std::vector<double> &state2)
+bool compareStates(const std::vector<double> &state1, const std::vector<double> &state2)
 {
     if (state1.size() != state2.size())
         return false;

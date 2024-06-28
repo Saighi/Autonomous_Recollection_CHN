@@ -86,7 +86,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
         // Let the network converge
         run_net_sim_noisy_depressed_save(net, nb_converge, delta, 0.0, noise_stddev, result_file_sleep); // Using utility function for noisy iterations and saving
-        run_net_sim_noisy_save(net, nb_converge, delta, 0.0, 0.01, result_file_sleep); // Using utility function for noisy iterations
+        // run_net_sim_noisy_save(net, nb_converge, delta, 0.0, 0.01, result_file_sleep); // Using utility function for noisy iterations
         result_file_sleep.close();
         winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
         net.pot_inhib_bin(beta, winning_units); // works with 0.005
@@ -126,10 +126,10 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
 int main(int argc, char **argv)
 {
-    string sim_name = "sleep_parameter_test";
-    string inputs_name = "write_parameter_test";
-    string foldername_results = "../../all_data_splited/sleep_simulations/" + sim_name;
-    fs::path foldername_inputs = "../../all_data_splited/trained_networks/" + inputs_name;
+    string sim_name = "sleep_parameter_test_correlation_fixed_size";
+    string inputs_name = "write_parameter_correlation_fixed_size";
+    string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
+    fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks/" + inputs_name;
     // Create directory if it doesn't exist
     if (!fs::exists(foldername_results))
     {
