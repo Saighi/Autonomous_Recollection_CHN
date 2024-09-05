@@ -5,10 +5,9 @@
 #include <iostream>
 #include <random>
 
-Network::Network(std::vector<std::vector<bool>> connect_mat, int size_network, double lk, double stpns)
+Network::Network(std::vector<std::vector<bool>> connect_mat, int size_network, double lk)
 {
     leak = lk;
-    steepness = stpns;
     connectivity_matrix = connect_mat;
     size = size_network;
     inhib_strenght = 10;
@@ -33,6 +32,29 @@ void Network::iterate(double delta)
     for (int i = 0; i < size; i++)
     {
         activity_list[i] += delta * (derivative_activity_list[i] - (leak * activity_list[i]));
+        rate_list[i] = transfer(activity_list[i]);
+    };
+
+    std::fill(derivative_activity_list.begin(), derivative_activity_list.end(), 0);
+}
+
+void Network::iterate_query_drive(double delta, double strength_drive, std::vector<double>& query_drives)
+{
+
+    for (int i = 0; i < size; i++)
+    {
+        for (int j = 0; j < size; j++)
+        {
+            // if (connectivity_matrix[i][j]==true){ // Will have to verify that the weight stay 0 during the weight uptdate
+            //  when connectivity_matrix is false
+            derivative_activity_list[i] += weight_matrix[i][j] * rate_list[j];
+            //}
+        }
+    }
+
+    for (int i = 0; i < size; i++)
+    {
+        activity_list[i] += delta*(derivative_activity_list[i]-(leak * activity_list[i])+strength_drive*(query_drives[i]-activity_list[i]));
         rate_list[i] = transfer(activity_list[i]);
     };
 
@@ -96,12 +118,12 @@ void Network::noisy_depression_iterate(double delta, double mean, double stddev)
 
 double Network::transfer(double activation)
 {
-    return 1.0 / (1.0 + std::exp(-steepness*activation));
+    return 1.0 / (1.0 + std::exp(-activation));
 }
 
 double Network::transfer_inverse(double activation)
 {
-    return -std::log((1.0 / activation)-1)/steepness;
+    return -std::log(-1.0 + 1.0 / activation);
 }
 
 // blank initialisation of weight matrix
@@ -153,6 +175,62 @@ void Network::reinforce_attractor(std::vector<double> target_state, double learn
                 weight_matrix[j][i] += update;
                 }
         }
+    }
+}
+
+void Network::derivative_gradient_descent(std::vector<bool>& target_bin_state,std::vector<double>& target_rates,double target_drive,double learning_rate, double leak, std::vector<double>& drive_errors)
+{
+    double input = 0;
+    double ui;
+    double update;
+    double unit_target_drive;
+    double diff;
+    for (int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < size; j++){
+            if (connectivity_matrix[i][j] == 1) {
+                input += weight_matrix[i][j] * target_rates[j];
+                }
+        }
+        // std::cout << input << std::endl;
+        ui = input/leak;
+        unit_target_drive = ((target_bin_state[i]*2)-1)*target_drive; // target drive of the unit 
+        diff = unit_target_drive - ui;
+        drive_errors[i] = diff;
+        for(int j = 0; j < size; j++){
+            if (connectivity_matrix[i][j] == 1) {
+                update = learning_rate*2*diff*target_rates[j];
+                weight_matrix[i][j] += update;
+                weight_matrix[j][i] += update;
+                }
+        }
+        input = 0;
+    }
+}
+
+void Network::rate_derivative_gradient_descent(std::vector<double> target_rate, double learning_rate, double leak)
+{
+    double input = 0;
+    double ui;
+    double vi;
+    double update;
+    for (int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < size; j++){
+            if (connectivity_matrix[i][j] == 1) {
+                input += weight_matrix[i][j] * target_rate[j];
+                }
+        }
+        ui = input/leak;
+        vi = transfer(ui);
+        for(int j = 0; j < size; j++){
+            if (connectivity_matrix[i][j] == 1) {
+                update = (target_rate[i]-vi) * vi * (1 - vi) * target_rate[i] * learning_rate;
+                weight_matrix[i][j] += update;
+                weight_matrix[j][i] += update;
+                }
+        }
+        input = 0;
     }
 }
 

@@ -5,10 +5,9 @@
 
 class Network{
     public:
-        Network(std::vector<std::vector<bool>>, int, double, double);
+        Network(std::vector<std::vector<bool>>, int, double);
         int size;
         double leak;
-        double steepness;
         double inhib_strenght;
         double sum_all_inhib;
         std::vector<double> target_sum_each_inhib;
@@ -28,7 +27,7 @@ class Network{
         double transfer(double);
         double transfer_inverse(double );
         void blank_init();
-        void set_state(std::vector<double>);
+        void set_state(std::vector<double>&);
         void reinforce_attractor(std::vector<double>, double);
         void pot_inhib(double);
         void pot_inhib_bin(double pot_rate, std::vector<bool> winners);

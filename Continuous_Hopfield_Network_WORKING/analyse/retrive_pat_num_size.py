@@ -246,6 +246,7 @@ betas = np.sort(list(set(map(float,betas_string))))
 betas = betas[0::2]
 relative_num_pat_string = get_param_list(all_data,"relative_num_patterns")
 relative_number_patterns = np.sort(list(set(map(float,relative_num_pat_string))))
+relative_number_patterns = relative_number_patterns[0::2]
 net_sizes_string = get_param_list(all_data,"network_size")
 net_sizes = np.sort(list(set(map(int,net_sizes_string))))
 net_sizes = net_sizes[0::2]
@@ -297,7 +298,7 @@ for idx, net_size in enumerate(net_sizes):
         ax[idx_2].legend(legend, title="beta :")
         ax[idx_2].set_xlabel("number of iter")
         ax[idx_2].set_ylabel("percentage of retrieve patterns")
-        ax[idx_2].set_title("nb pat = "+ str(relative_nb_pat))
+        ax[idx_2].set_title("relative number  of pattern = "+ str(round(relative_nb_pat,2)))
     
     # Add a shared title for the two plots in the same row
     subfig[idx].suptitle(f'network size: {net_size}', fontsize=20)

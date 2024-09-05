@@ -23,6 +23,7 @@ class Network{
         std::vector<std::vector<int>> scale_inhib;
 
         void iterate(double);
+        void iterate_query_drive(double,double,std::vector<double>&);
         void noisy_iterate(double, double, double);
         void noisy_depression_iterate(double, double, double);
         double transfer(double);
@@ -36,6 +37,9 @@ class Network{
         void iterative_normalize(int, double);
         void reset_inhib();
         void pot_inhib_bin_scale(double, std::vector<bool>);
+        void rate_derivative_gradient_descent(std::vector<double> target_state, double learning_rate, double leak);
+        // void derivative_gradient_descent(std::vector<bool> target_bin_state, double learning_rate, double leak);
+        void derivative_gradient_descent(std::vector<bool>& target_bin_state,std::vector<double>& target_rates,double target_drive,double learning_rate, double leak, std::vector<double>& drive_errors);
 };      
 
 #endif
