@@ -1,0 +1,47 @@
+#%%
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import regex as re
+import utils 
+import matplotlib.animation as animation
+
+#%%
+size_picture = (20,16)
+network_size = size_picture[0]*size_picture[1]
+myDir = '..\\..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_Spontaneous_Recollection'
+#%%
+data_trajs_depressed = utils.load_simulation_trajectories(myDir,'results_depressed')
+data_trajs_not_depressed = utils.load_simulation_trajectories(myDir,'results')
+data_inhib_mats = utils.load_simulation_trajectories(myDir,'inhib_matrix')
+#%%
+nb_plot_depressed = 3 # Has to be pair to deal with depressed and none depressed
+nb_plot_not_depressed = 3 # Has to be pair to deal with depressed and none depressed
+fig, axes = plt.subplots(5, nb_plot_depressed+nb_plot_not_depressed+1, figsize=(25, 25), sharey=True)
+for i in range(len(data_trajs_depressed[0])):
+    inhib_drive = np.full(network_size,0.0)
+    for k in range(network_size):
+        for l in range(network_size):
+            inhib_drive[k]+=data_inhib_mats[0][i][k][l]
+    inhib_drive = inhib_drive.reshape(size_picture[0],size_picture[1])/np.max(inhib_drive)
+    activity_data_depressed = data_trajs_depressed[0][i]
+    activity_data_not_depressed = data_trajs_not_depressed[0][i]
+    times_depressed = np.linspace(len(activity_data_depressed)/len(axes[i]), len(activity_data_depressed)-1, nb_plot_depressed)
+    times_not_depressed = np.linspace(len(activity_data_not_depressed)/len(axes[i]), len(activity_data_not_depressed)-1, nb_plot_not_depressed)
+
+    for j in range(nb_plot_depressed):
+        ax = axes[i][j]
+        im = ax.imshow(activity_data_depressed[int(times_depressed[j])].reshape((size_picture[0], size_picture[1])))
+
+    for j in range(nb_plot_not_depressed):
+        ax = axes[i][j+nb_plot_depressed]
+        im = ax.imshow(activity_data_not_depressed[int(times_not_depressed[j])].reshape((size_picture[0], size_picture[1])))
+    
+    ax = axes[i][nb_plot_depressed+nb_plot_not_depressed]
+    im_inhib = ax.imshow(inhib_drive,cmap='Reds')
+
+cbar = fig.colorbar(im, ax=axes,shrink=0.4,orientation='horizontal', location = 'top', pad = 0.025)
+cbar.set_label('Activity Level')
+cbar_inhib = fig.colorbar(im_inhib, ax=axes,shrink=0.4,orientation='horizontal', location = 'bottom',pad=0.05,format='%.1f' )
+cbar_inhib.set_label('Normalized Inhibition')
+# %%

@@ -56,17 +56,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     patterns_file_name = sim_data_foldername + "/patterns.data";
     std::ofstream file(patterns_file_name, std::ios::trunc);
     initial_patterns = generatePatterns(num_patterns, network_size, nb_winners, noise_level);
-
     for (int i = 0; i < num_patterns; i++)
     {
         writeBoolToCSV(file, initial_patterns[i]);
         // show_vector_bool_grid(initial_patterns[i], col_with);
     }
     file.close();
-
     createParameterFile(sim_data_foldername, parameters);
-
-
     // Build Fully connected network
     vector<vector<bool>> connectivity_matrix(network_size, vector<bool>(network_size, false));
     for (int i = 0; i < network_size; i++)
@@ -118,7 +114,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     {
         //TODO - change the pattern_as_states and link the target drive not magic number
         query_pattern=pattern_as_states(net.transfer(drive_target),net.transfer(-drive_target),initial_patterns[i]);
-        query_pattern = setToValueRandomElements(query_pattern, int(network_size*ratio_flip_writing), 0.5);
+        query_pattern=setToValueRandomElements(query_pattern, int(network_size*ratio_flip_writing), 0.5);
         // noisy_pattern = std::vector<double>(network_size,0.5);
         net.set_state(query_pattern);
         // run_net_sim_query_drive(net, noisy_pattern, strength_drive, 1200, delta);
@@ -129,13 +125,11 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
             succes+=1;
         }
     }
-
     // The number of unique vectors found
-    std::cout << "Number of vectors found: " << succes << " nb_patterns : " << num_patterns << " beta : " << "nb_winers : " << nb_winners << " nb_flip : " <<int(network_size*ratio_flip_writing)<<std::endl;
-
+    std::cout << "Number of vectors found: " << succes << " nb_patterns : " << num_patterns << " beta : " << "nb_winers : " << nb_winners << " nb_flip : " <<int(network_size*ratio_flip_writing)<<" Network size: "<<network_size<<std::endl;
     result_file_name = sim_data_foldername + "/results.data";
     std::ofstream result_file(result_file_name, std::ios::trunc);
-    result_file << "nb_found_patterns=" << succes;
+    result_file << "nb_found_patterns="<<succes;
     result_file.close();
 
     weights_file_name = sim_data_foldername + "/weights.data";
@@ -148,7 +142,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "just_testing";
+    string sim_name = "figure_query_continuous_new_format_300";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -160,12 +154,12 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    vector<double> all_relative_num_patterns = linspace(0.1,0.6,10);
+    vector<double> all_relative_num_patterns = linspace(0.45,0.6,10);
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = {50};
-    vector<double> ratio_flip_writing = {0.1,0.2,0.3,0.4,0.5};
+    vector<double> network_sizes = {30,60,90,120,150,180,210,240,270,300};
+    vector<double> ratio_flip_writing = {0.5};
     // vector<double> repetitions = {0,1,2,3,4,5,6,7,8,9};
     unordered_map<string, vector<double>> varying_params = {
         // {"repetitions", repetitions},
