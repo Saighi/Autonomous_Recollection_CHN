@@ -23,7 +23,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 {
     // Learning constants
     int cpt=0;
-    double epsilon_learning=0.2;
+    double epsilon_learning=0.06;
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
     int network_size = parameters.at("network_size");
@@ -58,9 +58,10 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     matvar_t *matvar = Mat_VarRead(matfp, "dat");
     // Check if 'dat' is a cell array
     // Access the first cell
-    for (size_t n = 3; n < 8; n++)
+    vector<int> numbers ={3,3,3,3,6,6};
+    for (size_t n = 0; n < numbers.size(); n++)
     {
-        matvar_t *cell = static_cast<matvar_t **>(matvar->data)[n];
+        matvar_t *cell = static_cast<matvar_t **>(matvar->data)[numbers[n]+(36*n)];
         // Get the data pointer
         void *data = cell->data;
         // Display the first image
@@ -68,7 +69,6 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
         std::cout << "First Image:" << std::endl;
         initial_patterns.emplace_back(vector<bool>(20*16,0));
         query_patterns.emplace_back(vector<bool>(20*16,0));
-        std::cout << "/* message */" << std::endl;
         for (size_t i = 0; i < IMAGE_HEIGHT; ++i)
         {
             for (size_t j = 0; j < IMAGE_WIDTH; ++j)
@@ -203,7 +203,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_Spontaneous_Recollection";
+    string sim_name = "Fig_Biased_Recollection";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist

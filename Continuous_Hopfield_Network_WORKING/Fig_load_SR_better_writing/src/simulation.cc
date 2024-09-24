@@ -139,7 +139,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_load_SR_larger_4";
+    string sim_name = "Fig_load_SR_larger_4_better_writing";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -154,9 +154,11 @@ int main(int argc, char **argv)
     // vector<double> all_relative_num_patterns = linspace(0.45,0.6,10);
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};
-    vector<double> num_patterns = generateEvenlySpacedIntegers(5,45,10);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(5,55,10);
+    // vector<double> num_patterns = generateEvenlySpacedIntegers(5,45,10);
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = generateEvenlySpacedIntegers(25,250,10);
+    // vector<double> network_sizes = generateEvenlySpacedIntegers(25,250,10);
+    vector<double> network_sizes = {300};
     vector<double> ratio_flip_writing = {0.5};
     // vector<double> repetitions = {0,1,2,3,4,5,6,7,8,9};
     unordered_map<string, vector<double>> varying_params = {
@@ -165,7 +167,7 @@ int main(int argc, char **argv)
         {"drive_target", drive_targets},
         {"drive_target", {5}},
         {"num_patterns", num_patterns},
-        {"learning_rate", {0.01}}, // REMOVED-target rates
+        {"learning_rate", {0.001}}, // REMOVED-target rates
         {"network_size", network_sizes},
         {"relative_nb_winner", {0.5}},
         {"noise_level", {0.5}},

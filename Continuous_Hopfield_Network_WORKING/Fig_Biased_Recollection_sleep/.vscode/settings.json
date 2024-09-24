@@ -75,7 +75,6 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "condition_variable": "cpp",
-        "mutex": "cpp",
-        "regex": "cpp"
+        "mutex": "cpp"
     }
 }

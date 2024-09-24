@@ -73,9 +73,6 @@
         "xtree": "cpp",
         "unordered_map": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp",
-        "condition_variable": "cpp",
-        "mutex": "cpp",
-        "regex": "cpp"
+        "thread": "cpp"
     }
 }
