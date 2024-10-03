@@ -614,7 +614,6 @@ bool comparestates(const std::vector<bool> &state1, const std::vector<bool> &sta
 void lunchParalSim(std::string foldername_results,std::unordered_map<std::string, std::vector<double>> varying_params, void (*run_simulation)(int, std::unordered_map<std::string, double>, const std::string)){
     std::vector<std::unordered_map<std::string, double>> combinations = generateCombinations(varying_params);
     std::vector<std::thread> threads;
-
     for (int sim_number = 0; sim_number < combinations.size(); ++sim_number)
     {
         threads.emplace_back(run_simulation, sim_number, combinations[sim_number], foldername_results);

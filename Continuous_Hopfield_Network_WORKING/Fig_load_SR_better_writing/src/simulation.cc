@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 void run_simulation(int sim_number, unordered_map<string, double> parameters, const string foldername_results)
 {
     // Learning constants
-    double epsilon_learning=0.1;
+    double epsilon_learning=0.01;
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
     int network_size = static_cast<int>(parameters.at("network_size"));
@@ -31,6 +31,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     double ratio_flip_writing = parameters.at("ratio_flip_writing");
     int num_patterns = parameters.at("num_patterns");
     int col_with = sqrt(network_size);
+
     string sim_data_foldername;
     string patterns_file_name;
     string result_file_name;
@@ -139,7 +140,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_load_SR_larger_4_better_writing";
+    string sim_name = "Fig_load_SR_better_writing_big_network";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -154,11 +155,12 @@ int main(int argc, char **argv)
     // vector<double> all_relative_num_patterns = linspace(0.45,0.6,10);
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};
-    vector<double> num_patterns = generateEvenlySpacedIntegers(5,55,10);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(25,60,10);
     // vector<double> num_patterns = generateEvenlySpacedIntegers(5,45,10);
     vector<double> drive_targets = {6};
-    // vector<double> network_sizes = generateEvenlySpacedIntegers(25,250,10);
-    vector<double> network_sizes = {300};
+    // vector<double> network_sizes = generateEvenlySpacedIntegers(25,450,15);
+    vector<double> network_sizes = {500};
+    // vector<double> network_sizes = {300};
     vector<double> ratio_flip_writing = {0.5};
     // vector<double> repetitions = {0,1,2,3,4,5,6,7,8,9};
     unordered_map<string, vector<double>> varying_params = {
@@ -171,9 +173,8 @@ int main(int argc, char **argv)
         {"network_size", network_sizes},
         {"relative_nb_winner", {0.5}},
         {"noise_level", {0.5}},
-        {"leak", {1.3}},
-        {"delta", {0.5}}};
-    
+        {"delta",{0.5}},
+        {"leak", {1.3}}};
 
     lunchParalSim(foldername_results,varying_params,run_simulation);
     collectSimulationData(foldername_results);

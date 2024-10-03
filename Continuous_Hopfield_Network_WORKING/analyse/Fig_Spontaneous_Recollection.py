@@ -5,15 +5,16 @@ import matplotlib.pyplot as plt
 import regex as re
 import utils 
 import matplotlib.animation as animation
-
+plt.rcParams.update({'font.size': 20})
 #%%
+
 size_picture = (20,16)
 network_size = size_picture[0]*size_picture[1]
 myDir = '..\\..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_Spontaneous_Recollection'
 #%%
-data_trajs_depressed = utils.load_simulation_trajectories(myDir,'results_depressed')
-data_trajs_not_depressed = utils.load_simulation_trajectories(myDir,'results')
-data_inhib_mats = utils.load_simulation_trajectories(myDir,'inhib_matrix')
+data_trajs_depressed = utils.load_simulation_trajectories(myDir,'results_depressed_')
+data_trajs_not_depressed = utils.load_simulation_trajectories(myDir,'results_')
+data_inhib_mats = utils.load_simulation_trajectories(myDir,'inhib_matrix_')
 #%%
 nb_plot_depressed = 3 # Has to be pair to deal with depressed and none depressed
 nb_plot_not_depressed = 3 # Has to be pair to deal with depressed and none depressed
@@ -30,14 +31,14 @@ for i in range(len(data_trajs_depressed[0])):
     times_not_depressed = np.linspace(len(activity_data_not_depressed)/len(axes[i]), len(activity_data_not_depressed)-1, nb_plot_not_depressed)
 
     for j in range(nb_plot_depressed):
-        ax = axes[i][j]
+        ax = axes[i][j+1]
         im = ax.imshow(activity_data_depressed[int(times_depressed[j])].reshape((size_picture[0], size_picture[1])))
 
     for j in range(nb_plot_not_depressed):
-        ax = axes[i][j+nb_plot_depressed]
+        ax = axes[i][j+nb_plot_depressed+1]
         im = ax.imshow(activity_data_not_depressed[int(times_not_depressed[j])].reshape((size_picture[0], size_picture[1])))
     
-    ax = axes[i][nb_plot_depressed+nb_plot_not_depressed]
+    ax = axes[i][0]
     im_inhib = ax.imshow(inhib_drive,cmap='Reds')
 
 cbar = fig.colorbar(im, ax=axes,shrink=0.4,orientation='horizontal', location = 'top', pad = 0.025)

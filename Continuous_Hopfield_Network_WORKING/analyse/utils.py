@@ -2,6 +2,27 @@ import os
 import numpy as np
 from collections import defaultdict
 
+def load_simulation_trajectories(myDir, name_file):
+    data = []
+    
+    for root, dirs, files in os.walk(myDir):
+        for dir in dirs:
+            if dir.startswith('sim_nb_'):
+                data.append([])
+                x = int(dir.split('_')[-1])  # Extract the number x from sim_nb_x
+                
+                sim_dir = os.path.join(root, dir)
+                cpt = 0
+                for file in os.listdir(sim_dir):
+                    if file.startswith(name_file):
+                        cpt+=1
+                        file_path = os.path.join(sim_dir, file)
+                        print(file_path)
+                        matrix = np.loadtxt(file_path) 
+                        data[-1].append(matrix)
+    
+    return np.array(data)  # Convert defaultdict to regular dict before returning
+
 def parse_config_file(file_name):
     config = {}
     
