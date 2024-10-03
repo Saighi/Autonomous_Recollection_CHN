@@ -65,11 +65,10 @@ cbar = fig.colorbar(im,cax=cbar_ax)
 cbar.set_label('Success Ratio',labelpad = 14)
 # plt.tight_layout(rect=[0,0,1,1])
 fig.text(0.5, 0.035, 'Network size', ha='center', va='center')
-fig.text(0.055, 0.5, 'number of stored pattern', ha='left', va='center',rotation=90)
+fig.text(0.05, 0.45, 'number of stored pattern', ha='left', va='center',rotation=90)
 plt.show()
 #%%
 size = 4
-plt.rcParams.update({'font.size': 15})
 # fig, ax = plt.subplots(1, 1, figsize=(12, 12), gridspec_kw={'height_ratios': [6, 1]}, sharex=True)
 fig, axes = plt.subplots(2, int(number_plot/2), figsize=(size*(number_plot/2),size*2), sharey=True,sharex=True)
 # fig, ax = plt.subplots(1, 1, figsize=(12, 12), sharex=True)
@@ -94,12 +93,11 @@ cbar = fig.colorbar(im,cax=cbar_ax)
 cbar.set_label('Success Ratio',labelpad = 14)
 # plt.tight_layout(rect=[0,0,1,1])
 fig.text(0.5, 0.035, 'Network size', ha='center', va='center')
-fig.text(0.055, 0.5, 'number of stored pattern', ha='left', va='center',rotation=90)
+fig.text(0.05, 0.45, 'number of stored pattern', ha='left', va='center',rotation=90)
 plt.show()
 
 #%%
 size = 4
-plt.rcParams.update({'font.size': 15})
 # fig, ax = plt.subplots(1, 1, figsize=(12, 12), gridspec_kw={'height_ratios': [6, 1]}, sharex=True)
 fig, axes = plt.subplots(2, int(number_plot/2), figsize=(size*(number_plot/2),size*2), sharey=True, sharex=True)
 # fig, ax = plt.subplots(1, 1, figsize=(12, 12), sharex=True)
@@ -124,7 +122,7 @@ cbar = fig.colorbar(im,cax=cbar_ax)
 cbar.set_label('Ratio Error',labelpad = 14)
 # plt.tight_layout(rect=[0,0,1,1])
 fig.text(0.5, 0.035, 'Network size', ha='center', va='center')
-fig.text(0.055, 0.5, 'number of stored pattern', ha='left', va='center',rotation=90)
+fig.text(0.05, 0.45, 'number of stored pattern', ha='left', va='center',rotation=90)
 plt.show()
 #%%
 
