@@ -191,4 +191,9 @@ cbar.set_label('Relative Spurious patterns',labelpad = 14)
 fig.text(0.5, 0.07, 'Network size', ha='center', va='center')
 fig.text(0.08, 0.5, 'number of stored pattern', ha='left', va='center',rotation=90)
 plt.show()
-# %%
+#%%
+
+data_no_spurious = data[data['relative_spurious_capped']==0]
+data_full_recovery_no_spurious = data_no_spurious[data_no_spurious['success_ratio']==1]
+#%%
+data_full_recovery_no_spurious.groupby("network_size").agg({'num_patterns':['max']})
