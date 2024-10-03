@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     }
     double nb_repetition = 1;
     // vector<double> ratios_flips_querying = {0.01,0.05,0.2,0.25,0.3,0.35,0.4,0.45,0.5};
-    vector<double> ratios_flips_querying = linspace(0.01,0.25,10);
+    vector<double> ratios_flips_querying = linspace(0.01,0.15,15);
     unordered_map<string, vector<double>> varying_params = {
         {"ratio_flips_querying",ratios_flips_querying},
         {"nb_repetition", {nb_repetition}},

@@ -66,7 +66,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     double delta = parameters.at("delta");
     float beta = parameters.at("beta");
     int num_patterns = static_cast<int>(parameters.at("num_patterns"));
-    int nb_iter = static_cast<int>(parameters.at("nb_iter_mult") * num_patterns);
+    int nb_iter = static_cast<int>(parameters.at("nb_iter_mult") * parameters.at("max_pattern"));
     int nb_converge = static_cast<int>(parameters.at("nb_converge"));
     float noise_stddev = parameters.at("noise_stddev");
     int col_with = sqrt(network_size);
@@ -172,11 +172,11 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
 int main(int argc, char **argv)
 {
-    string sim_name = "Fig_load_SR_iter";
-    string inputs_name = "Fig_load_SR";
+    string sim_name = "Fig_load_SR_better_writing_sleep_big_network";
+    string inputs_name = "Fig_load_SR_better_writing_big_network";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
-    string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
-    fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
+    string foldername_results = "/mnt/c/Users/saighi/Desktop/data/all_data_splited/sleep_simulations/" + sim_name;
+    fs::path foldername_inputs = "/mnt/c/Users/saighi/Desktop/data/all_data_splited/trained_networks_fast/" + inputs_name;
     // Create directory if it doesn't exist
     if (!fs::exists(foldername_results))
     {
@@ -189,10 +189,12 @@ int main(int argc, char **argv)
     // vector<double> repetitions = {0};
     
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.05} },
-        {"nb_iter_mult", {0.25,0.5,1,2,3}},
-        {"nb_converge", {800}},
-        {"noise_stddev",{0.005}}};   
+        {"beta", {0.005}},
+        {"delta", {0.5,0.25}},
+        {"nb_iter_mult", {2.5}},        
+        {"max_pattern", {60} },
+        {"nb_converge", {1600}},
+        {"noise_stddev",{0.005,0.001}}};   
 
     unordered_map<string, double> inherited_params;
     vector<vector<bool>> patterns;
@@ -216,13 +218,11 @@ int main(int argc, char **argv)
            }
         }
     }
-
-    const int max_threads = 30; // Set the maximum number of concurrent threads
+    const int max_threads = 20; // Set the maximum number of concurrent threads
     int active_threads = 0;
     std::mutex mtx;
     std::condition_variable cv;
     std::vector<std::thread> threads;
-
     int all_sim_number = 0;
     for (const auto &path : all_paths)
     {
@@ -230,6 +230,7 @@ int main(int argc, char **argv)
         net_weights = readMatrixFromFile(path + "/weights.data");
         net_connectivity = readBoolMatrixFromFile(path + "/connectivity.data");
         patterns_file_name = path + "/patterns.data";
+
 
         patterns = loadPatterns(patterns_file_name);
 
