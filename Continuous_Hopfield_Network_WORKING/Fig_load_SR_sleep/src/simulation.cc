@@ -55,7 +55,7 @@ bool addLineToBeginning(const std::string &filename, const std::string &newLine)
     return true;
 }
 
-void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std::vector<std::vector<bool>> net_connectivity, const unordered_map<string, double> parameters, const string foldername_results, vector<vector<bool>> patterns)
+void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std::vector<std::vector<bool>> net_connectivity, const unordered_map<string, double> parameters, const string foldername_results, vector<vector<bool>> patterns, bool save_trajectories)
 {
     // Learning constants
     double learning_rate = parameters.at("learning_rate");
@@ -126,8 +126,12 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         // show_state_grid(net, 3); // Show initial state
 
         // Let the network converge
-        run_net_sim_noisy_depressed_save(net, nb_converge, delta, 0.0, noise_stddev, result_file_sleep); // Using utility function for noisy iterations and saving
-        run_net_sim_noisy_save(net, nb_converge, delta, 0.0, 0.01, result_file_sleep); // Using utility function for noisy iterations
+        if(save_trajectories){
+            run_net_sim_noisy_depressed(net, nb_converge, delta, 0.0, noise_stddev); // Using utility function for noisy iterations and saving
+            run_net_sim_noisy(net, nb_converge, delta, 0.0, 0.01); // Using utility function for noisy iterations
+        }else{
+
+        }
         result_file_sleep.close();
         winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
         net.pot_inhib_bin(beta, winning_units); // works with 0.005
@@ -172,6 +176,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
 int main(int argc, char **argv)
 {
+    bool save_trajectories = false;
     string sim_name = "Fig_load_SR_better_writing_sleep_big_network";
     string inputs_name = "Fig_load_SR_better_writing_big_network";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
@@ -247,7 +252,7 @@ int main(int argc, char **argv)
 
             threads.emplace_back([=, &mtx, &cv, &active_threads]
                                  {
-                run_sleep(all_sim_number, net_weights, net_connectivity, fused_parameters, foldername_results, patterns);
+                run_sleep(all_sim_number, net_weights, net_connectivity, fused_parameters, foldername_results, patterns, save_trajectories);
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     --active_threads;

@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import regex as re
 import utils 
 import matplotlib.animation as animation
-
+#%%
+plt.rcParams.update({'font.size': 22})
 #%%
 size_picture = (20,16)
 myDir = '..\\..\\..\\data\\all_data_splited\\trained_networks_fast\\Fig_Query_continuous'
@@ -59,6 +60,7 @@ fig, axes = plt.subplots(1, 5, figsize=(25, 5), sharey=True)
 for i,ax in enumerate(axes):
     print(int(i*(len(activity_data)/len(axes))))
     ax.imshow(activity_data[int(i*(len(activity_data)/len(axes)))].reshape((size_picture[0], size_picture[1])))
+    ax.set_title("t="+ str(int(i*(len(activity_data)/len(axes)))))
 cbar = fig.colorbar(im, ax=axes)
 cbar.set_label('Activity Level')
 # %%

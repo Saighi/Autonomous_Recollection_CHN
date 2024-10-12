@@ -33,16 +33,27 @@ for i in range(len(data_trajs_depressed[0])):
     for j in range(nb_plot_depressed):
         ax = axes[i][j+1]
         im = ax.imshow(activity_data_depressed[int(times_depressed[j])].reshape((size_picture[0], size_picture[1])))
+        if i ==0:
+            if j ==0:
+                ax.set_title("t="+str(int(times_depressed[j])))
+            else :
+                ax.set_title("t="+str(int(times_depressed[j])+1))
+            
 
     for j in range(nb_plot_not_depressed):
         ax = axes[i][j+nb_plot_depressed+1]
         im = ax.imshow(activity_data_not_depressed[int(times_not_depressed[j])].reshape((size_picture[0], size_picture[1])))
+        if i ==0:
+            if j ==0:
+                ax.set_title("t="+str(int(times_depressed[j])))
+            else :
+                ax.set_title("t="+str(int(times_depressed[j])+1))
     
     ax = axes[i][0]
     im_inhib = ax.imshow(inhib_drive,cmap='Reds')
 
 cbar = fig.colorbar(im, ax=axes,shrink=0.4,orientation='horizontal', location = 'top', pad = 0.025)
-cbar.set_label('Activity Level')
+cbar.set_label('Activity Level',labelpad=20)
 cbar_inhib = fig.colorbar(im_inhib, ax=axes,shrink=0.4,orientation='horizontal', location = 'bottom',pad=0.05,format='%.1f' )
-cbar_inhib.set_label('Normalized Inhibition')
+cbar_inhib.set_label('Normalized Inhibition',labelpad=20)
 # %%
