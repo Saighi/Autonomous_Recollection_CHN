@@ -1,2 +1,3 @@
-# hopfield_spontaneous_recollection
+# Spontaneous Recollection CHN
+
  
