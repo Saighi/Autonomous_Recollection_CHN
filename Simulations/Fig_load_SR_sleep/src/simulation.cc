@@ -182,6 +182,7 @@ int main(int argc, char **argv)
     // string inputs_name = "write_parameter_many_nb_iter_learning";
     string foldername_results = "/mnt/c/Users/saighi/Desktop/data/all_data_splited/sleep_simulations/" + sim_name;
     fs::path foldername_inputs = "/mnt/c/Users/saighi/Desktop/data/all_data_splited/trained_networks_fast/" + inputs_name;
+
     // Create directory if it doesn't exist
     if (!fs::exists(foldername_results))
     {

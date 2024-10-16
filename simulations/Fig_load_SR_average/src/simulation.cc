@@ -156,7 +156,7 @@ int main(int argc, char **argv)
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};
     // vector<double> num_patterns = generateEvenlySpacedIntegers(25,60,10);
-    vector<double> num_patterns = {10}; 
+    vector<double> num_patterns = {15}; 
     // vector<double> num_patterns = generateEvenlySpacedIntegers(5,55,15);
     vector<double> drive_targets = {6};
     // vector<double> network_sizes = generateEvenlySpacedIntegers(25,450,15);
@@ -169,6 +169,7 @@ int main(int argc, char **argv)
         {"ratio_flip_writing", ratio_flip_writing},
         {"drive_target", drive_targets},
         {"drive_target", {5}},
+        {"max_pattern",{*(std::max_element(num_patterns.begin(), num_patterns.end()))}},
         {"num_patterns", num_patterns},
         {"learning_rate", {0.001}}, // REMOVED-target rates
         {"network_size", network_sizes},
