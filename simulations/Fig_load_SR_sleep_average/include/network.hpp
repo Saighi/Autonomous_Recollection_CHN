@@ -22,6 +22,7 @@ class Network{
         std::vector<std::vector<int>> scale_inhib;
 
         void iterate(double);
+        void depressed_iterate(double delta);
         void noisy_iterate(double, double, double);
         void noisy_depressed_iterate(double, double, double);
         double transfer(double);

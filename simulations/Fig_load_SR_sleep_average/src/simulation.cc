@@ -28,6 +28,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     double delta = parameters.at("delta");
     // not Inherited
     float beta = parameters.at("beta");
+    float max_iter = parameters.at("max_iter");
     int num_patterns = static_cast<int>(parameters.at("num_patterns"));
     int nb_iter = static_cast<int>(parameters.at("nb_iter_mult") * parameters.at("max_pattern"));
     float noise_stddev = parameters.at("noise_stddev");
@@ -91,13 +92,15 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         // show_state_grid(net, 3); // Show initial state
 
         // Let the network converge
-        if(save_trajectories){
-            nb_iter += run_net_sim_noisy_depressed_convergence_check_save(net, epsilon_sim, delta, 0.0, noise_stddev, result_file_sleep); // Using utility function for noisy iterations and saving
-            nb_iter += run_net_sim_noisy_convergence_check_save(net, epsilon_sim, delta, 0.0, 0.01, result_file_sleep); // Using utility function for noisy iterations
-        }else{
-            nb_iter += run_net_sim_noisy_depressed_convergence_check(net, epsilon_sim, delta, 0.0, noise_stddev); // Using utility function for noisy iterations and saving
-            nb_iter += run_net_sim_noisy_convergence_check(net, epsilon_sim, delta, 0.0, 0.01); // Using utility function for noisy iterations
-        }
+        // if(save_trajectories){
+        //     nb_iter += run_net_sim_noisy_depressed_convergence_check_save(net, epsilon_sim, delta, 0.0, noise_stddev, result_file_sleep, max_iter); // Using utility function for noisy iterations and saving
+        //     nb_iter += run_net_sim_noisy_convergence_check_save(net, epsilon_sim, delta, 0.0, 0.01, result_file_sleep, max_iter); // Using utility function for noisy iterations
+        // }else{
+        //     nb_iter += run_net_sim_noisy_depressed_convergence_check(net, epsilon_sim, delta, 0.0, noise_stddev, max_iter); // Using utility function for noisy iterations and saving
+        //     nb_iter += run_net_sim_noisy_convergence_check(net, epsilon_sim, delta, 0.0, 0.01, max_iter); // Using utility function for noisy iterations
+        // }
+        nb_iter += run_net_sim_depressed_convergence_check_save(net, epsilon_sim, delta, result_file_sleep, max_iter); // Using utility function for noisy iterations and saving
+        nb_iter += run_net_sim_convergence_check_save(net, epsilon_sim, delta, result_file_sleep, max_iter); // Using utility function for noisy iterations
         // run_net_sim_noisy_depressed(net, 25, delta, 0.0, noise_stddev); // Using utility function for noisy iterations and saving
         // run_net_sim_noisy(net, 25, delta, 0.0, noise_stddev); // Using utility function for noisy iterations
         result_file_sleep.close();
@@ -138,7 +141,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     // std::cout << "Number of unique vectors found: " << foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " << beta << " nb_spurious : " << nb_spurious_patterns << std::endl
     //           << " nb_winers : " << nb_winners << std::endl;
     std::cout <<"sim_number " << sim_number << std::endl;
-    std::cout <<"nb_found_patterns : "<< foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " <<" nb_flip : " << " Network size: " << network_size << std::endl;
+    std::cout <<"nb_spurious :"<< nb_spurious_patterns <<" nb_found_patterns : "<< foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " <<" nb_flip : " << " Network size: " << network_size << std::endl;
 
     result_file_retrieval.close();
     
@@ -163,11 +166,12 @@ int main(int argc, char **argv)
     }
     // vector<double> repetitions = {0};
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.005}},
-        {"delta", {0.5}},
-        {"nb_iter_mult", {2.5}},        
-        {"epsilon_sim", {0.1} },
-        {"noise_stddev",{0.005}}};   
+        {"beta", {0.0}},
+        {"max_iter", {1000}},
+        {"nb_iter_mult", {1}},        
+        {"epsilon_sim", {0.001} },
+        {"noise_stddev",{0.5}}};   
+
     unordered_map<string, double> inherited_params;
     vector<vector<bool>> patterns;
     vector<vector<double>> net_weights;

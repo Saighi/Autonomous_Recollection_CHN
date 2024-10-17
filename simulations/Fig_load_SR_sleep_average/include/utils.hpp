@@ -14,10 +14,13 @@ void run_net_sim(Network&, int, double);
 void show_matrix(std::vector<std::vector<double>>);
 void show_vector(std::vector<double>);
 
-int run_net_sim_noisy_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev);
-int run_net_sim_noisy_depressed_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev);
-int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev,std::ofstream &file);
-int run_net_sim_noisy_depressed_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file);
+int run_net_sim_noisy_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev, int max_iter);
+int run_net_sim_noisy_depressed_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev, int max_iter);
+int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev,std::ofstream &file, int max_iter);
+int run_net_sim_noisy_depressed_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter);
+
+int run_net_sim_convergence_check_save(Network &net, double epsilon, double delta,std::ofstream &file, int max_iter);
+int run_net_sim_depressed_convergence_check_save(Network &net, double epsilon, double delta, std::ofstream &file, int max_iter);
 
 void run_net_sim_noisy_depressed(Network &net, int nb_iter, double delta, double mean, double stddev);
 void run_net_sim_noisy(Network &net, int nb_iter, double delta, double mean, double stddev);

@@ -66,6 +66,30 @@ void Network::noisy_iterate(double delta, double mean, double stddev)
     std::fill(derivative_activity_list.begin(), derivative_activity_list.end(), 0);
 }
 
+void Network::depressed_iterate(double delta)
+{
+    std::default_random_engine generator;
+
+    for (int i = 0; i < size; i++)
+    {
+        for (int j = 0; j < size; j++)
+        {
+            // Apply the noise outside the inner loop, directly influencing each derivative element only once
+            // the weight_matrix is added the inhib_strenght to allow a lack of inhib from the inhib matrix to be excitatory.
+            // there is no added inhibstrenght if connectivity is not (maybe a better way).
+            derivative_activity_list[i] += ((weight_matrix[i][j] + (inhib_strenght*connectivity_matrix[i][j]) - inhib_matrix[i][j]) * rate_list[j]);
+        }
+    }
+
+    for (int i = 0; i < size; i++)
+    {
+        activity_list[i] += delta * (derivative_activity_list[i] - (leak * activity_list[i]));
+        rate_list[i] = transfer(activity_list[i]);
+    };
+
+    std::fill(derivative_activity_list.begin(), derivative_activity_list.end(), 0);
+}
+
 void Network::noisy_depressed_iterate(double delta, double mean, double stddev)
 {
     std::default_random_engine generator;
