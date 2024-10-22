@@ -156,7 +156,7 @@ int main(int argc, char **argv)
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};
     // vector<double> num_patterns = generateEvenlySpacedIntegers(25,60,10);
-    vector<double> num_patterns = {4}; 
+    vector<double> num_patterns = {5}; 
     // vector<double> num_patterns = generateEvenlySpacedIntegers(5,55,15);
     vector<double> drive_targets = {6};
     // vector<double> network_sizes = generateEvenlySpacedIntegers(25,450,15);

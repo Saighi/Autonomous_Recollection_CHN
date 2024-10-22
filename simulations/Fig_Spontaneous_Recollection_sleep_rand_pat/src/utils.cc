@@ -1,5 +1,4 @@
 #include "network.hpp"
-#include "utils.hpp"
 #include <numeric>
 #include <iostream>
 #include <vector>
@@ -16,9 +15,9 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
-#include <thread>
-
-namespace fs = std::filesystem;
+#include <cerrno>
+#include <cstring>
+#include <string.h>
 
 void writeToCSV(std::ofstream &file, const std::vector<double> &data)
 {
@@ -116,27 +115,10 @@ void show_vector(std::vector<double> vector)
 
 // SIMULATION
 
-void run_net_sim_query_drive(Network& net, std::vector<double>& query_drives, double strength_drive,int nb_iter, double delta)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.iterate_query_drive(delta, strength_drive, query_drives);
-    }
-}
-
 void run_net_sim(Network& net, int nb_iter, double delta)
 {
     for (int i = 0; i < nb_iter; i++)
     {
-        net.iterate(delta);
-    }
-}
-
-void run_net_sim_save(Network& net, int nb_iter, double delta, std::ofstream &file)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        writeToCSV(file, net.rate_list);
         net.iterate(delta);
     }
 }
@@ -149,21 +131,12 @@ void run_net_sim_noisy(Network &net, int nb_iter, double delta, double mean, dou
     }
 }
 
-void run_net_sim_noisy_save(Network& net, int nb_iter, double delta,double mean, double stddev, std::ofstream &file)
+void run_net_sim_noisy_save(Network &net, int nb_iter, double delta, double mean, double stddev, std::ofstream &file)
 {
     for (int i = 0; i < nb_iter; i++)
     {
         writeToCSV(file, net.rate_list);
-        net.iterate(delta);
-    }
-}
-void run_net_sim_noisy_save_display(Network &net, int rows, int nb_iter, double delta, double mean, double stddev, std::ofstream &file)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        writeToCSV(file, net.rate_list);
-        net.iterate(delta);
-        show_vector_double_grid(net.activity_list, 10);
+        net.noisy_iterate(delta, mean, stddev);
     }
 }
 
@@ -171,7 +144,7 @@ void run_net_sim_noisy_depressed(Network &net, int nb_iter, double delta, double
 {
     for (int i = 0; i < nb_iter; i++)
     {
-        net.noisy_depression_iterate(delta, mean, stddev);
+        net.noisy_depressed_iterate(delta, mean, stddev);
     }
 }
 
@@ -179,11 +152,42 @@ void run_net_sim_noisy_depressed_save(Network &net, int nb_iter, double delta, d
 {
     for (int i = 0; i < nb_iter; i++)
     {
-        net.noisy_depression_iterate(delta, mean, stddev);
         writeToCSV(file, net.rate_list);
+        net.noisy_depressed_iterate(delta, mean, stddev);
     }
 }
 
+int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter)
+{
+    float sum_activities_past = 1000;
+    float sum_activities_new = 0;
+    int nb_iter = 0;
+    while (std::abs(sum_activities_past - sum_activities_new) > epsilon && nb_iter <= max_iter)
+    {
+        writeToCSV(file, net.rate_list);
+        net.noisy_iterate(delta, mean, stddev);
+        sum_activities_past = sum_activities_new;
+        sum_activities_new = std::accumulate(net.rate_list.begin(), net.rate_list.end(), 0.0);
+        nb_iter += 1;
+    }
+    return nb_iter;
+}
+
+int run_net_sim_noisy_depressed_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter)
+{
+    float sum_activities_past = 1000;
+    float sum_activities_new = 0;
+    int nb_iter = 0;
+    while (std::abs(sum_activities_past - sum_activities_new) > epsilon && nb_iter <= max_iter)
+    {
+        writeToCSV(file, net.rate_list);
+        net.noisy_depressed_iterate(delta, mean, stddev);
+        sum_activities_past = sum_activities_new;
+        sum_activities_new = std::accumulate(net.rate_list.begin(), net.rate_list.end(), 0.0);
+        nb_iter += 1;
+    }
+    return nb_iter;
+}
 // TOOLS
 
 // Comparator for priority queue
@@ -259,50 +263,22 @@ std::vector<bool> assignBoolThreshold(std::vector<double> &vec, double thr)
     std::vector<bool> bool_vector(vec.size(), false);
     for (size_t i = 0; i < vec.size(); i++)
     {
-        if(vec[i]>thr){
+        if (vec[i] > thr)
+        {
             bool_vector[i] = 1;
         }
-        else{
+        else
+        {
             bool_vector[i] = 0;
         }
     }
-    
-    return bool_vector;
-}
 
-void show_vector_double_grid(std::vector<double> vec, int rows)
-{
-    int iter = 0;
-    std::cout << "rates :" << std::endl;
-    for (const auto &element : vec)
-    {
-        if ((iter % (vec.size() / rows) == 0.0) && iter != 0)
-        {
-            std::cout << "" << std::endl;
-        }
-        // std::cout << element << " ";
-        std::cout << element << " ";
-        iter++;
-    }
-    std::cout << "" << std::endl;
+    return bool_vector;
 }
 
 void show_vector_bool_grid(std::vector<bool> vec, int rows)
 {
     int iter = 0;
-    // std::cout << "activity :" << std::endl;
-    // for (const auto &element : net.activity_list)
-    // {
-    //     if ((iter % (net.size / rows) == 0) && iter != 0)
-    //     {
-    //         std::cout << "" << std::endl;
-    //     }
-
-    //     std::cout << std::fixed << std::setprecision(2) << element << " ";
-    //     iter ++;
-    // }
-    // iter = 0;
-    // std::cout << "" << std::endl;
     std::cout << "rates :" << std::endl;
     for (const auto &element : vec)
     {
@@ -342,15 +318,12 @@ std::vector<double> linspace(double start, double end, int num)
 // Function to generate a base pattern with a specified number of 1s
 std::vector<bool> generateBasePattern(int N, int nb_winning_units)
 {
-    std::random_device rd;
-    std::mt19937 g(rd());
     std::vector<bool> basePattern(N, false);
     for (int i = 0; i < nb_winning_units; ++i)
     {
         basePattern[i] = true;
     }
 
-    std::shuffle(basePattern.begin(), basePattern.end(), g);
     return basePattern;
 }
 
@@ -378,22 +351,6 @@ std::vector<bool> generateNoisyBalancedPattern(const std::vector<bool> &basePatt
         }
     }
     return noisyPattern;
-}
-// 
-std::vector<double> setToValueRandomElements(const std::vector<double> &baseValues, int numFlips, double value)
-{
-    std::vector<double> newVector = baseValues;
-    int N = newVector.size();
-    int index;
-    int cpt = 0 ;
-    // Flip numFlips bits from 1 to 0
-    while (cpt < numFlips) // can loop a long time if not enough are 1s
-    {
-        index = rand() % N; // trying to find a 1 index
-        newVector[index] = value;
-        cpt += 1;
-    }
-    return newVector;
 }
 
 // Function to check if a pattern already exists in a vector of patterns
@@ -427,7 +384,6 @@ std::vector<std::vector<bool>> generatePatterns(int K, int N, int nb_winning_uni
 
     return patterns;
 }
-
 
 std::vector<std::vector<bool>> loadPatterns(const std::string &filename)
 {
@@ -495,12 +451,15 @@ void createParameterFile(const std::string &directory, const std::unordered_map<
 
 }
 
-std::vector<double> pattern_as_states(double up_rate, double down_rate, std::vector<bool> bin_pattern)
+std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns)
 {
-    std::vector<double> state_input(bin_pattern.size());
-    for (int j = 0; j < state_input.size(); j++)
+    std::vector<double> state_input(bin_patterns[0].size());
+    std::vector<std::vector<double>> initial_patterns_state_list(bin_patterns.size());
+    for (int i = 0; i < bin_patterns.size(); i++)
+    {
+        for (int j = 0; j < bin_patterns[i].size(); j++)
         {
-            if (bin_pattern[j])
+            if (bin_patterns[i][j])
             {
                 state_input[j] = up_rate;
             }
@@ -509,19 +468,10 @@ std::vector<double> pattern_as_states(double up_rate, double down_rate, std::vec
                 state_input[j] = down_rate;
             }
         }
-    return state_input;
-}
-
-std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns)
-{
-    std::vector<std::vector<double>> initial_patterns_state_list(bin_patterns.size());
-    for (int i = 0; i < bin_patterns.size(); i++)
-    {
-        initial_patterns_state_list[i] = pattern_as_states(up_rate,down_rate,bin_patterns[i]);
+        initial_patterns_state_list[i] = state_input;
     }
     return initial_patterns_state_list;
 }
-
 
 // Helper function to generate all combinations of parameters
 // funny function generated by chatgpt, you can use division and module to do combinatorials tricks
@@ -552,58 +502,78 @@ std::vector<std::unordered_map<std::string, double>> generateCombinations(const 
     return combinations;
 }
 
-void writeMatrixToFile(const std::vector<std::vector<double>> &matrix, const std::string &filePath)
-{
-    std::ofstream outFile(filePath);
-
-    if (!outFile.is_open())
-    {
-        std::cerr << "Error opening file for writing: " << filePath << std::endl;
-        return;
+std::unordered_map<std::string, double> fuseMaps(std::unordered_map<std::string, double> map1, std::unordered_map<std::string, double> map2){
+    for (const auto& element: map2){
+        map1[element.first]=element.second;
     }
-
-    for (const auto &row : matrix)
-    {
-        for (const auto &element : row)
-        {
-            outFile << element << " ";
-        }
-        outFile << "\n";
-    }
-
-    outFile.close();
+    return map1;
 }
 
-void writeBoolMatrixToFile(const std::vector<std::vector<bool>> &matrix, const std::string &filePath)
+// Function to read a file and store the content in an unordered_map
+std::unordered_map<std::string, double> readParametersFile(const std::string &filePath)
 {
-    std::ofstream outFile(filePath);
+    std::unordered_map<std::string, double> parameters;
+    std::ifstream file(filePath);
 
-    if (!outFile.is_open())
+    if (file.is_open())
     {
-        std::cerr << "Error opening file for writing: " << filePath << std::endl;
-        return;
-    }
-
-    for (const auto &row : matrix)
-    {
-        for (const auto &element : row)
+        std::string line;
+        while (std::getline(file, line))
         {
-            outFile << element << " ";
+            std::istringstream lineStream(line);
+            std::string key;
+            if (std::getline(lineStream, key, '='))
+            {
+                std::string valueStr;
+                if (std::getline(lineStream, valueStr))
+                {
+                    try
+                    {
+                        double value = std::stod(valueStr);
+                        parameters[key] = value;
+                    }
+                    catch (const std::invalid_argument &e)
+                    {
+                        std::cerr << "Invalid value for key: " << key << std::endl;
+                    }
+                    catch (const std::out_of_range &e)
+                    {
+                        std::cerr << "Value out of range for key: " << key << std::endl;
+                    }
+                }
+            }
         }
-        outFile << "\n";
+        file.close();
+    }
+    else
+    {
+        std::cerr << "Unable to open file: " << filePath << std::endl;
     }
 
-    outFile.close();
+    return parameters;
 }
 
 std::vector<std::vector<double>> readMatrixFromFile(const std::string &filePath)
 {
     std::vector<std::vector<double>> matrix;
     std::ifstream inFile(filePath);
-
-    if (!inFile.is_open())
+    if (!inFile)
     {
-        std::cerr << "Error opening file for reading: " << filePath << std::endl;
+        std::cerr << "Error: Unable to open file '" << filePath << "'." << std::endl;
+        std::cerr << "Error code: " << errno << " (" << strerror(errno) << ")" << std::endl;
+
+        // Check if the file exists by trying to open it in write mode
+        std::ofstream test(filePath, std::ios::in);
+        if (test.is_open())
+        {
+            std::cerr << "File exists but cannot be opened for reading. Check permissions." << std::endl;
+            test.close();
+        }
+        else
+        {
+            std::cerr << "File does not exist or path is incorrect." << std::endl;
+        }
+
         return matrix;
     }
 
@@ -656,125 +626,24 @@ std::vector<std::vector<bool>> readBoolMatrixFromFile(const std::string &filePat
     return matrix;
 }
 
-// function to compare two states
-bool comparestates(const std::vector<bool> &state1, const std::vector<bool> &state2)
+void writeMatrixToFile(const std::vector<std::vector<double>> &matrix, const std::string &filePath)
 {
-    if (state1.size() != state2.size())
-        return false;
+    std::ofstream outFile(filePath);
 
-    bool direct_match = true;
-    bool inverse_match = true;
-
-    for (size_t i = 0; i < state1.size(); ++i)
+    if (!outFile.is_open())
     {
-        if (state1[i] != state2[i])
-            direct_match = false;
-        if (state1[i] != -state2[i])
-            inverse_match = false;
+        std::cerr << "Error opening file for writing: " << filePath << std::endl;
+        return;
     }
 
-    return direct_match || inverse_match;
-}
-
-void lunchParalSim(std::string foldername_results,std::unordered_map<std::string, std::vector<double>> varying_params, void (*run_simulation)(int, std::unordered_map<std::string, double>, const std::string)){
-    std::vector<std::unordered_map<std::string, double>> combinations = generateCombinations(varying_params);
-    std::vector<std::thread> threads;
-
-    for (int sim_number = 0; sim_number < combinations.size(); ++sim_number)
+    for (const auto &row : matrix)
     {
-        threads.emplace_back(run_simulation, sim_number, combinations[sim_number], foldername_results);
-    }
-
-    for (auto &t : threads)
-    {
-        t.join();
-    }
-}
-
-void collectSimulationData(const std::string &folderResultsPath)
-{
-    std::vector<std::unordered_map<std::string, std::string>> allSimData;
-    std::unordered_set<std::string> allKeys;
-
-    // Iterate through all subdirectories
-    for (const auto &entry : fs::directory_iterator(folderResultsPath))
-    {
-        if (fs::is_directory(entry))
+        for (const auto &element : row)
         {
-            std::unordered_map<std::string, std::string> simData;
-
-            // Read parameters file
-            std::ifstream paramFile(entry.path() / "parameters.data");
-            if (paramFile.is_open())
-            {
-                std::string line;
-                while (std::getline(paramFile, line))
-                {
-                    std::istringstream iss(line);
-                    std::string key, value;
-                    if (std::getline(iss, key, '=') && std::getline(iss, value))
-                    {
-                        simData[key] = value;
-                        allKeys.insert(key);
-                    }
-                }
-                paramFile.close();
-            }
-
-            // Read results file
-            std::ifstream resultFile(entry.path() / "results.data");
-            if (resultFile.is_open())
-            {
-                std::string line;
-                while (std::getline(resultFile, line))
-                {
-                    std::istringstream iss(line);
-                    std::string key, value;
-                    if (std::getline(iss, key, '=') && std::getline(iss, value))
-                    {
-                        simData[key] = value;
-                        allKeys.insert(key);
-                    }
-                }
-                resultFile.close();
-            }
-
-            allSimData.push_back(simData);
+            outFile << element << " ";
         }
+        outFile << "\n";
     }
 
-    // Write all data to a single CSV file
-    std::ofstream csvFile(folderResultsPath + "/all_simulation_data.csv");
-    if (csvFile.is_open())
-    {
-        // Write header
-        std::vector<std::string> sortedKeys(allKeys.begin(), allKeys.end());
-        std::sort(sortedKeys.begin(), sortedKeys.end());
-        for (const auto &key : sortedKeys)
-        {
-            csvFile << key << ",";
-        }
-        csvFile << "\n";
-
-        // Write data
-        for (const auto &simData : allSimData)
-        {
-            for (const auto &key : sortedKeys)
-            {
-                auto it = simData.find(key);
-                if (it != simData.end())
-                {
-                    csvFile << it->second;
-                }
-                csvFile << ",";
-            }
-            csvFile << "\n";
-        }
-        csvFile.close();
-        std::cout << "All simulation data has been written to all_simulation_data.csv" << std::endl;
-    }
-    else
-    {
-        std::cerr << "Unable to open file for writing CSV data." << std::endl;
-    }
+    outFile.close();
 }

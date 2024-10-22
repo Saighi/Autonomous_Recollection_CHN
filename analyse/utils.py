@@ -4,7 +4,6 @@ from collections import defaultdict
 
 def load_simulation_trajectories(myDir, name_file):
     data = []
-    
     for root, dirs, files in os.walk(myDir):
         for dir in dirs:
             if dir.startswith('sim_nb_'):

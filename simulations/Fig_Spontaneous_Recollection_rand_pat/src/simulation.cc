@@ -23,8 +23,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 {
     // Learning constants
     int cpt=0;
-    int nb_pat = 5;
-    double epsilon_learning=0.2;
+    int nb_pat = 10;
+    double epsilon_learning=0.001;
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
     int network_size = parameters.at("network_size");
@@ -53,72 +53,18 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
             return;
         }
     }
-    // Open the .mat file
-    mat_t *matfp = Mat_Open("binaryalphadigs.mat", MAT_ACC_RDONLY);
-    // Read the 'dat' variable
-    matvar_t *matvar = Mat_VarRead(matfp, "dat");
-    // Check if 'dat' is a cell array
-    // Access the first cell
-    std::cout << "initial patterns size : " <<initial_patterns.size()<< std::endl;
-    for (size_t n = 3; n < 3+nb_pat; n++)
+
+    std::string patterns_file_name = sim_data_foldername + "/patterns.data";
+    std::ofstream file(patterns_file_name, std::ios::trunc);
+    initial_patterns = generatePatterns(nb_pat, 20*16, (20*16)/3, 1);
+    for (int i = 0; i < nb_pat; i++)
     {
-        matvar_t *cell = static_cast<matvar_t **>(matvar->data)[n];
-        // Get the data pointer
-        void *data = cell->data;
-        // Display the first image
-        cpt=0;
-        std::cout << "First Image:" << std::endl;
-        query_patterns.emplace_back(vector<bool>(20*16,0));
-        initial_patterns.emplace_back(vector<bool>(20*16,0));
-        for (size_t i = 0; i < IMAGE_HEIGHT; ++i)
-        {
-            for (size_t j = 0; j < IMAGE_WIDTH; ++j)
-            {
-                // Adjust for column-major order
-                size_t idx = i + j * IMAGE_HEIGHT;
-                double pixel_value;
-
-                if (cell->class_type == MAT_C_DOUBLE)
-                {
-                    pixel_value = static_cast<double *>(data)[idx];
-                }
-                else if (cell->class_type == MAT_C_UINT8)
-                {
-                    pixel_value = static_cast<uint8_t *>(data)[idx];
-                }
-
-                // Interpret pixel value as binary
-                bool is_pixel_on = (pixel_value == 1);
-                initial_patterns[initial_patterns.size()-1][cpt]=is_pixel_on;
-                std::cout << (is_pixel_on ? "#" : " ");
-                cpt+=1;
-            }
-            std::cout << std::endl;
-            std::cout << n << std::endl;
-        }
+        writeBoolToCSV(file, initial_patterns[i]);
+        // show_vector_bool_grid(initial_patterns[i], col_with);
     }
-
-    for (size_t j = 0; j < nb_pat; j++)
-    {
-        query_patterns.emplace_back(vector<bool>(20*16,0));
-        for (size_t i = 0; i < initial_patterns[j].size(); i++)
-        {
-            if (i>initial_patterns[j].size()/3){
-                query_patterns[j][i]= false;
-            }
-            else{
-
-                query_patterns[j][i]= initial_patterns[j][i];
-            }
-        }
-    }
+    file.close();
     
-
-    // Clean up
-    Mat_VarFree(matvar);
-    Mat_Close(matfp);
-    
-    // createParameterFile(sim_data_foldername, parameters);
+    createParameterFile(sim_data_foldername, parameters);
     // Build Fully connected network
     vector<vector<bool>> connectivity_matrix(network_size, vector<bool>(network_size, false));
     for (int i = 0; i < network_size; i++)
@@ -135,7 +81,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     Network net = Network(connectivity_matrix, network_size, leak);
     // Loading training data
     initial_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns);
-    query_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), query_patterns);
+    // query_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), query_patterns);
 
     vector<double> drive_errors;
     drive_errors.resize(network_size,0.0);
@@ -176,12 +122,12 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
         nb_winners=0;
         string result_file_traj_name = sim_data_foldername + "/results_" + to_string(i) + ".data";
         std::ofstream result_file_traj(result_file_traj_name, std::ios::trunc);
-        //CHANGE
-        query_pattern=query_patterns_rates[i];
+        query_pattern = pattern_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns[i]);
+        query_pattern = setToValueRandomElements(query_pattern, int(network_size/2), 0.5);
         net.set_state(query_pattern);
         // run_net_sim_query_drive(net, noisy_pattern, strength_drive, 1200, delta);
         // run_net_sim_noisy(net,2800, delta,0.0,0.01);
-        run_net_sim_save(net,300, delta, result_file_traj);
+        run_net_sim_save(net,1/delta, delta, result_file_traj);
         // run_net_sim_noisy_save_display(net,10, 2800, delta,0,0.01, result_file_traj);// 
         // run_net_sim_noisy_save(net, 2800, delta,0,0.01, result_file_traj);
         for (size_t j = 0; j < initial_patterns[i].size(); j++)
@@ -210,7 +156,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_Spontaneous_Recollection";
+    string sim_name = "Fig_Spontaneous_Recollection_rand_pat";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -230,10 +176,10 @@ int main(int argc, char **argv)
     unordered_map<string, vector<double>> varying_params = {
         // {"repetitions", repetitions},
         {"drive_target", drive_targets},
-        {"learning_rate", {0.0001}}, // REMOVED-target rates
+        {"learning_rate", {0.001}}, // REMOVED-target rates
         {"network_size", network_sizes},
         {"leak", {1.3}},
-        {"delta", {0.02}}};
+        {"delta", {0.01}}};
     
 
     lunchParalSim(foldername_results,varying_params,run_simulation);

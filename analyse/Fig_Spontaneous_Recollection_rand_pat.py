@@ -5,16 +5,21 @@ import matplotlib.pyplot as plt
 import regex as re
 import utils 
 import matplotlib.animation as animation
+from scipy.stats import pearsonr
 plt.rcParams.update({'font.size': 20})
 #%%
-
 size_picture = (20,16)
 network_size = size_picture[0]*size_picture[1]
-myDir = '..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_Spontaneous_Recollection'
+sim_dir_name = 'sim_nb_0'
+myDir = '..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_Spontaneous_Recollection_rand_pat'
 #%%
 data_trajs_depressed = utils.load_simulation_trajectories(myDir,'results_depressed_')
 data_trajs_not_depressed = utils.load_simulation_trajectories(myDir,'results_')
 data_inhib_mats = utils.load_simulation_trajectories(myDir,'inhib_matrix_')
+#%%
+folder_sim = myDir + "\\" + sim_dir_name
+patterns = np.loadtxt(folder_sim + "\\patterns.data")
+parameters = utils.parse_config_file(folder_sim + "\\parameters.data")
 #%%
 vmin =1
 vmax =0
@@ -46,7 +51,7 @@ for i in range(len(data_trajs_depressed[0])):
 #%%
 nb_plot_depressed = 3 # Has to be pair to deal with depressed and none depressed
 nb_plot_not_depressed = 3 # Has to be pair to deal with depressed and none depressed
-fig, axes = plt.subplots(5, nb_plot_depressed+nb_plot_not_depressed+1, figsize=(25, 25), sharey=True)
+fig, axes = plt.subplots(10, nb_plot_depressed+nb_plot_not_depressed+1, figsize=(25, 25), sharey=True)
 for i in range(len(data_trajs_depressed[0])):
     inhib_drive = np.full(network_size,0.0)
     for k in range(network_size):
@@ -84,4 +89,58 @@ cbar = fig.colorbar(im, ax=axes,shrink=0.4,orientation='horizontal', location = 
 cbar.set_label('Activity Level',labelpad=20)
 cbar_inhib = fig.colorbar(im_inhib, ax=axes,shrink=0.4,orientation='horizontal', location = 'bottom',pad=0.05,format='%.1f' )
 cbar_inhib.set_label('Normalized Inhibition',labelpad=20)
+#%%
+# PEARSON COEFFICIENTS
+nb_iter = 10
+
+#%%
+# Initialize an array to store all correlation coefficients
+all_correlations = []
+iteration_lengths = []
+for j in range(0,nb_iter):
+    print("nb query iter = "+str(j))
+    traj_file_1 = folder_sim + "\\results_" + str(j) + ".data"
+    traj_1 = np.loadtxt(traj_file_1)
+    traj_file_2 = folder_sim + "\\results_depressed_" + str(j) + ".data"
+    traj_2 = np.loadtxt(traj_file_2)
+    traj = np.append(traj_2,traj_1,axis=0)
+    # Calculate Pearson correlation for each pattern at each time step
+    correlations = []
+    for t in range(traj.shape[0]):
+        pattern_correlations = []
+        for p in range(patterns.shape[0]):
+            corr, _ = pearsonr(traj[t], patterns[p])
+            pattern_correlations.append(corr)
+        correlations.append(pattern_correlations)
+ 
+    # Append correlations for this iteration to the all_correlations list
+    all_correlations.extend(correlations)
+    iteration_lengths.append(len(correlations))
+
+#%%
+# Convert to numpy array for easier manipulation
+all_correlations = np.array(all_correlations)
+
+#%%
+# Plot the results
+plt.rcParams.update({'font.size': 15})
+plt.figure(figsize=(12, 6))
+for p in range(patterns.shape[0]):
+    plt.plot(all_correlations[:, p], label=f'Pattern {p+1}')
+
+plt.xlabel('Time steps (concatenated across iterations)')
+plt.ylabel('Pearson correlation coefficient')
+plt.title(f'Correlation between trajectory and patterns over time (first {nb_iter} iterations)')
+# plt.legend()
+# Add dotted red lines to separate iterations
+cumulative_length = 0
+for length in iteration_lengths[:-1]:  # We don't need a line after the last iteration
+    cumulative_length += length
+    plt.axvline(x=cumulative_length, color='red', linestyle=':', alpha=0.7)
+plt.show()
+
+#%%
+# Print the shape of the resulting array
+print(f"Shape of all_correlations: {all_correlations.shape}")
+print(f"Number of iterations processed: {nb_iter}")
 # %%
