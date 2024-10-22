@@ -159,15 +159,19 @@ void run_net_sim_noisy_depressed_save(Network &net, int nb_iter, double delta, d
 
 int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter)
 {
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
     int nb_iter = 0;
-    while (std::abs(sum_activities_past - sum_activities_new) > epsilon && nb_iter <= max_iter)
+    std::vector<double> rates_past(net.size,1000.0);
+    std::vector<double> rates_new(net.size,0.0);
+    std::vector<double> differences(net.size,1000.0);
+    double max=1000.0;
+    while (max > epsilon && nb_iter <= max_iter)
     {
         writeToCSV(file, net.rate_list);
         net.noisy_iterate(delta, mean, stddev);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(), net.rate_list.end(), 0.0);
+        rates_past = rates_new;
+        rates_new = net.rate_list;
+            std::transform(rates_past.begin(), rates_past.end(), rates_new.begin(), differences.begin(), std::minus<>());
+            max = std::abs(*std::max_element(differences.begin(),differences.end()));
         nb_iter += 1;
     }
     return nb_iter;
@@ -175,15 +179,19 @@ int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, doubl
 
 int run_net_sim_noisy_depressed_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter)
 {
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
     int nb_iter = 0;
-    while (std::abs(sum_activities_past - sum_activities_new) > epsilon && nb_iter <= max_iter)
+    std::vector<double> rates_past(net.size,1000.0);
+    std::vector<double> rates_new(net.size,0.0);
+    std::vector<double> differences(net.size,1000.0);
+    double max=1000.0;
+    while (max > epsilon && nb_iter <= max_iter)
     {
         writeToCSV(file, net.rate_list);
         net.noisy_depressed_iterate(delta, mean, stddev);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(), net.rate_list.end(), 0.0);
+        rates_past = rates_new;
+        rates_new = net.rate_list;
+            std::transform(rates_past.begin(), rates_past.end(), rates_new.begin(), differences.begin(), std::minus<>());
+            max = std::abs(*std::max_element(differences.begin(),differences.end()));
         nb_iter += 1;
     }
     return nb_iter;

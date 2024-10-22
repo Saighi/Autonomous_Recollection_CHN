@@ -23,8 +23,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 {
     // Learning constants
     int cpt=0;
-    int nb_pat = 10;
-    double epsilon_learning=0.001;
+    int num_patterns = parameters.at("num_patterns");
+    double epsilon_learning=parameters.at("epsilon_learning");
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
     int network_size = parameters.at("network_size");
@@ -56,8 +56,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 
     std::string patterns_file_name = sim_data_foldername + "/patterns.data";
     std::ofstream file(patterns_file_name, std::ios::trunc);
-    initial_patterns = generatePatterns(nb_pat, 20*16, (20*16)/3, 1);
-    for (int i = 0; i < nb_pat; i++)
+    initial_patterns = generatePatterns(num_patterns, 20*16, (20*16)/3, 1);
+    for (int i = 0; i < num_patterns; i++)
     {
         writeBoolToCSV(file, initial_patterns[i]);
         // show_vector_bool_grid(initial_patterns[i], col_with);
@@ -83,31 +83,20 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     initial_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns);
     // query_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), query_patterns);
 
-    vector<double> drive_errors;
-    drive_errors.resize(network_size,0.0);
-    double sum_errors;
-    bool stop_learning = false;
+    std::vector<double> drives_error(net.size,0.0);
+
+    double max_error=1000;
     cpt=0;
     // Training loop
-    // show_vector_bool_grid(initial_patterns[0],IMAGE_HEIGHT);
-    // show_vector_bool_grid(query_patterns[0],IMAGE_HEIGHT);
     std::cout << "WRITING ATTRACTORS" << std::endl;
-    while(!stop_learning)
+    while (max_error > epsilon_learning && cpt <= 10000)
     {
-        sum_errors=0.0;
         for (int j = 0; j < initial_patterns.size(); j++)
         {
-            net.derivative_gradient_descent(initial_patterns[j],initial_patterns_rates[j],drive_target,learning_rate, leak, drive_errors);
-            sum_errors+=std::accumulate(drive_errors.begin(),drive_errors.end(),0.0);
+            net.derivative_gradient_descent(initial_patterns[j],initial_patterns_rates[j],drive_target,learning_rate, leak, drives_error);
         }
-        if(abs(sum_errors)/(network_size*initial_patterns.size())<epsilon_learning){
-            stop_learning=true;
-        }
-        if(cpt==5000){
-            stop_learning=true;
-        }
+        max_error = std::abs(*std::max_element(drives_error.begin(),drives_error.end()));
         cpt+=1;
-        std::cout <<  abs(sum_errors)/(network_size*initial_patterns.size()) << std::endl;
         std::cout << cpt << std::endl;
     }
     std::cout << "nombre d'iterations" << std::endl;
@@ -179,6 +168,8 @@ int main(int argc, char **argv)
         {"learning_rate", {0.001}}, // REMOVED-target rates
         {"network_size", network_sizes},
         {"leak", {1.3}},
+        {"num_patterns", {10}},
+        {"epsilon_learning", {0.01}},
         {"delta", {0.01}}};
     
 

@@ -8,6 +8,7 @@ import matplotlib.animation as animation
 from scipy.stats import pearsonr
 plt.rcParams.update({'font.size': 20})
 #%%
+nb_iter = 20
 size_picture = (20,16)
 network_size = size_picture[0]*size_picture[1]
 sim_dir_name = 'sim_nb_0'
@@ -51,7 +52,7 @@ for i in range(len(data_trajs_depressed[0])):
 #%%
 nb_plot_depressed = 3 # Has to be pair to deal with depressed and none depressed
 nb_plot_not_depressed = 3 # Has to be pair to deal with depressed and none depressed
-fig, axes = plt.subplots(10, nb_plot_depressed+nb_plot_not_depressed+1, figsize=(25, 25), sharey=True)
+fig, axes = plt.subplots(nb_iter, nb_plot_depressed+nb_plot_not_depressed+1, figsize=(25, 25), sharey=True)
 for i in range(len(data_trajs_depressed[0])):
     inhib_drive = np.full(network_size,0.0)
     for k in range(network_size):
@@ -91,7 +92,6 @@ cbar_inhib = fig.colorbar(im_inhib, ax=axes,shrink=0.4,orientation='horizontal',
 cbar_inhib.set_label('Normalized Inhibition',labelpad=20)
 #%%
 # PEARSON COEFFICIENTS
-nb_iter = 10
 
 #%%
 # Initialize an array to store all correlation coefficients
@@ -100,9 +100,9 @@ iteration_lengths = []
 for j in range(0,nb_iter):
     print("nb query iter = "+str(j))
     traj_file_1 = folder_sim + "\\results_" + str(j) + ".data"
-    traj_1 = np.loadtxt(traj_file_1)
+    traj_1 = np.loadtxt(traj_file_1,ndmin=2)
     traj_file_2 = folder_sim + "\\results_depressed_" + str(j) + ".data"
-    traj_2 = np.loadtxt(traj_file_2)
+    traj_2 = np.loadtxt(traj_file_2,ndmin=2)
     traj = np.append(traj_2,traj_1,axis=0)
     # Calculate Pearson correlation for each pattern at each time step
     correlations = []

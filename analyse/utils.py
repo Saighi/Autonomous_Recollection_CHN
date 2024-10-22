@@ -17,10 +17,10 @@ def load_simulation_trajectories(myDir, name_file):
                         cpt+=1
                         file_path = os.path.join(sim_dir, file)
                         print(file_path)
-                        matrix = np.loadtxt(file_path) 
+                        matrix = np.loadtxt(file_path,ndmin=2) 
                         data[-1].append(matrix)
     
-    return np.array(data)  # Convert defaultdict to regular dict before returning
+    return data  
 
 def parse_config_file(file_name):
     config = {}
