@@ -7,6 +7,22 @@
 #include <fstream>
 #include <filesystem>
 #include <unordered_map>
+#include <iostream>
+
+struct SimulationConfig {
+    // Required parameters
+    double delta;
+    double epsilon;
+    
+    // Optional parameters
+    bool depressed = false;
+    bool noise = false;
+    bool save = false;
+    double mean = 0.0;
+    double stddev = 0.005;
+    std::ostream &output = std::cout;
+    int max_iter = 10000;
+};
 
 void show_state(Network&);
 void show_state_grid(Network&, int);
@@ -14,25 +30,13 @@ void run_net_sim(Network&, int, double);
 void show_matrix(std::vector<std::vector<double>>);
 void show_vector(std::vector<double>);
 
-int run_net_sim_noisy_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev, int max_iter);
-int run_net_sim_noisy_depressed_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev, int max_iter);
-int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev,std::ofstream &file, int max_iter);
-int run_net_sim_noisy_depressed_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter);
-
-int run_net_sim_convergence_check_save(Network &net, double epsilon, double delta,std::ofstream &file, int max_iter);
-int run_net_sim_depressed_convergence_check_save(Network &net, double epsilon, double delta, std::ofstream &file, int max_iter);
-
-void run_net_sim_noisy_depressed(Network &net, int nb_iter, double delta, double mean, double stddev);
-void run_net_sim_noisy(Network &net, int nb_iter, double delta, double mean, double stddev);
-
-void run_net_sim_noisy_depressed_save(Network &net, int nb_iter, double delta, double mean, double stddev, std::ofstream &file);
-void run_net_sim_noisy_save(Network &net, int nb_iter, double delta, double mean, double stddev, std::ofstream &file);
+int run_net_sim_choice(Network &net, SimulationConfig& conf);
 std::vector<double> assignStateToTopNValues(std::vector<double> &, int, double, double);
 std::vector<bool> assignBoolToTopNValues(std::vector<double> &, int);
 void show_vector_bool_grid(std::vector<bool>, int);
 struct Compare;
-void writeToCSV(std::ofstream &file, const std::vector<double> &data);
-void writeBoolToCSV(std::ofstream &file, const std::vector<bool> &data);
+void writeToCSV(std::ostream &file, const std::vector<double> &data);
+void writeBoolToCSV(std::ostream &file, const std::vector<bool> &data);
 std::vector<double> linspace(double start, double end, int num);
 std::vector<std::vector<bool>> generatePatterns(int K, int N, int nb_winning_units, double noiseLevel);
 std::vector<std::vector<bool>> loadPatterns(const std::string &filename);

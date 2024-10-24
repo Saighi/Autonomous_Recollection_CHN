@@ -88,7 +88,6 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         winning_units = assignBoolThreshold(net.activity_list, 0.5);
         net.pot_inhib_bin(beta, winning_units); // works with 0.005
         // Check if the output vector is in the target set and hasn't been counted yet
-        cpt+=1;
         show_vector_bool_grid(winning_units,IMAGE_HEIGHT);
         is_found_patterns.push_back(false);
         if (std::find(patterns.begin(), patterns.end(), winning_units) != patterns.end())
@@ -140,8 +139,8 @@ int main(int argc, char **argv)
     // vector<double> repetitions = {0};
     
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.001} },
-        {"nb_iter",{10}},
+        {"beta", {0.005} },
+        {"nb_iter",{20}},
         {"noise_stddev",{0}}};   
 
     unordered_map<string, double> inherited_params;
@@ -151,7 +150,6 @@ int main(int argc, char **argv)
     string patterns_file_name;
     vector<unordered_map<string, double>> combinations = generateCombinations(varying_params);
     unordered_map<string,double> fused_parameters;
-    int batch = 0;
     vector<string> all_paths;
     // Check if the path exists and is a directory
     if (fs::exists(foldername_inputs) && fs::is_directory(foldername_inputs))

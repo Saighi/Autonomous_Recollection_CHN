@@ -1,4 +1,5 @@
 #include "network.hpp"
+#include "utils.hpp"
 #include <numeric>
 #include <iostream>
 #include <vector>
@@ -24,7 +25,7 @@
 #include <condition_variable>
 namespace fs = std::filesystem;
 
-void writeToCSV(std::ofstream &file, const std::vector<double> &data)
+void writeToCSV(std::ostream &file, const std::vector<double> &data)
 {
     for (size_t i = 0; i < data.size(); ++i)
     {
@@ -37,7 +38,7 @@ void writeToCSV(std::ofstream &file, const std::vector<double> &data)
     file << "\n"; // Add a new line after each vector
 }
 
-void writeBoolToCSV(std::ofstream &file, const std::vector<bool> &data)
+void writeBoolToCSV(std::ostream &file, const std::vector<bool> &data)
 {
     for (size_t i = 0; i < data.size(); ++i)
     {
@@ -120,171 +121,39 @@ void show_vector(std::vector<double> vector)
 
 // SIMULATION
 
-void run_net_sim(Network& net, int nb_iter, double delta)
+int run_net_sim_choice(Network &net, SimulationConfig& conf)
 {
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.iterate(delta);
-    }
-}
-
-void run_net_sim_noisy(Network &net, int nb_iter, double delta, double mean, double stddev)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.noisy_iterate(delta, mean, stddev);
-    }
-}
-
-int run_net_sim_convergence_check(Network &net, double epsilon, double delta, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
     int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
+    std::vector<double> rates_past(net.size,1000.0);
+    std::vector<double> rates_new(net.size,0.0);
+    std::vector<double> differences(net.size,1000.0);
+    double max=1000.0;
+    while (max > conf.epsilon && nb_iter <= conf.max_iter)
     {
-        net.iterate(delta);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
+        if(conf.save){
+            writeToCSV(conf.output,net.rate_list);
+        }
+        if(conf.depressed){
+            if(conf.noise){
+                net.noisy_depressed_iterate(conf.delta,conf.mean,conf.stddev);
+            }else{
+                net.depressed_iterate(conf.delta);
+            }
+        }else{
+            if(conf.noise){
+                net.noisy_iterate(conf.delta,conf.mean,conf.stddev);
+            }
+            else{
+                net.iterate(conf.delta);
+            }
+        }
+        rates_past = rates_new;
+        rates_new = net.rate_list;
+            std::transform(rates_past.begin(), rates_past.end(), rates_new.begin(), differences.begin(), std::minus<>());
+            max = std::abs(*std::max_element(differences.begin(),differences.end()));
+        nb_iter += 1;
     }
     return nb_iter;
-}
-
-int run_net_sim_depressed_convergence_check(Network &net, double epsilon, double delta, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        net.depressed_iterate(delta);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-int run_net_sim_convergence_check_save(Network &net, double epsilon, double delta, std::ofstream &file, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        writeToCSV(file, net.rate_list);
-        net.iterate(delta);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-int run_net_sim_depressed_convergence_check_save(Network &net, double epsilon, double delta, std::ofstream &file, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        writeToCSV(file, net.rate_list);
-        net.depressed_iterate(delta);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-int run_net_sim_noisy_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        net.noisy_iterate(delta, mean, stddev);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-int run_net_sim_noisy_depressed_convergence_check(Network &net, double epsilon, double delta, double mean, double stddev, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        net.noisy_depressed_iterate(delta, mean, stddev);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-int run_net_sim_noisy_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        writeToCSV(file, net.rate_list);
-        net.noisy_iterate(delta, mean, stddev);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-int run_net_sim_noisy_depressed_convergence_check_save(Network &net, double epsilon, double delta, double mean, double stddev, std::ofstream &file, int max_iter)
-{
-    float sum_activities_past = 1000;
-    float sum_activities_new = 0;
-    int nb_iter = 0;
-    while(std::abs(sum_activities_past-sum_activities_new)>epsilon && nb_iter<=max_iter)
-    {
-        writeToCSV(file, net.rate_list);
-        net.noisy_depressed_iterate(delta, mean, stddev);
-        sum_activities_past = sum_activities_new;
-        sum_activities_new = std::accumulate(net.rate_list.begin(),net.rate_list.end(),0.0);
-        nb_iter+=1;
-    }
-    return nb_iter;
-}
-
-
-void run_net_sim_noisy_save(Network &net, int nb_iter, double delta, double mean, double stddev, std::ofstream &file)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.noisy_iterate(delta, mean, stddev);
-        writeToCSV(file, net.rate_list);
-    }
-}
-
-void run_net_sim_noisy_depressed(Network &net, int nb_iter, double delta, double mean, double stddev)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.noisy_depressed_iterate(delta, mean, stddev);
-    }
-}
-
-void run_net_sim_noisy_depressed_save(Network &net, int nb_iter, double delta, double mean, double stddev, std::ofstream &file)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.noisy_depressed_iterate(delta, mean, stddev);
-        writeToCSV(file, net.rate_list);
-    }
 }
 
 // TOOLS

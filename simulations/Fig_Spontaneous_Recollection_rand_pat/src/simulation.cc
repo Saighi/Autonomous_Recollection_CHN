@@ -56,7 +56,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 
     std::string patterns_file_name = sim_data_foldername + "/patterns.data";
     std::ofstream file(patterns_file_name, std::ios::trunc);
-    initial_patterns = generatePatterns(num_patterns, 20*16, (20*16)/3, 1);
+    initial_patterns = generatePatterns(num_patterns, 20*16, (20*16)/4, 1);
     for (int i = 0; i < num_patterns; i++)
     {
         writeBoolToCSV(file, initial_patterns[i]);
@@ -149,13 +149,14 @@ int main(int argc, char **argv)
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
-    if (!fs::exists(foldername_results))
+    if (fs::exists(foldername_results))
     {
-        if (!fs::create_directory(foldername_results))
-        {
-            std::cerr << "Error creating directory: " << foldername_results << std::endl;
-            return 1;
-        }
+        fs::remove_all(foldername_results);
+    }
+    if (!fs::create_directory(foldername_results))
+    {
+        std::cerr << "Error creating directory: " << foldername_results << std::endl;
+        return 1;
     }
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};

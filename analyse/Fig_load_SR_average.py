@@ -15,7 +15,7 @@ def get_spaced_indices(n, num_ticks=4):
 plt.rcParams.update({'font.size': 20})
 #%%
 # Read the CSV file
-myDir = "D:\\data\\all_data_splited\\sleep_simulations\\Fig_load_SR_better_writing_sleep_450"
+myDir = "..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_load_SR_average_test"
 data = pd.read_csv(myDir+'\\all_simulation_data.csv')
 # data = data[data['network_size'] != 250]
 #%%
@@ -27,7 +27,7 @@ max_spurious = 0.5
 data['relative_spurious_capped']= np.clip(data['relative_spurious'],0,max_spurious)
 ##%
 number_plot=6
-ratio_taken = 1/2
+ratio_taken = 1
 nb_iter_mult = data['nb_iter_mult'][0]
 eta_list = np.linspace(0.01,ratio_taken*nb_iter_mult,number_plot) # We have been doing 3 times more iterations than number of patterns
 all_iter_ordered = np.sort(data['query_iter'].unique())
@@ -82,7 +82,7 @@ for i,iter in enumerate(all_iter_ordered):
     # Plot the phase diagram
     y_axis_i = int(i//(number_plot/2))
     x_axis_i = int(i-(y_axis_i*(number_plot/2)))
-    im = axes[y_axis_i][x_axis_i].imshow(pivot_table, aspect='auto', origin='upper', cmap='viridis',vmin=0,vmax=0)
+    im = axes[y_axis_i][x_axis_i].imshow(pivot_table, aspect='auto', origin='upper', cmap='viridis',vmin=0,vmax=1)
     axes[y_axis_i][x_axis_i].set_title(f'iter = {iter}',fontsize=14)
     axes[y_axis_i][x_axis_i].set_xticks(x_tick_indices)
     axes[y_axis_i][x_axis_i].set_yticks(y_tick_indices)
@@ -111,7 +111,7 @@ for i,iter in enumerate(all_iter_ordered):
     # Plot the phase diagram
     y_axis_i = int(i//(number_plot/2))
     x_axis_i = int(i-(y_axis_i*(number_plot/2)))
-    im = axes[y_axis_i][x_axis_i].imshow(pivot_table, aspect='auto', origin='upper', cmap='Reds',vmin=0,vmax=0)
+    im = axes[y_axis_i][x_axis_i].imshow(pivot_table, aspect='auto', origin='upper', cmap='viridis',vmin=0,vmax=0.5)
     axes[y_axis_i][x_axis_i].set_title(f'iter = {iter}',fontsize=14)
     axes[y_axis_i][x_axis_i].set_xticks(x_tick_indices)
     axes[y_axis_i][x_axis_i].set_yticks(y_tick_indices)
@@ -119,10 +119,6 @@ for i,iter in enumerate(all_iter_ordered):
     axes[y_axis_i][x_axis_i].set_yticklabels(all_num_patterns[y_tick_indices])
 cbar_ax = fig.add_axes([0.93, 0.15, 0.009, 0.7])  # [left, bottom, width, height]
 cbar = fig.colorbar(im,cax=cbar_ax)
-ticks = cbar.get_ticks()
-labels = [f'{t:.2f}' for t in ticks[:-1]]  # Format all but last tick as floats
-labels.append('>'+ticks[:-1])
-cbar.set_ticklabels(labels)
 cbar.set_label('Ratio Error',labelpad = 14)
 # plt.tight_layout(rect=[0,0,1,1])
 fig.text(0.5, 0.035, 'Network size', ha='center', va='center')

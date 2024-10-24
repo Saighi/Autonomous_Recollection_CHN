@@ -76,6 +76,7 @@
         "thread": "cpp",
         "condition_variable": "cpp",
         "mutex": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "xstddef": "cpp"
     }
 }
