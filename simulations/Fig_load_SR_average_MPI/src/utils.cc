@@ -759,26 +759,28 @@ std::vector<double> generateEvenlySpacedIntegers(int a, int b, int n)
     return result;
 }
 
-std::vector<std::vector<int>> ranks_processes(int nb_process, int nb_simulations){
-
+std::vector<std::vector<int>> ranks_processes(int nb_process, int nb_simulations) {
+    // Create and initialize sim_ids vector
     std::vector<int> sim_ids(nb_simulations);
-    for (int i = 1; i <= nb_simulations; i++)
-    {
-        sim_ids[i] = nb_simulations - i;
+    for (int i = 0; i < nb_simulations; i++) {
+        sim_ids[i] = nb_simulations - i - 1;
     }
+    
+    // Create a random number generator with fixed seed
+    std::mt19937 gen(12345); // Fixed seed ensures same shuffle across all processes
+    
+    // Shuffle the simulation IDs
+    std::shuffle(sim_ids.begin(), sim_ids.end(), gen);
+    
+    // Distribute shuffled IDs among processes
     std::vector<std::vector<int>> ranks_affiliated_processes(nb_process);
     int which_rank = 0;
-    while (sim_ids.size()>0)
-    {
+    
+    while (!sim_ids.empty()) {
         ranks_affiliated_processes[which_rank].push_back(sim_ids.back());
         sim_ids.pop_back();
-        if (which_rank<nb_process-1){
-            which_rank++;
-        }
-        else{
-            which_rank=0;
-        }
-        
+        which_rank = (which_rank + 1) % nb_process;
     }
+    
     return ranks_affiliated_processes;
 }

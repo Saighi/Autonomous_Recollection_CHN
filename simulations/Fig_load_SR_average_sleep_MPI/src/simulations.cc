@@ -122,6 +122,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         result_file_retrieval << to_string(foundVectors.size()) <<",";
         result_file_retrieval << to_string(nb_spurious_patterns) <<"," << endl;
         cpt+=1;
+        std::cout << cpt << std::endl;
     }
 
     // result_file_retrieval << "general results :" << std::endl;
@@ -143,12 +144,17 @@ int main(int argc, char **argv)
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    bool save_trajectories = true;
-    string sim_name = "Fig_load_SR_average_test";
-    string inputs_name = "Fig_load_SR_average_test";
+    bool save_trajectories = false;
+    // string sim_name = "Fig_load_SR_average_MPI_test";
+    string sim_name = argv[1];
+    string inputs_name = sim_name;
+    string foldername_inputs = argv[2];
+    foldername_inputs = foldername_inputs+sim_name;
+    string foldername_results = argv[3];
+    foldername_results = foldername_results+sim_name;
     // string inputs_name = "write_parameter_many_nb_iter_learning";
-    string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
-    string foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
+    // string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
+    // string foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
     // Create directory if it doesn't exist
     // Only rank 0 creates the main directory
     if (rank == 0)
@@ -164,17 +170,15 @@ int main(int argc, char **argv)
     MPI_Barrier(MPI_COMM_WORLD);
 
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.001,0.0005}},
+        {"beta", {0.001,0.0005,0.0001}},
         {"nb_iter_mult", {3}}};   
 
-    unordered_map<string, double> inherited_params;
     vector<vector<bool>> patterns;
     vector<vector<double>> net_weights;
     vector<vector<bool>> net_connectivity;
     string patterns_file_name;
 
     vector<unordered_map<string, double>> combinations = generateCombinations(varying_params);
-    unordered_map<string,double> fused_parameters;
     vector<string> all_paths;
     // Check if the path exists and is a directory
     all_paths=getSubfolderPaths(foldername_inputs);
@@ -186,41 +190,46 @@ int main(int argc, char **argv)
             path_configId_pairs.push_back({path,i});
         }
     }
+
     int nb_simulations = path_configId_pairs.size();
-    // inherited_params = readParametersFile(path + "/parameters.data");
-    // net_weights = readMatrixFromFile(path + "/weights.data");
-    // net_connectivity = readBoolMatrixFromFile(path + "/connectivity.data");
-    // patterns_file_name = path + "/patterns.data";
+    vector<vector<int>> ranks_affiliated_sim = ranks_processes(size, nb_simulations);
+    unordered_map<string,double> fused_parameters;
+    unordered_map<string,double> local_parameters;
+    unordered_map<string, double> inherited_params;
+    string path;
+    for(int sim_number: ranks_affiliated_sim[rank])
+    {
+        pair path_and_paramas=path_configId_pairs[sim_number];
+        path = path_and_paramas.first;
+        local_parameters = combinations[path_and_paramas.second];
+        inherited_params = readParametersFile(path + "/parameters.data");
+        net_weights = readMatrixFromFile(path + "/weights.data");
+        net_connectivity = readBoolMatrixFromFile(path + "/connectivity.data");
+        patterns_file_name = path + "/patterns.data";
+        patterns = loadPatterns(patterns_file_name);
+        fused_parameters = fuseMaps(inherited_params, local_parameters);
+        cout << "Process " << rank << " running simulation " << sim_number
+                << " of " << nb_simulations << endl;
+        run_sleep(sim_number, net_weights, net_connectivity, fused_parameters, foldername_results, patterns, save_trajectories);
+        // cout<<"process : "<< rank<< " is dealing with path"<< path_and_paramas.first<<endl; 
+        // cout<<"process : "<< rank<< " is dealing with beta"<< combinations[path_and_paramas.second].at("beta")<<endl; 
+    }
+    if(rank==0){
+        for(vector<int> var : ranks_affiliated_sim)
+        {
+            for(int in_var : var)
+            {
+                std::cout << in_var <<" ";   
+            }
+            std::cout << std::endl;
+        }
+    }
 
-    // patterns = loadPatterns(patterns_file_name);
-
-    // for (int sim_number = 0; sim_number < combinations.size(); ++sim_number)
-    // {
-    //     fused_parameters = fuseMaps(inherited_params, combinations[sim_number]);
-
-    //     {
-    //         std::unique_lock<std::mutex> lock(mtx);
-    //         cv.wait(lock, [&]
-    //                 { return active_threads < max_threads; });
-    //         ++active_threads;
-    //     }
-
-    //     threads.emplace_back([=, &mtx, &cv, &active_threads]
-    //                             {
-    //         run_sleep(all_sim_number, net_weights, net_connectivity, fused_parameters, foldername_results, patterns, save_trajectories);
-    //         {
-    //             std::lock_guard<std::mutex> lock(mtx);
-    //             --active_threads;
-    //         }
-    //         cv.notify_all(); });
-
-    //     all_sim_number += 1;
-    // }
-
-    // collectSimulationDataSeries(foldername_results);
 
     MPI_Barrier(MPI_COMM_WORLD);
-
+    if(rank==0){
+        collectSimulationDataSeries(foldername_results);
+    }
     MPI_Finalize();
     return 0;
 }

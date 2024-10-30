@@ -26,9 +26,15 @@ run: simulations
 run-auto: simulations
 	@echo "Available cores: $$(nproc)"
 	@echo "MPI will use: $$($(MPIRUN) --use-hwthread-cpus hostname | wc -l) processes"
-	$(MPIRUN) --use-hwthread-cpus ./simulations
+	@echo "Running with SIM_NAME=$(SIM_NAME), PATH_INPUTS=$(PATH_INPUTS) and PATH_RESULTS=$(PATH_RESULTS)"
+	$(MPIRUN) --mca btl_vader_single_copy_mechanism none --use-hwthread-cpus ./simulations $(SIM_NAME) $(PATH_INPUTS) $(PATH_RESULTS)
 
 clean:
 	rm -rf obj simulations
 
 .PHONY: all clean obj run
+
+# New target for SLURM
+run-slurm: simulations
+	@echo "Running slurm with SIM_NAME=$(SIM_NAME), PATH_INPUTS=$(PATH_INPUTS) and PATH_RESULTS=$(PATH_RESULTS)"
+	srun --mpi=pmix_v3 ./simulations $(SIM_NAME) $(PATH_INPUTS) $(PATH_RESULTS)

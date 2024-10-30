@@ -154,15 +154,18 @@ int main(int argc, char **argv)
     // vector<double> all_relative_num_patterns = linspace(0.45,0.6,10);
     // vector<double> all_relative_num_patterns = {0.5};
     // vector<double> network_sizes = {10,20,30,40,50,60,70,80,90,100};
-    vector<double> num_patterns = generateEvenlySpacedIntegers(5,20,15);
+    // vector<double> num_patterns = generateEvenlySpacedIntegers(5,25,10);
+    vector<double> num_patterns = {10,10,10,10,10,10,10,10,10,10};
     // vector<double> num_patterns = {5}; 
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = generateEvenlySpacedIntegers(50,300,15);
+    // vector<double> network_sizes = generateEvenlySpacedIntegers(50,300,10);
+    vector<double> network_sizes = {200,200,200,200,200,200,200,200,200,200};
     // vector<double> network_sizes = {100};
     // vector<double> network_sizes = {300};
     vector<double> ratio_flip_writing = {0.5};
     vector<double> init_drive = {0.25};
-    vector<double> repetitions = {0,1,2,3,4,5,6,7,8,9};
+    // vector<double> repetitions = {0,1,2,3,4,5,6,7,8,9};
+    vector<double> repetitions = {0};
     unordered_map<string, vector<double>> varying_params = {
         {"repetitions", repetitions},
         {"ratio_flip_writing", ratio_flip_writing},

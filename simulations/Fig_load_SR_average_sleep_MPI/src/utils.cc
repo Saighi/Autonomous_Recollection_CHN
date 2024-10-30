@@ -19,6 +19,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <regex>
 // Replace filesystem namespace
 // namespace fs = std::filesystem;
 
@@ -700,29 +703,29 @@ void collectSimulationData(const std::string &folderResultsPath)
     }
 }
 
-std::vector<std::vector<int>> ranks_processes(int nb_process, int nb_simulations)
-{
-
+std::vector<std::vector<int>> ranks_processes(int nb_process, int nb_simulations) {
+    // Create and initialize sim_ids vector
     std::vector<int> sim_ids(nb_simulations);
-    for (int i = 1; i <= nb_simulations; i++)
-    {
-        sim_ids[i] = nb_simulations - i;
+    for (int i = 0; i < nb_simulations; i++) {
+        sim_ids[i] = nb_simulations - i - 1;
     }
+    
+    // Create a random number generator with fixed seed
+    std::mt19937 gen(12345); // Fixed seed ensures same shuffle across all processes
+    
+    // Shuffle the simulation IDs
+    std::shuffle(sim_ids.begin(), sim_ids.end(), gen);
+    
+    // Distribute shuffled IDs among processes
     std::vector<std::vector<int>> ranks_affiliated_processes(nb_process);
     int which_rank = 0;
-    while (sim_ids.size() > 0)
-    {
+    
+    while (!sim_ids.empty()) {
         ranks_affiliated_processes[which_rank].push_back(sim_ids.back());
         sim_ids.pop_back();
-        if (which_rank < nb_process - 1)
-        {
-            which_rank++;
-        }
-        else
-        {
-            which_rank = 0;
-        }
+        which_rank = (which_rank + 1) % nb_process;
     }
+    
     return ranks_affiliated_processes;
 }
 
@@ -792,4 +795,137 @@ std::vector<std::string> getSubfolderPaths(const std::string &folderPath)
 #endif
 
     return all_paths;
+}
+
+
+void collectSimulationDataSeries(const std::string &folderResultsPath)
+{
+    std::vector<std::unordered_map<std::string, std::string>> allSimData;
+    std::vector<std::string> allKeys;
+    std::vector<std::string> resultKeys;
+    std::string path_name;
+    bool first_sim_visited = true;
+    allKeys.push_back("sim_ID");
+
+    DIR *dir;
+    struct dirent *ent;
+    
+    if ((dir = opendir(folderResultsPath.c_str())) != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL)
+        {
+            std::string dirname(ent->d_name);
+            // Skip . and ..
+            if (dirname == "." || dirname == "..")
+                continue;
+
+            std::string fullPath = folderResultsPath + "/" + dirname;
+            
+            // Check if it's a directory using stat instead of fs::is_directory
+            struct stat path_stat;
+            if (stat(fullPath.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode))
+            {
+                std::unordered_map<std::string, std::string> simData;
+                
+                // Extract sim_ID using regex
+                std::regex regex_pattern(R"(\d+$)");
+                std::smatch match;
+                std::string sim_id;
+                if(std::regex_search(dirname, match, regex_pattern)){
+                    sim_id = match.str();
+                    std::cout << "Extracted Sim ID " << sim_id << std::endl;
+                } else {
+                    std::cout << "No SIM ID found" << std::endl;
+                }
+                simData["sim_ID"] = sim_id;
+
+                // Read parameters file
+                std::ifstream paramFile(fullPath + "/parameters.data");
+                if (paramFile.is_open())
+                {
+                    std::string line;
+                    while (std::getline(paramFile, line))
+                    {
+                        std::istringstream iss(line);
+                        std::string key, value;
+                        if (std::getline(iss, key, '=') && std::getline(iss, value))
+                        {
+                            simData[key] = value;
+                            if (first_sim_visited)
+                            {
+                                allKeys.push_back(key);
+                            }
+                        }
+                    }
+                    paramFile.close();
+                }
+
+                // Read results file
+                std::ifstream resultFile(fullPath + "/results.data");
+                if (resultFile.is_open())
+                {
+                    std::string line;
+                    std::getline(resultFile, line); // Read header line
+                    if(first_sim_visited){
+                        std::istringstream iss(line);
+                        std::string key;
+                        while(std::getline(iss, key, ','))
+                        {
+                            allKeys.push_back(key);
+                            resultKeys.push_back(key);
+                        }
+                        first_sim_visited = false;
+                    }
+                    
+                    while (std::getline(resultFile, line))
+                    {
+                        int nb_elements = 0;
+                        std::istringstream iss(line);
+                        std::string value;
+                        while(std::getline(iss, value, ','))
+                        {
+                            simData[resultKeys[nb_elements]] = value;
+                            nb_elements++;
+                        }
+                        allSimData.push_back(simData);
+                    }
+                    resultFile.close();
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    // Write all data to a single CSV file
+    std::ofstream csvFile(folderResultsPath + "/all_simulation_data.csv");
+    if (csvFile.is_open())
+    {
+        // Write header
+        for (const auto &key : allKeys)
+        {
+            csvFile << key << ",";
+        }
+        csvFile << "\n";
+
+        // Write data
+        for (const auto &simData : allSimData)
+        {
+            for (const auto &key : allKeys)
+            {
+                auto it = simData.find(key);
+                if (it != simData.end())
+                {
+                    csvFile << it->second;
+                }
+                csvFile << ",";
+            }
+            csvFile << "\n";
+        }
+        csvFile.close();
+        std::cout << "All simulation data has been written to all_simulation_data.csv" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Unable to open file for writing CSV data." << std::endl;
+    }
 }
