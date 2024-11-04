@@ -123,6 +123,69 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     writeBoolMatrixToFile(net.connectivity_matrix, connectivity_file_name);
 }
 
+// Master process function
+void masterProcess(const vector<unordered_map<string, double>> &combinations, const string &foldername_results, int size) {
+    int numTasks = combinations.size();
+    int taskIndex = 0;
+    int numWorkers = size - 1;
+    int tasksCompleted = 0;
+    MPI_Status status;
+
+    // Initial task distribution
+    for (int i = 1; i <= numWorkers && taskIndex < numTasks; ++i) {
+        // Send task to worker i
+        MPI_Send(&taskIndex, 1, MPI_INT, i, TASK_TAG, MPI_COMM_WORLD);
+        taskIndex++;
+    }
+
+    // Dynamic task assignment
+    while (tasksCompleted < numTasks) {
+        int workerRank;
+        int completedTaskIndex;
+
+        // Receive completed task index from any worker
+        MPI_Recv(&completedTaskIndex, 1, MPI_INT, MPI_ANY_SOURCE, RESULT_TAG, MPI_COMM_WORLD, &status);
+        workerRank = status.MPI_SOURCE;
+        tasksCompleted++;
+
+        // Assign new task if available
+        if (taskIndex < numTasks) {
+            MPI_Send(&taskIndex, 1, MPI_INT, workerRank, TASK_TAG, MPI_COMM_WORLD);
+            taskIndex++;
+        } else {
+            // No more tasks; send termination signal
+            MPI_Send(0, 0, MPI_INT, workerRank, TERMINATE_TAG, MPI_COMM_WORLD);
+        }
+    }
+
+    // Send termination signal to any workers that might still be waiting
+    for (int i = 1; i <= numWorkers; ++i) {
+        MPI_Send(0, 0, MPI_INT, i, TERMINATE_TAG, MPI_COMM_WORLD);
+    }
+}
+
+// Worker process function
+void workerProcess(const string &foldername_results, const vector<unordered_map<string, double>> &combinations) {
+    MPI_Status status;
+
+    while (true) {
+        int taskIndex;
+
+        // Receive task from the master
+        MPI_Recv(&taskIndex, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+        if (status.MPI_TAG == TERMINATE_TAG) {
+            // No more tasks; exit loop
+            break;
+        } else if (status.MPI_TAG == TASK_TAG) {
+            // Run the simulation with the given task index
+            run_simulation(taskIndex, combinations[taskIndex], foldername_results);
+
+            // Notify the master that the task is completed
+            MPI_Send(&taskIndex, 1, MPI_INT, 0, RESULT_TAG, MPI_COMM_WORLD);
+        }
+    }
+}
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -149,16 +212,14 @@ int main(int argc, char **argv) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Define varying parameters
-    vector<double> num_patterns = generateEvenlySpacedIntegers(5, 20, 15);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(5, 25, 10);
     vector<double> drive_targets = {6};
-    // vector<double> network_sizes = generateEvenlySpacedIntegers(50, 300, 10);
-    vector<double> network_sizes = {100};
+    vector<double> network_sizes = generateEvenlySpacedIntegers(50, 300, 10);
+    vector<double> ratio_flip_writing = {0.5};
     vector<double> init_drive = {0.25};
-    vector<double> noise_level = linspace(0,0.9,15);
-    vector<double> iteration = generateEvenlySpacedIntegers(0,20,30);
 
     unordered_map<string, vector<double>> varying_params = {
-        {"ratio_flip_writing", {0.2}},
+        {"ratio_flip_writing", ratio_flip_writing},
         {"drive_target", drive_targets},
         {"max_pattern", {*(std::max_element(num_patterns.begin(), num_patterns.end()))}},
         {"num_patterns", num_patterns},
@@ -169,18 +230,18 @@ int main(int argc, char **argv) {
         {"epsilon_learning", {0.01}},
         {"delta", {0.01}},
         {"init_drive", {0.25}},
-        {"leak", {1.3}},
-        {"iteration", iteration}
+        {"leak", {1.3}}
     };
 
     // Generate parameter combinations (tasks)
     vector<unordered_map<string, double>> combinations = generateCombinations(varying_params);
-    int nb_simulations = combinations.size();
-    vector<vector<int>> ranks_affiliated_sim = ranks_processes(size, nb_simulations);
-    for(int sim_number: ranks_affiliated_sim[rank]){
-        cout << "Process " << rank << " running simulation " << sim_number
-                << " of " << nb_simulations << endl;
-        run_simulation(sim_number, combinations[sim_number], foldername_results);
+
+    if (rank == 0) {
+        // Master process
+        masterProcess(combinations, foldername_results, size);
+    } else {
+        // Worker processes
+        workerProcess(foldername_results, combinations);
     }
 
     MPI_Finalize();

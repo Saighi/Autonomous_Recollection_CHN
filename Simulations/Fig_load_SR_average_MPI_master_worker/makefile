@@ -22,13 +22,12 @@ obj/utils.o : $(SRC)/utils.cc
 run: simulations
 	$(MPIRUN) -np $(NPROC) ./simulations
 
-#Show cores then run
+# Show cores then run
 run-auto: simulations
 	@echo "Available cores: $$(nproc)"
 	@echo "MPI will use: $$($(MPIRUN) --use-hwthread-cpus hostname | wc -l) processes"	
 	@echo "Running with SIM_NAME=$(SIM_NAME) and PATH_RESULTS=$(PATH_RESULTS)"
 	$(MPIRUN) --mca btl_vader_single_copy_mechanism none --use-hwthread-cpus ./simulations $(SIM_NAME) $(PATH_RESULTS)
-
 clean:
 	rm -rf obj simulations
 

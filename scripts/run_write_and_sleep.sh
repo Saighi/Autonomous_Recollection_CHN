@@ -1,6 +1,6 @@
 #!/bin/bash
-# SIM_NAME="Fig_load_SR_average_MPI_50_300_5_25_3_beta"
-SIM_NAME="Fig_load_SR_average_MPI_test"
+SIM_NAME="Fig_load_SR_average_100N"
+# SIM_NAME="Fig_load_SR_average_MPI_test_master_worker"
 PATH_RESULTS_WRITE="../../../data/all_data_splited/trained_networks_fast/"
 PATH_RESULTS_SLEEP="../../../data/all_data_splited/sleep_simulations/"
 # Run make and make run-auto in the first subfolder

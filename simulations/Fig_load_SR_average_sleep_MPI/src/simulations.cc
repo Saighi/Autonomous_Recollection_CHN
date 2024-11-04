@@ -122,7 +122,6 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         result_file_retrieval << to_string(foundVectors.size()) <<",";
         result_file_retrieval << to_string(nb_spurious_patterns) <<"," << endl;
         cpt+=1;
-        std::cout << cpt << std::endl;
     }
 
     // result_file_retrieval << "general results :" << std::endl;
@@ -168,10 +167,10 @@ int main(int argc, char **argv)
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
-
+    vector<double> beta = linspace(0.0001,0.005,15);
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.001,0.0005,0.0001}},
-        {"nb_iter_mult", {3}}};   
+        {"beta", beta},
+        {"nb_iter_mult", {4}}};   
 
     vector<vector<bool>> patterns;
     vector<vector<double>> net_weights;
@@ -224,7 +223,6 @@ int main(int argc, char **argv)
             std::cout << std::endl;
         }
     }
-
 
     MPI_Barrier(MPI_COMM_WORLD);
     if(rank==0){
