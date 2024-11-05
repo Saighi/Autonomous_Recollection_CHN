@@ -136,17 +136,17 @@ int main(int argc, char **argv) {
     string foldername_results = argv[2];
     foldername_results = foldername_results + sim_name;
 
-    // Only rank 0 creates the main directory
-    if (rank == 0) {
-        struct stat st;
-        if (stat(foldername_results.c_str(), &st) == 0) {
-            system(("rm -rf " + foldername_results).c_str());
-        }
-        createDirectory(foldername_results.c_str());
-    }
+    // // Only rank 0 creates the main directory
+    // if (rank == 0) {
+    //     struct stat st;
+    //     if (stat(foldername_results.c_str(), &st) == 0) {
+    //         system(("rm -rf " + foldername_results).c_str());
+    //     }
+    //     createDirectory(foldername_results.c_str());
+    // }
 
-    // Make sure all processes wait until directory is created
-    MPI_Barrier(MPI_COMM_WORLD);
+    // // Make sure all processes wait until directory is created
+    // MPI_Barrier(MPI_COMM_WORLD);
 
     // Define varying parameters
     vector<double> num_patterns = generateEvenlySpacedIntegers(5, 20, 15);
@@ -154,8 +154,8 @@ int main(int argc, char **argv) {
     // vector<double> network_sizes = generateEvenlySpacedIntegers(50, 300, 10);
     vector<double> network_sizes = {100};
     vector<double> init_drive = {0.25};
-    vector<double> noise_level = linspace(0,0.9,15);
-    vector<double> iteration = generateEvenlySpacedIntegers(0,20,30);
+    vector<double> noise_level = linspace(0.2,1,15);
+    vector<double> iteration = generateEvenlySpacedIntegers(0,20,20);
 
     unordered_map<string, vector<double>> varying_params = {
         {"ratio_flip_writing", {0.2}},
