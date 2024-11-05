@@ -1,4 +1,3 @@
-#!/bin/bash
 SIM_NAME="Fig_load_SR_average_100N"
 # SIM_NAME="Fig_load_SR_average_MPI_test_master_worker"
 PATH_RESULTS_WRITE="../../../data/all_data_splited/trained_networks_fast/"
@@ -13,6 +12,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run make and make run-auto in the second subfolder
+make -C ../simulations/Fig_load_SR_average_sleep_MPI make clean  # Clean any previous builds
 make -C ../simulations/Fig_load_SR_average_sleep_MPI
 make -C ../simulations/Fig_load_SR_average_sleep_MPI run-auto SIM_NAME="$SIM_NAME" PATH_INPUTS="$PATH_RESULTS_WRITE" PATH_RESULTS="$PATH_RESULTS_SLEEP"
 
