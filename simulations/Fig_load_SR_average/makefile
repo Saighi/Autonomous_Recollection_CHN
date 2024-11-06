@@ -5,8 +5,8 @@ CFLAGS=-pthread -g -Wall -std=c++17
 
 all : main
 
-main: obj $(SRC)/simulation.cc $(SRC)/utils.cc $(SRC)/network.cc obj/network.o obj/utils.o 
-	$(CC) $(CFLAGS) $(SRC)/simulation.cc -o main -I$(INCLUDE_DIR) ./obj/*.o
+main: obj $(SRC)/simulations.cc $(SRC)/utils.cc $(SRC)/network.cc obj/network.o obj/utils.o 
+	$(CC) $(CFLAGS) $(SRC)/simulations.cc -o simulations -I$(INCLUDE_DIR) ./obj/*.o
 
 obj: 
 	if [ ! -d "./obj" ]; then mkdir obj; fi
@@ -17,4 +17,5 @@ obj/network.o : $(SRC)/network.cc
 obj/utils.o : $(SRC)/utils.cc
 	$(CC) -c $(CFLAGS) $(SRC)/utils.cc -o obj/utils.o -I$(INCLUDE_DIR)
 
-
+run: simulations
+	./simulations
