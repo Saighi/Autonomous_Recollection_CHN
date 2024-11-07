@@ -7,7 +7,7 @@ from scipy.stats import pearsonr
 
 #%%
 # Read the CSV file
-myDir = '..\\..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_load_SR_iter_on_max_pattern_larger_4'
+myDir = '..\\..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_capacity_CHN'
 sim_dir_name = 'sim_nb_'
 data = pd.read_csv(myDir+'\\all_simulation_data.csv')
 

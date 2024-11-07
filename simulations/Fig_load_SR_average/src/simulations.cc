@@ -107,7 +107,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     // Querying
     std::cout << "Querying initial memories" << std::endl;
     vector<double> query_pattern;
-    int succes = 0 ;
+    int succes= 0 ;
     // double strength_drive = 0.1;
     for (int i = 0; i < num_patterns; i++)
     {
