@@ -37,6 +37,14 @@ class Network{
         void reset_inhib();
         void pot_inhib_bin_scale(double, std::vector<bool>);
         void rate_derivative_gradient_descent(std::vector<double> target_state, double learning_rate, double leak);
+        void derivative_gradient_descent_with_momentum(std::vector<bool>& target_bin_state,
+                                                      std::vector<double>& target_rates,
+                                                      double target_drive,
+                                                      double learning_rate,
+                                                      double leak,
+                                                      std::vector<double>& drive_errors,
+                                                      std::vector<std::vector<double>>& velocity_matrix,
+                                                       double momentum_coef);
         // void derivative_gradient_descent(std::vector<bool> target_bin_state, double learning_rate, double leak);
         void derivative_gradient_descent(std::vector<bool>& target_bin_state,std::vector<double>& target_rates,double target_drive,double learning_rate, double leak, std::vector<double>& drive_errors);
 };      

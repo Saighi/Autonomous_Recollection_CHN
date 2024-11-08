@@ -7,9 +7,9 @@ from scipy.stats import pearsonr
 
 #%%
 # Read the CSV file
-myDir = '..\\..\\..\\data\\all_data_splited\\sleep_simulations\\Fig_capacity_CHN'
+myDir = '../../data/all_data_splited/sleep_simulations/Fig_typical_recovery'
 sim_dir_name = 'sim_nb_'
-data = pd.read_csv(myDir+'\\all_simulation_data.csv')
+data = pd.read_csv(myDir+'/all_simulation_data.csv')
 
 #%%
 # Calculate the ratio of successfully queried patterns
@@ -23,8 +23,8 @@ nb_sim = max(data['sim_ID'])
 set(data['num_patterns'])
 #%%
 # Cibled simulation
-num_pattern = 45
-network_size = 250
+num_pattern = 10
+network_size = 100
 
 sub_data = data[(data['network_size'] == network_size) & (data['num_patterns'] == num_pattern)].sort_values(by='query_iter')
 
@@ -32,13 +32,13 @@ sub_data = data[(data['network_size'] == network_size) & (data['num_patterns'] =
 set(data['network_size'])
 #%%
 sim_ID = list(sub_data['sim_ID'])[0]
-folder_sim = myDir + "\\" + sim_dir_name + "" + str(sim_ID)
-patterns = np.loadtxt(folder_sim + "\\patterns.data")
-parameters = utils.parse_config_file(folder_sim + "\\parameters.data")
+folder_sim = myDir + "/" + sim_dir_name + "" + str(sim_ID)
+patterns = np.loadtxt(folder_sim + "/patterns.data")
+parameters = utils.parse_config_file(folder_sim + "/parameters.data")
 
 # Limit the number of iterations to num_pattern*2
 nb_iter = min(int(parameters['max_pattern'] * parameters['nb_iter_mult']), num_pattern*2)
-nb_iter = 11
+nb_iter = 40
 
 #%%
 # Initialize an array to store all correlation coefficients
@@ -46,7 +46,7 @@ all_correlations = []
 iteration_lengths = []
 for j in range(0,nb_iter):
     print("nb query iter = "+str(j))
-    traj_file = folder_sim + "\\results_" + str(j) + ".data"
+    traj_file = folder_sim + "/results_" + str(j) + ".data"
     traj = np.loadtxt(traj_file)
     # Calculate Pearson correlation for each pattern at each time step
     correlations = []

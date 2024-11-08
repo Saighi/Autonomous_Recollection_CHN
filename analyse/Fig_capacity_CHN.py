@@ -8,7 +8,7 @@ def get_spaced_indices(n, num_ticks=4):
 plt.rcParams.update({'font.size': 25})
 #%%
 # Read the CSV file
-myDir = '..\\..\\..\\data\\all_data_splited\\query_simulations\\FIG_capacity_CHN_5'
+myDir = '..\\..\\..\\data\\all_data_splited\\query_simulations\\FIG_capacity_CHN'
 data = pd.read_csv(myDir+'\\all_simulation_data.csv')
 # data = data[data['network_size'] != 250]
 #%%
