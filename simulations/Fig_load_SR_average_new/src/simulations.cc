@@ -12,13 +12,15 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdlib>
 
 using namespace std;
 
 namespace fs = std::filesystem;
 
 void run_simulation(int sim_number, unordered_map<string, double> parameters, const string foldername_results)
-{
+{    
+    srand(sim_number);
     std::cout <<"sim bumber : "<< sim_number << std::endl;
     // Learning constants
     double epsilon_learning=parameters.at("epsilon_learning");
@@ -153,7 +155,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_load_SR_average_new";
+    string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -167,18 +169,18 @@ int main(int argc, char **argv)
         return 1;
     }
     // Define varying parameters
-    vector<double> num_patterns = generateEvenlySpacedIntegers(1, 20, 20);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(1, 30, 15);
     // vector<double> num_patterns = generateEvenlySpacedIntegers(1, 15, 10);
     // vector<double> num_patterns = {6};
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = generateEvenlySpacedIntegers(20, 200, 20);
+    vector<double> network_sizes = generateEvenlySpacedIntegers(50, 300, 15);
     // vector<double> network_sizes = {200};
     vector<double> init_drive = {0.25};
     // vector<double> noise_level = linspace(0.2, 1, 15);
     vector<double> noise_level = {0.5};
-    double learning_rate= 0.0001;
+    double learning_rate= 0.00001;
     // vector<double> noise_level = {0.5};
-    vector<double> repetition = generateEvenlySpacedIntegers(0,10,10);
+    vector<double> repetition = generateEvenlySpacedIntegers(0,30,30);
     unordered_map<string, vector<double>> varying_params = {
         {"repetitions", {repetition}},
         {"ratio_flip_writing", {0.1}},

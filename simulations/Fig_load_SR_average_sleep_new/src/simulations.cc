@@ -12,6 +12,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdlib>
 
 using namespace std;
 
@@ -19,6 +20,7 @@ namespace fs = std::filesystem;
 
 void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std::vector<std::vector<bool>> net_connectivity, const unordered_map<string, double> parameters, const string foldername_results, vector<vector<bool>> patterns)
 {
+    srand(sim_number);
     std::cout <<"sim_number :"<< sim_number<< std::endl;
     bool save_trajectories=false;
     if (parameters.at("save")){
@@ -163,8 +165,8 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
 int main(int argc, char **argv)
 {
-    string sim_name = "Fig_load_SR_average_new";
-    string inputs_name = "Fig_load_SR_average_new";
+    string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
     string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
     fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
@@ -180,11 +182,11 @@ int main(int argc, char **argv)
     }
     unordered_map<string, vector<double>> varying_params = {
         {"save", {0}},
-        {"beta", {0.00025}},
+        {"beta", {0.000125/2.0}},
         {"delta",{0.1}},
         {"noise",{1}},
         {"stddev",{0.01}},
-        {"nb_iter_mult", {30}}};
+        {"nb_iter_mult", {30*2.0}}};
 
 
     unordered_map<string, double> inherited_params;
