@@ -16,7 +16,8 @@ def get_spaced_indices(n, num_ticks=4):
 plt.rcParams.update({'font.size': 20})
 #%%
 # Read the CSV file
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new"
+# Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['network_size'] != 250]
 #%%
@@ -44,10 +45,16 @@ for sim_id in sim_IDs:
     data.loc[mask, 'error_ratio_all_fnd'] = error_ratio
     data.loc[mask, 'is_error_before_all_fnd'] = is_error
 #%%
-data["is_error_before_all_fnd"]
+all_num_patterns = np.sort(data['num_patterns'].unique())
+all_net_sizes = np.sort(data['network_size'].unique())
+#%%
+x_tick_indices = get_spaced_indices(len(all_net_sizes))
+y_tick_indices = get_spaced_indices(len(all_num_patterns))
 #%%
 pivot_table = data.pivot_table(values='is_error_before_all_fnd', index='num_patterns', columns='network_size')
 plt.imshow(pivot_table)
+plt.xticks(x_tick_indices,all_net_sizes[x_tick_indices])
+plt.yticks(y_tick_indices,all_num_patterns[y_tick_indices])
 #%%
 number_plot=6
 ratio_taken = 0.99
@@ -55,9 +62,6 @@ nb_iter_mult = data['nb_iter_mult'][0]
 eta_list = np.linspace(0.01,ratio_taken*nb_iter_mult,number_plot) # We have been doing 3 times more iterations than number of patterns
 all_iter_ordered = np.sort(data['query_iter'].unique())
 all_iter_ordered= equally_spaced_from_array(all_iter_ordered,number_plot, ratio_taken)
-#%%
-all_num_patterns = np.sort(data['num_patterns'].unique())
-all_net_sizes = np.sort(data['network_size'].unique())
 #%%
 x_tick_indices = get_spaced_indices(len(all_net_sizes))
 y_tick_indices = get_spaced_indices(len(all_num_patterns))

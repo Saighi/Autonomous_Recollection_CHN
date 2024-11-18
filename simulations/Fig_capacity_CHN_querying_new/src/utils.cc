@@ -25,17 +25,17 @@
 #include <condition_variable>
 namespace fs = std::filesystem;
 
-void writeToCSV(std::ostream &file, const std::vector<double> &data)
+void writeToCSV(std::ostream *file, const std::vector<double> &data)
 {
     for (size_t i = 0; i < data.size(); ++i)
     {
-        file << data[i];
+        *file << data[i];
         if (i != data.size() - 1)
         {
-            file << " ";
+            *file << " ";
         }
     }
-    file << "\n"; // Add a new line after each vector
+    *file << "\n"; // Add a new line after each vector
 }
 
 void writeBoolToCSV(std::ostream &file, const std::vector<bool> &data)
@@ -721,6 +721,7 @@ std::vector<double> pattern_as_states(double up_rate, double down_rate, std::vec
         }
     return state_input;
 }
+
 
 std::vector<double> setToValueRandomElements(const std::vector<double> &baseValues, int numFlips, double value)
 {

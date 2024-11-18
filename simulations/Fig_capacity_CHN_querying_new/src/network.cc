@@ -179,56 +179,6 @@ void Network::reinforce_attractor(std::vector<double> target_state, double learn
     }
 }
 
-// Increase inhibitory weights between winners, decrease weights from loosers to winners. Normalize all weights.
-// The need to normalize comes from the fact that we may potentiate less than we depressed or the contrary
-// base on the amount of winners/loosers.
-// DOESNT WORK !
-// void Network::pot_inhib_normalize(double pot_rate, int nb_winners)
-// {
-//     double new_sum= 0.0;
-//     std::vector<int> indexes_winners = findTopNIndexes(rate_list, nb_winners);
-
-//     // Create a vector to mark winner neurons for efficient checking
-//     std::vector<bool> isWinner(size, false);
-//     for (int winner : indexes_winners)
-//     {
-//         isWinner[winner] = true;
-//     }
-
-//     // Adjust weights
-//     for (int i = 0; i < size; ++i)
-//     {
-//         for (int j = 0; j < size; ++j)
-//         {
-//             if (connectivity_matrix[i][j]==1){
-//                 // Increase weight between winners
-//                 if (isWinner[i] && isWinner[j])
-//                 {
-//                     inhib_matrix[i][j] += pot_rate;
-//                 }
-//                 // Decrease weight from losers to winners
-//                 else if (!isWinner[i] && isWinner[j])
-//                 {
-//                     inhib_matrix[i][j] -= pot_rate;
-//                 }
-//                 new_sum += inhib_matrix[i][j];
-//             }
-//         }
-//     }
-    
-//     for (int i = 0; i < size; i++)
-//     {
-//         //for (int j = i; j < size; j++)
-//         for (int j = 0; j < size; j++)
-//         {
-//             if (connectivity_matrix[i][j] == 1)
-//             {
-//                 inhib_matrix[i][j] = (inhib_matrix[i][j] / new_sum) * sum_all_inhib;
-//                 //inhib_matrix[j][i] = (inhib_matrix[i][j] / new_sum) * sum_all_inhib;
-//             }
-//         }
-//     }
-// }
 
 // No normalization, doesn't keep the sum of weight of synapses stable.
 void Network::pot_inhib(double pot_rate)
@@ -243,6 +193,29 @@ void Network::pot_inhib(double pot_rate)
             {
                 inhib_matrix[i][j] += pot_rate*(rate_list[j]*rate_list[i]);
                 inhib_matrix[j][i] += pot_rate*(rate_list[j]*rate_list[i]);
+            }
+        }
+    }
+    for (int i = 0; i < size; ++i)
+    {
+        for (int j = 0; j < size; ++j){
+            actual_sum_each_inhib[j] += inhib_matrix[i][j];
+        }
+    }
+}
+
+void Network::pot_inhib_symmetric(double pot_rate)
+{
+    actual_sum_each_inhib = std::vector<double>(size,0);
+    // Adjust weights
+    for (int i = 0; i < size; ++i)
+    {
+        for (int j = 0; j < size; ++j)
+        {
+            if (connectivity_matrix[i][j] == 1)
+            {
+                inhib_matrix[i][j] += pot_rate*(rate_list[j]*(rate_list[i]-0.5));
+                inhib_matrix[j][i] += pot_rate*(rate_list[j]*(rate_list[i]-0.5));
             }
         }
     }

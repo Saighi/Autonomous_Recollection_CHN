@@ -12,14 +12,16 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdlib>
 
 using namespace std;
 
 namespace fs = std::filesystem;
 
 void run_simulation(int sim_number, unordered_map<string, double> parameters, const string foldername_results)
-{
-    std::cout <<"sim number : "<< sim_number << std::endl;
+{    
+    srand(sim_number);
+    std::cout <<"sim bumber : "<< sim_number << std::endl;
     // Learning constants
     double epsilon_learning=parameters.at("epsilon_learning");
     double drive_target = parameters.at("drive_target");
@@ -88,16 +90,30 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     initial_patterns = loadPatterns(patterns_file_name);
     initial_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns);
     vector<double> drives_error;
+    // Initialize velocity matrix for momentum
+    std::vector<std::vector<double>> velocity_matrix(network_size, 
+                                                     std::vector<double>(network_size, 0.0));
+    double momentum_coef = 0.9; // You can adjust this value
     drives_error.resize(network_size,0.0);
     // Training loop
     double max_error=1000;
     int cpt=0;
     std::cout << "WRITING ATTRACTORS" << std::endl;
-    while (max_error > epsilon_learning && cpt <= 100/learning_rate)
+    while (max_error > epsilon_learning && cpt <= 10/learning_rate)
     {
         for (int j = 0; j < initial_patterns.size(); j++)
         {
-            net.derivative_gradient_descent(initial_patterns[j],initial_patterns_rates[j],drive_target,learning_rate, leak, drives_error);
+            // net.derivative_gradient_descent(initial_patterns[j],initial_patterns_rates[j],drive_target,learning_rate, leak, drives_error);
+          net.derivative_gradient_descent_with_momentum(
+                                                        initial_patterns[j],
+                                                        initial_patterns_rates[j],
+                                                        drive_target,
+                                                        learning_rate,
+                                                        leak,
+                                                        drives_error,
+                                                        velocity_matrix,
+                                                        momentum_coef
+                                                        );
         }
         max_error = std::abs(*std::max_element(drives_error.begin(),drives_error.end()));
         cpt+=1;
@@ -139,7 +155,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_capacity_CHN";
+    string sim_name = "Fig_capacity_CHN_new";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -148,34 +164,37 @@ int main(int argc, char **argv)
         fs::remove_all(foldername_results);
     }
     if (!fs::create_directory(foldername_results))
-    
+    {
         std::cerr << "Error creating directory: " << foldername_results << std::endl;
         return 1;
     }
     // Define varying parameters
-    vector<double> num_patterns = generateEvenlySpacedIntegers(5,110,10);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(30, 100, 15);
+    // vector<double> num_patterns = generateEvenlySpacedIntegers(1, 15, 10);
+    // vector<double> num_patterns = {6};
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = generateEvenlySpacedIntegers(30,100,10);
-
+    vector<double> network_sizes = generateEvenlySpacedIntegers(30, 100, 15);
+    // vector<double> network_sizes = {200};
     vector<double> init_drive = {0.25};
     // vector<double> noise_level = linspace(0.2, 1, 15);
-    // vector<double> repetition = generateEvenlySpacedIntegers(0, 20, 10);
-    double learning_rate=0.00025;
-    // vector<double> repetition = {1};
+    vector<double> noise_level = {0.5};
+    double learning_rate= 0.00001;
+    // vector<double> noise_level = {0.5};
+    // vector<double> repetition = generateEvenlySpacedIntegers(0,30,30);
     unordered_map<string, vector<double>> varying_params = {
-        // {"repetition", repetition},
-        {"ratio_flip_writing", {0.2}},
+        // {"repetitions", {repetition}},
+        {"ratio_flip_writing", {0.1}},
         {"drive_target", drive_targets},
         {"max_pattern",{*(std::max_element(num_patterns.begin(), num_patterns.end()))}},
         {"num_patterns", num_patterns},
         {"learning_rate", {learning_rate}}, // REMOVED-target rates
         {"network_size", network_sizes},
-        {"relative_nb_winner", {1.0/3.0}},
-        {"noise_level", {1}},
-        {"epsilon_learning", {learning_rate/1000}},
-        {"delta",{0.01}},
-        {"init_drive", {0.25}},
-        {"leak", {1.3}}};
+        {"relative_nb_winner", {1.0/2.0}},
+        {"noise_level", {noise_level}},
+        {"epsilon_learning", {learning_rate/1000000}},
+        {"delta",{0.1}},
+        {"init_drive", {0.5}},
+        {"leak", {1}}};
 
     vector<unordered_map<string, double>> combinations = generateCombinations(varying_params);
 

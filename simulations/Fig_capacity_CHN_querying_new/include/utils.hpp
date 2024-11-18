@@ -13,14 +13,13 @@ struct SimulationConfig {
     // Required parameters
     double delta;
     double epsilon;
-    
     // Optional parameters
     bool depressed = false;
     bool noise = false;
     bool save = false;
     double mean = 0.0;
     double stddev = 0.005;
-    std::ostream &output = std::cout;
+    std::ostream *output = &std::cout;
     int max_iter = 10000;
 };
 
@@ -35,14 +34,15 @@ std::vector<double> assignStateToTopNValues(std::vector<double> &, int, double, 
 std::vector<bool> assignBoolToTopNValues(std::vector<double> &, int);
 void show_vector_bool_grid(std::vector<bool>, int);
 struct Compare;
-void writeToCSV(std::ostream &file, const std::vector<double> &data);
+void writeToCSV(std::ostream *file, const std::vector<double> &data);
 void writeBoolToCSV(std::ostream &file, const std::vector<bool> &data);
 std::vector<double> linspace(double start, double end, int num);
 std::vector<std::vector<bool>> generatePatterns(int K, int N, int nb_winning_units, double noiseLevel);
 std::vector<std::vector<bool>> loadPatterns(const std::string &filename);
 void createParameterFile(const std::string &directory, const std::unordered_map<std::string, double> &parameters);
-std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns);
 std::vector<double> pattern_as_states(double up_rate, double down_rate, std::vector<bool> bin_pattern);
+std::vector<double> setToValueRandomElements(const std::vector<double> &baseValues, int numFlips, double value);
+std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns);
 std::vector<std::unordered_map<std::string, double>> generateCombinations(const std::unordered_map<std::string, std::vector<double>> &varying_params);
 std::unordered_map<std::string, double> fuseMaps(std::unordered_map<std::string, double> map1, std::unordered_map<std::string, double> map2);
 std::unordered_map<std::string, double> readParametersFile(const std::string &filePath);

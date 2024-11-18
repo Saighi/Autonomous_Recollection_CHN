@@ -208,6 +208,50 @@ void Network::derivative_gradient_descent(std::vector<bool>& target_bin_state,st
     }
 }
 
+void Network::derivative_gradient_descent_with_momentum(std::vector<bool>& target_bin_state,
+                                                      std::vector<double>& target_rates,
+                                                      double target_drive,
+                                                      double learning_rate,
+                                                      double leak,
+                                                      std::vector<double>& drive_errors,
+                                                      std::vector<std::vector<double>>& velocity_matrix,
+                                                      double momentum_coef)
+{
+    double input = 0;
+    double ui;
+    double update;
+    double unit_target_drive;
+    double diff;
+    
+    for (int i = 0; i < size; i++) {
+        for(int j = 0; j < size; j++) {
+            if (connectivity_matrix[i][j] == 1) {
+                input += weight_matrix[i][j] * target_rates[j];
+            }
+        }
+        
+        ui = input/leak;
+        unit_target_drive = ((target_bin_state[i]*2)-1)*target_drive;
+        diff = unit_target_drive - ui;
+        drive_errors[i] = diff;
+        
+        for(int j = 0; j < size; j++) {
+            if (connectivity_matrix[i][j] == 1) {
+                // Calculate gradient update
+                update = learning_rate * 2 * diff * target_rates[j];
+                
+                // Apply momentum update
+                velocity_matrix[i][j] = momentum_coef * velocity_matrix[i][j] + update;
+                velocity_matrix[j][i] = velocity_matrix[i][j]; // Maintain symmetry
+                
+                // Update weights with momentum
+                weight_matrix[i][j] += velocity_matrix[i][j];
+                weight_matrix[j][i] = weight_matrix[i][j]; // Maintain symmetry
+            }
+        }
+        input = 0;
+    }
+}
 void Network::rate_derivative_gradient_descent(std::vector<double> target_rate, double learning_rate, double leak)
 {
     double input = 0;
