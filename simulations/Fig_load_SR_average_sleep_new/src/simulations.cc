@@ -31,7 +31,6 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     double learning_rate = parameters.at("learning_rate");
     int network_size = static_cast<int>(parameters.at("network_size"));
     int nb_winners = static_cast<int>(parameters.at("nb_winners")); // number of 1's neurons
-    std::cout << nb_winners << std::endl;
     double noise_level = parameters.at("noise_level");
     double leak = parameters.at("leak");
     double delta = parameters.at("delta");
@@ -165,8 +164,10 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
 int main(int argc, char **argv)
 {
-    string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
-    string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    // string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_3";
+    string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_3";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
     string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
     fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
@@ -182,11 +183,11 @@ int main(int argc, char **argv)
     }
     unordered_map<string, vector<double>> varying_params = {
         {"save", {0}},
-        {"beta", {0.000125/2.0}},
+        {"beta", {0.000125}},
         {"delta",{0.1}},
         {"noise",{1}},
         {"stddev",{0.01}},
-        {"nb_iter_mult", {30*2.0}}};
+        {"nb_iter_mult", {25}}};
 
 
     unordered_map<string, double> inherited_params;

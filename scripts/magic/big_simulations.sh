@@ -1,0 +1,4 @@
+/home/saighi/Desktop/Spontaneous_Recollection_CHN/simulations/Fig_load_SR_average_new/simulations;
+/home/saighi/Desktop/Spontaneous_Recollection_CHN/simulations/Fig_load_SR_average_sleep_new_auto_stop_many_beta/simulations;
+/home/saighi/Desktop/Spontaneous_Recollection_CHN/simulations/Fig_load_SR_average_new_many_correlations/simulations;
+/home/saighi/Desktop/Spontaneous_Recollection_CHN/simulations/Fig_load_SR_average_sleep_new_auto_stop/simulations;

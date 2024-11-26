@@ -155,7 +155,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    string sim_name = "Fig_load_SR_average_new_inh_plas_big_simulations";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -169,18 +170,22 @@ int main(int argc, char **argv)
         return 1;
     }
     // Define varying parameters
-    vector<double> num_patterns = generateEvenlySpacedIntegers(1, 30, 15);
-    // vector<double> num_patterns = generateEvenlySpacedIntegers(1, 15, 10);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(1, 25, 25);
+    //vector<double> num_patterns = generateEvenlySpacedIntegers(1, 3, 3);
+    //vector<double> num_patterns = generateEvenlySpacedIntegers(1, 25, 25);
     // vector<double> num_patterns = {6};
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = generateEvenlySpacedIntegers(50, 300, 15);
-    // vector<double> network_sizes = {200};
+    vector<double> network_sizes = generateEvenlySpacedIntegers(25, 250, 20);
+    //vector<double> network_sizes = generateEvenlySpacedIntegers(25, 28, 3);
+    //vector<double> network_sizes = {200};
     vector<double> init_drive = {0.25};
     // vector<double> noise_level = linspace(0.2, 1, 15);
     vector<double> noise_level = {0.5};
-    double learning_rate= 0.00001;
+    double learning_rate= 0.0001;
+    // double learning_rate= 0.00001; one night if 10 repetiotion, 50 to 300, 1, 30
     // vector<double> noise_level = {0.5};
-    vector<double> repetition = generateEvenlySpacedIntegers(0,30,30);
+    vector<double> repetition = generateEvenlySpacedIntegers(0,20,20);
+    //vector<double> repetition = generateEvenlySpacedIntegers(0,3,3);
     unordered_map<string, vector<double>> varying_params = {
         {"repetitions", {repetition}},
         {"ratio_flip_writing", {0.1}},
