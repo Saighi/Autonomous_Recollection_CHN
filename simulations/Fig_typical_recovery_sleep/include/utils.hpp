@@ -13,14 +13,13 @@ struct SimulationConfig {
     // Required parameters
     double delta;
     double epsilon;
-    
     // Optional parameters
     bool depressed = false;
     bool noise = false;
     bool save = false;
     double mean = 0.0;
     double stddev = 0.005;
-    std::ostream &output = std::cout;
+    std::ostream *output = &std::cout;
     int max_iter = 10000;
 };
 
@@ -35,7 +34,7 @@ std::vector<double> assignStateToTopNValues(std::vector<double> &, int, double, 
 std::vector<bool> assignBoolToTopNValues(std::vector<double> &, int);
 void show_vector_bool_grid(std::vector<bool>, int);
 struct Compare;
-void writeToCSV(std::ostream &file, const std::vector<double> &data);
+void writeToCSV(std::ostream *file, const std::vector<double> &data);
 void writeBoolToCSV(std::ostream &file, const std::vector<bool> &data);
 std::vector<double> linspace(double start, double end, int num);
 std::vector<std::vector<bool>> generatePatterns(int K, int N, int nb_winning_units, double noiseLevel);

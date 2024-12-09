@@ -12,14 +12,16 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdlib>
 
 using namespace std;
 
 namespace fs = std::filesystem;
 
 void run_simulation(int sim_number, unordered_map<string, double> parameters, const string foldername_results)
-{
-    std::cout <<"sim bumber : "<< sim_number << std::endl;
+{    
+    srand(sim_number);
+    std::cout <<"sim number : "<< sim_number << std::endl;
     // Learning constants
     double epsilon_learning=parameters.at("epsilon_learning");
     double drive_target = parameters.at("drive_target");
@@ -153,6 +155,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
+    // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     string sim_name = "Fig_typical_recovery";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
@@ -167,18 +170,12 @@ int main(int argc, char **argv)
         return 1;
     }
     // Define varying parameters
-    vector<double> num_patterns = generateEvenlySpacedIntegers(5, 20, 10);
-    // vector<double> num_patterns = generateEvenlySpacedIntegers(1, 15, 10);
-    // vector<double> num_patterns = {6};
+    vector<double> num_patterns = generateEvenlySpacedIntegers(5,40,10);
     vector<double> drive_targets = {6};
-    // vector<double> network_sizes = generateEvenlySpacedIntegers(50, 300, 10);
     vector<double> network_sizes = {200};
     vector<double> init_drive = {0.25};
-    // vector<double> noise_level = linspace(0.2, 1, 15);
     vector<double> noise_level = {0.5};
     double learning_rate= 0.0001;
-    // vector<double> noise_level = {0.5};
-    // vector<double> repetition = {1};
     unordered_map<string, vector<double>> varying_params = {
         {"ratio_flip_writing", {0.1}},
         {"drive_target", drive_targets},
@@ -189,7 +186,7 @@ int main(int argc, char **argv)
         {"relative_nb_winner", {1.0/2.0}},
         {"noise_level", {noise_level}},
         {"epsilon_learning", {learning_rate/1000000}},
-        {"delta",{0.01}},
+        {"delta",{0.1}},
         {"init_drive", {0.5}},
         {"leak", {1}}};
 

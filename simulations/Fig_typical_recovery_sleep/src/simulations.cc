@@ -12,15 +12,21 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdlib>
 
 using namespace std;
 
 namespace fs = std::filesystem;
 
-void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std::vector<std::vector<bool>> net_connectivity, const unordered_map<string, double> parameters, const string foldername_results, vector<vector<bool>> patterns, bool save_trajectories)
+void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std::vector<std::vector<bool>> net_connectivity, const unordered_map<string, double> parameters, const string foldername_results, vector<vector<bool>> patterns)
 {
+    srand(sim_number);
     std::cout <<"sim_number :"<< sim_number<< std::endl;
-    save_trajectories = false;
+    bool save_trajectories=false;
+    if (parameters.at("save")){
+        save_trajectories=true;
+        std::cout << "is saving !" << std::endl;
+    }
     // Inherited
     double init_drive = parameters.at("init_drive");
     double learning_rate = parameters.at("learning_rate");
@@ -37,7 +43,6 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         noise=true;
     }
     double stddev=parameters.at("stddev");
-    int nb_iter = static_cast<int>(parameters.at("nb_iter_mult") * parameters.at("max_pattern"));
     int col_with = sqrt(network_size);
 
     Network net = Network(net_connectivity, network_size, leak);
@@ -61,10 +66,9 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     for (int i = 0; i < num_patterns; i++)
     {
         writeBoolToCSV(file, patterns[i]);
-        // show_vector_bool_grid(patterns[i], col_with);
+        // show_vector_bool_grid(patterns[i], 10);
     }
     file.close();
-
     createParameterFile(sim_data_foldername, parameters);
     // SLEEPING SIMULATIONS
 
@@ -81,14 +85,15 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     // std::cout << "SLEEP PHASE" << std::endl;
     vector<bool> is_found_patterns;
     float sum_rates;
-    
+
     result_file_retrieval << "query_iter,";
     result_file_retrieval << "nb_fnd_pat,";
     result_file_retrieval << "nb_spurious," << endl;
 
     int cpt = 0;
     int nb_iter_sim = 0;
-    while(cpt<nb_iter)
+    std::cout << "RETRIEVAL" << std::endl;
+    while(cpt<20)
     {
         // std::cout << "NEW ITER" << std::endl;
         net.set_state(vector<double>(network_size, init_drive));
@@ -103,10 +108,11 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
             result_file_name_sleep = "no_save.data";
         }
         std::ofstream result_file_sleep(result_file_name_sleep, std::ios::trunc);
+        config.output=&result_file_sleep;
         config.delta = delta;
         config.epsilon = delta/1000;
         config.depressed = true;
-        config.save = false;
+        config.save = save_trajectories;
         config.max_iter = 100/delta;
         config.noise = noise;
         config.stddev=stddev;
@@ -115,8 +121,9 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         nb_iter_sim += run_net_sim_choice(net, config); 
         result_file_sleep.close();
         winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
+        // show_vector_bool_grid(winning_units,10);
         // net.pot_inhib_bin(beta, winning_units); // works with 0.005
-        net.pot_inhib(beta); // works with 0.005
+        net.pot_inhib_symmetric(beta); // works with 0.005
         // Check if the output vector is in the target set and hasn't been counted yet
         is_found_patterns.push_back(false);
         if (std::find(patterns.begin(), patterns.end(), winning_units) != patterns.end())
@@ -153,12 +160,12 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     std::cout <<"nb_spurious :"<< nb_spurious_patterns <<" nb_found_patterns : "<< foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " <<" nb_flip : " << " Network size: " << network_size << std::endl;
 
     result_file_retrieval.close();
-    
 }
 
 int main(int argc, char **argv)
 {
-    bool save_trajectories = true;
+    // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
+    // string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     string sim_name = "Fig_typical_recovery";
     string inputs_name = "Fig_typical_recovery";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
@@ -175,12 +182,11 @@ int main(int argc, char **argv)
         return 1;
     }
     unordered_map<string, vector<double>> varying_params = {
-        // {"beta", {0.01,0.005,0.001,0.0005,0.0001}},
-        {"beta", {0.001}},
-        {"delta",{0.1}},
+        {"save", {1}},
+        {"beta", {0.00125}},
+        {"delta",{0.01}},
         {"noise",{1}},
-        {"stddev",{0.01}},
-        {"nb_iter_mult", {6}}};   
+        {"stddev",{0.01}}};
 
 
     unordered_map<string, double> inherited_params;
@@ -234,7 +240,7 @@ int main(int argc, char **argv)
 
             threads.emplace_back([=, &mtx, &cv, &active_threads]
                                  {
-                run_sleep(all_sim_number, net_weights, net_connectivity, fused_parameters, foldername_results, patterns, save_trajectories);
+                run_sleep(all_sim_number, net_weights, net_connectivity, fused_parameters, foldername_results, patterns);
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     --active_threads;
