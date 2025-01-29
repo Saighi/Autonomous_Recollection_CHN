@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 import seaborn as sns
 sns.set_theme()
-sns.set(font_scale=1.5)
 #%%
 # Read the CSV file
 myDir = '../../data/all_data_splited/sleep_simulations/Fig_recovery_speed_beta'

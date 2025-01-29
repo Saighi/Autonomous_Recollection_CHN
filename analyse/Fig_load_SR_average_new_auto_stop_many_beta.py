@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import scienceplots
+import math
 # Update the styling
 sns.set_style("darkgrid")  # or "whitegrid", "dark", "white", "ticks"
 sns.set_context("paper", font_scale=1.5)  # or "paper", "talk", "poster"
@@ -22,7 +22,8 @@ plt.rcParams.update({'font.size': 15})
 # Read the CSV file
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_beta"
+# myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_beta"
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%
@@ -73,7 +74,6 @@ for i,beta in enumerate(all_beta):
             any_error = np.any(list(is_error))
             # more_than_one_error = len(list(is_error))>((nb_sim_one_parameter*80)/100)
             more_than_one_error = np.sum(list(is_error))>2
-            print(np.sum(list(is_error)))
             if any_error:
                 data_one_beta.loc[(data_one_beta['network_size'] == s) & (data_one_beta['num_patterns'] == n),'noned']=None
             if more_than_one_error:
@@ -103,7 +103,7 @@ for i,beta in enumerate(not_all_beta):
     plt.colorbar(im, ax=axes[0][i],shrink=1)
 
     # FIRST ITER FIGS
-    pivot_table = data_one_beta.pivot_table(values='first_iter_all_fnd_normalized', index='num_patterns', columns='network_size')
+    pivot_table = data_one_beta.pivot_table(values='first_iter_all_fnd', index='num_patterns', columns='network_size')
     #max_value = pivot_table.values.max()
     max_val = np.nanmax(pivot_table.values)
     im2 = axes[1][i].imshow(pivot_table,vmax=max_val,vmin=0)
@@ -121,7 +121,7 @@ fig.text(0.05, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
 
 #%%
 # For the following we will use only the best simulation
-data_one_beta = data_betas[0.0003125]
+data_one_beta = data_betas[0.00125]
 #%%
 # DATA FOR ALL SIMS WHICH END WITHOUT ERRORS
 
@@ -161,7 +161,9 @@ fig.text(0.05, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
 # At the end of your script:
 # sns.set(font_scale=2)
 # Create a pivot table that counts how many simulations ended with an error before all found
-pivot_table = data_one_beta.pivot_table(
+
+
+Pivot_table = data_one_beta.pivot_table(
     values='is_error_before_all_fnd', 
     index='num_patterns', 
     columns='network_size', 
