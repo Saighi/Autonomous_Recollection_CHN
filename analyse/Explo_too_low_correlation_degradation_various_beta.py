@@ -35,48 +35,13 @@ all_beta = np.sort(data['beta'].unique())
 all_correlation = np.sort(data['noise_level'].unique())
 all_repetitions= np.sort(data['repetitions'].unique())
 nb_sim_one_parameter = len(all_repetitions)
-#%%
-# data_betas_correlations_1 = dict()
-# for i,beta in enumerate(all_beta):
-#     for j,correlation in enumerate(all_correlation):
-#         data_one_beta_one_correlation = data[(data['beta']==beta) & (data['noise_level']==correlation)]
-#         sim_IDs=np.sort(data['sim_ID'].unique())
-#         for sim_id in sim_IDs:
-#             is_error = False
-#             mask = data_one_beta_one_correlation['sim_ID']==sim_id
-#             sim_data = data_one_beta_one_correlation[mask]
-#             sim_data_all_patterns_fnd = sim_data[sim_data['nb_fnd_pat']==sim_data['num_patterns']]
-#             first_iter_all_fnd= 0
-#             if len(sim_data_all_patterns_fnd)==0:
-#                 is_error = True
-#             first_iter_all_fnd_data=sim_data_all_patterns_fnd[sim_data_all_patterns_fnd['query_iter']==sim_data_all_patterns_fnd["query_iter"].min()]
-#             first_iter_all_fnd = first_iter_all_fnd_data["query_iter"]+1
 
-#             data_one_beta_one_correlation.loc[mask, 'is_error_before_all_fnd'] = is_error
-#             data_one_beta_one_correlation.loc[mask, 'first_iter_all_fnd'] = first_iter_all_fnd
-#             data_one_beta_one_correlation.loc[mask, 'noned'] = 1
-#             data_one_beta_one_correlation.loc[mask, 'more_than_one_noned'] = 1
-#         data_betas_correlations_1[(beta,correlation)]=data_one_beta_one_correlation
 data_betas_correlations = dict()
 #%%
 for i,beta in enumerate(all_beta):
     for j,correlation in enumerate(all_correlation):
         data_one_beta_one_correlation = data[(data['beta']==beta) & (data['noise_level']==correlation)]
-        # data_one_beta_one_correlation=data_betas_correlations_1[(beta,correlation)]
-        # Keep only the last iteration as representent of the simulation
         data_one_beta_one_correlation = data_one_beta_one_correlation.loc[data_one_beta_one_correlation.groupby("sim_ID")["query_iter"].idxmax()]
-
-        # is_error = data_one_beta_one_correlation["is_error_before_all_fnd"]
-        # any_error = np.any(list(is_error))
-        # # more_than_one_error = len(list(is_error))>((nb_sim_one_parameter*80)/100)
-        # more_than_one_error = np.sum(list(is_error))>2
-        # print(np.sum(list(is_error)))
-        # if any_error:
-        #     data_one_beta_one_correlation['noned']=None
-        # if more_than_one_error:
-        #     data_one_beta_one_correlation['more_than_one_noned']=None
-
-        # data_one_beta_one_correlation["first_iter_all_fnd_normalized"] = data_one_beta_one_correlation['first_iter_all_fnd']/data_one_beta_one_correlation["num_patterns"]
 
         data_betas_correlations[(beta,correlation)]=data_one_beta_one_correlation # store the specific data for later
 
