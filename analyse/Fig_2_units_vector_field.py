@@ -24,7 +24,10 @@ def plot_quiver(X, Y, U, V, x_label, y_label, title="", ax=None):
     if ax is None:
         ax = plt.gca()
     # ax.quiver(X, Y, U, V, color='black', angles='xy', scale_units='xy', scale=20)
-    ax.quiver(X, Y, U, V)
+    # magnitude = np.sqrt(U**2 + V**2)
+    # U_normalized = U / magnitude
+    # V_normalized = V / magnitude
+    ax.quiver(X, Y, U, V, scale=None)
     ax.set_title(title)
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -80,4 +83,3 @@ fig3, ax3 = plt.subplots()
 plot_quiver(Xrr, Yrr, Urr, Vrr,"v1","v2", "Rate vector field (Post-Training) + Trajectory", ax=ax3)
 plot_trajectory(folder + "/results_evolution.data", ax3)
 plt.show()
-
