@@ -25,7 +25,6 @@ struct SimulationConfig {
 
 void show_state(Network&);
 void show_state_grid(Network&, int);
-void run_net_sim(Network&, int, double);
 void show_matrix(std::vector<std::vector<double>>);
 void show_vector(std::vector<double>);
 

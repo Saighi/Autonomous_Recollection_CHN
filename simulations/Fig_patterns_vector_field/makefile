@@ -1,7 +1,7 @@
 CC=g++ 
 SRC := $(shell pwd)/src
 INCLUDE_DIR := $(shell pwd)/include/
-CFLAGS=-pthread -g -Wall -std=c++17
+CFLAGS=-pthread -g -Wall -std=c++17 -O3 -march=native
 
 all : main
 

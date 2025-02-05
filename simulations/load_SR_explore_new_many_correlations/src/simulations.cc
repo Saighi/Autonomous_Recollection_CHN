@@ -179,16 +179,15 @@ int main(int argc, char **argv)
     vector<double> network_sizes = {250};
     //vector<double> network_sizes = generateEvenlySpacedIntegers(25, 28, 3);
     // vector<double> network_sizes = {200};
-    vector<double> init_drive = {0.25};
     // vector<double> noise_level = linspace(0.2, 1, 15);
     // vector<double> noise_level = {0.5};
     // vector<double> noise_level = {0.1,0.25,0.5,0.75,1};
     vector<double> noise_level = linspace(0.1,1,10);
-    double learning_rate= 0.0001;
+    double learning_rate= 0.00001;
     // double learning_rate= 0.00001; one night if 10 repetiotion, 50 to 300, 1, 30
     // vector<double> noise_level = {0.5};
-    vector<double> repetition = generateEvenlySpacedIntegers(0,20,20); 
-    // vector<double> repetition ={1.0};
+    // vector<double> repetition = generateEvenlySpacedIntegers(0,20,20); 
+    vector<double> repetition ={1.0};
     //vector<double> repetition = generateEvenlySpacedIntegers(0,3,3); 
     unordered_map<string, vector<double>> varying_params = {
         {"repetitions", {repetition}},

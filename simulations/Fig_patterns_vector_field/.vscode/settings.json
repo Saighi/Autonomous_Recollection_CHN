@@ -87,6 +87,8 @@
         "cfenv": "cpp",
         "cinttypes": "cpp",
         "numbers": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "bitset": "cpp",
+        "regex": "cpp"
     }
 }
