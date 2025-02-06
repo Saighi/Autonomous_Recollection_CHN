@@ -77,23 +77,21 @@ std::vector<std::vector<double>> linspace_vector(std::vector<double> X,
                                                  std::vector<double> Y, int num);
 
 void compute_and_save_rate_vector_field_two_pattern_interpolate_plane(
-    Network &net, const std::string &foldername, const std::string &filename,
-    const std::vector<double> &pattern_1_rate,
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename, const std::vector<double> &pattern_1_rate,
     const std::vector<double> &pattern_2_rate, int nb_step);
-
-std::pair<std::vector<double>, std::vector<double>> coordinate_square_mesh(
-    int size);
-
-void compute_and_save_rate_vector_field_two_pattern_dotproduct(
-    Network &net, const std::string &foldername, const std::string &filename,
-    const std::vector<double> &p1,  // pattern_1_rate
-    const std::vector<double> &p2,  // pattern_2_rate
-    int nb_step                     // how many steps from 0..1
-);
 
 void compute_and_save_rate_vector_field_two_pattern_bilinear(
-    Network &net, const std::string &foldername, const std::string &filename,
-    const std::vector<double> &pattern_1_rate,
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename, const std::vector<double> &pattern_1_rate,
     const std::vector<double> &pattern_2_rate, int nb_step);
+
+void compute_and_save_potential_vector_field_two_pattern(
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename,
+    const std::vector<double> &p1,  // pattern_1_rate
+    const std::vector<double> &p2,  // pattern_2_rate
+    int nb_step,                    // how many steps from 0..1
+    double up_lim);
 
 #endif

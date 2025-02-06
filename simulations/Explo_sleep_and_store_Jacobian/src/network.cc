@@ -366,3 +366,26 @@ std::vector<std::vector<double>> Network::computeJacobian() const {
     }
     return jacobian;
 }
+
+// --- Correlate a Jacobian with one pattern --- //
+double Network::correlateJacobianWithPattern(
+    const std::vector<std::vector<double>>& J,
+    const std::vector<bool>& pattern) const {
+    double numerator = 0.0;
+    double denominator = 0.0;
+    // Make sure pattern has the correct dimension
+    if (pattern.size() != static_cast<size_t>(size)) {
+        std::cerr << "Error: Pattern size does not match network size."
+                  << std::endl;
+        return 0.0;
+    }
+
+    // Compute p^T * J * p and p^T * p
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            numerator += pattern[i] * J[i][j] * pattern[j];
+        }
+        denominator += pattern[i] * pattern[i];
+    }
+    return (denominator == 0.0) ? 0.0 : numerator / denominator;
+}

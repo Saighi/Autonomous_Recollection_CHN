@@ -26,14 +26,15 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     double epsilon_learning = parameters.at("epsilon_learning");
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
-    int network_size = 10;
+    int network_size = 20;
     double leak = parameters.at("leak");
     double delta = parameters.at("delta");
     double noise_level = parameters.at("noise_level");
     double beta = parameters.at("beta");
     int nb_sample_points_vector_field =
         parameters.at("nb_sample_points_vector_field");
-
+    double up_lim_vector_field = parameters.at("up_lim_vector_field");
+    std::cout << up_lim_vector_field << std::endl;
     string sim_data_foldername;
     string result_file_name;
 
@@ -73,13 +74,16 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     }
     vector<vector<double>> patterns_rates = patterns_as_states(
         net.transfer(drive_target), net.transfer(-drive_target), patterns);
+    vector<vector<double>> patterns_potentials= patterns_as_states(
+        drive_target,-drive_target, patterns);
 
-    compute_and_save_rate_vector_field_two_pattern_bilinear(
-        net, sim_data_foldername, "pre_train_interpolate_plane",
-        patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
-    // compute_and_save_rate_vector_field_two_pattern_dotproduct(
-    //     net, sim_data_foldername, "pre_train_affine_plane", patterns_rates[0],
-    //     patterns_rates[1], 50);
+    // compute_and_save_rate_vector_field_two_pattern_bilinear(delta,
+    //     net, sim_data_foldername, "pre_train_interpolate_plane",
+    //     patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
+    compute_and_save_potential_vector_field_two_pattern(
+        delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 
     //---------------------------------------------------------- Training
     std::cout << "WRITING THE ATTRACTOR" << std::endl;
@@ -109,12 +113,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     std::cout << "nombre d'iterations : " << std::endl;
     std::cout << cpt << std::endl;
     // net.reinforce_attractor_bin(patterns[1],0.1);
-    compute_and_save_rate_vector_field_two_pattern_bilinear(
-        net, sim_data_foldername, "post_train_interpolate_plane",
-        patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
-    // compute_and_save_rate_vector_field_two_pattern_dotproduct(
-    //     net, sim_data_foldername, "post_train_affine_plane", patterns_rates[0],
-    //     patterns_rates[1], 50);
+    // compute_and_save_rate_vector_field_two_pattern_bilinear(delta,
+    //     net, sim_data_foldername, "post_train_interpolate_plane",
+    //     patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
+    compute_and_save_potential_vector_field_two_pattern(delta,
+        net, sim_data_foldername, "post_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 
     // //---------------------------------------------------------- Network
     // evolution
@@ -144,21 +149,23 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     config.noise = false;
     // config.stddev = stddev;
     int nb_iter_sim=0;
+
     nb_iter_sim += run_net_sim_choice(net, config);
     std::cout << "Number of iteration convergence :" << std::endl;
     std::cout << nb_iter_sim << std::endl;
     std::string weights_file_name = sim_data_foldername + "/weights.data";
+
     // writeMatrixToFile(net.weight_matrix, weights_file_name);
 
     net.pot_inhib_symmetric(beta);
     // net.pot_inhib(1);
-    compute_and_save_rate_vector_field_two_pattern_bilinear(
-        net, sim_data_foldername, "post_inhib_interpolate_plane",
-        patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
-    // compute_and_save_rate_vector_field_two_pattern_dotproduct(
-    //     net, sim_data_foldername, "post_inhib_affine_plane", patterns_rates[0],
-    //     patterns_rates[1], 50);
-
+    // compute_and_save_rate_vector_field_two_pattern_bilinear(delta,
+    //     net, sim_data_foldername, "post_inhib_interpolate_plane",
+    //     patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
+    compute_and_save_potential_vector_field_two_pattern(
+        delta, net, sim_data_foldername, "post_inhib", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 
     net.set_state(vector<double>(network_size, 0.5));
     nb_iter_sim =0;
@@ -172,12 +179,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
 
     net.pot_inhib_symmetric(beta*2);
     // net.pot_inhib(1);
-    compute_and_save_rate_vector_field_two_pattern_bilinear(
-        net, sim_data_foldername, "post_inhib_2_interpolate_plane",
-        patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
-    // compute_and_save_rate_vector_field_two_pattern_dotproduct(
-    //     net, sim_data_foldername, "post_inhib_2_affine_plane", patterns_rates[0],
-    //     patterns_rates[1], 50);
+    // compute_and_save_rate_vector_field_two_pattern_bilinear(delta,
+    //     net, sim_data_foldername, "post_inhib_2_interpolate_plane",
+    //     patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
+    compute_and_save_potential_vector_field_two_pattern(
+        delta, net, sim_data_foldername, "post_inhib_2", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 
     net.reset_inhib();
 
@@ -193,10 +201,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
             net.derivative_gradient_descent_with_momentum_null_sum(
                 patterns[j], patterns_rates[j], drive_target, learning_rate,
                 leak, drives_error, velocity_matrix, momentum_coef,0.1);
-            // net.derivative_gradient_descent_with_momentum(
-            //     patterns[j], patterns_rates[j], drive_target,
-            //     learning_rate, leak, drives_error, velocity_matrix,
-            //     momentum_coef);
+
         }
         max_error = std::abs(
             *std::max_element(drives_error.begin(), drives_error.end()));
@@ -205,9 +210,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     std::cout << "nombre d'iterations second learning: " << std::endl;
     std::cout << cpt << std::endl;
 
-    compute_and_save_rate_vector_field_two_pattern_bilinear(
-        net, sim_data_foldername, "post_null_w_wum_interpolate_plane",
-        patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
+    // compute_and_save_rate_vector_field_two_pattern_bilinear(delta,
+    //     net, sim_data_foldername, "post_null_w_wum_interpolate_plane",
+    //     patterns_rates[0], patterns_rates[1], nb_sample_points_vector_field);
+    compute_and_save_potential_vector_field_two_pattern(
+        delta, net, sim_data_foldername, "post_null_w", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 }
 
 int main(int argc, char **argv) {
@@ -226,14 +235,15 @@ int main(int argc, char **argv) {
     }
     double learning_rate ={0.0001};
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.55}},
-        {"nb_sample_points_vector_field", {11}},
+        {"beta", {0.3}},
+        {"nb_sample_points_vector_field", {6}},
         {"drive_target", {6}},
         {"learning_rate", {learning_rate}},
         {"leak", {1.3}},
         {"delta", {0.02}},
         {"epsilon_learning", {learning_rate / 1000000}},
-        {"noise_level", {1}}};
+        {"noise_level", {1}},
+        {"up_lim_vector_field", {1}}};
 
     const int max_threads = 20;  // Set the maximum number of concurrent threads
     int active_threads = 0;

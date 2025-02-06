@@ -66,7 +66,7 @@ public:
         std::vector<std::vector<double>>& velocity_matrix, double momentum_coef,
         double alpha_homeo);
 
-    std::vector<double> give_derivative_u();
+    std::vector<double> give_derivative_u(double delta);
     std::vector<double> give_derivative_v(std::vector<double> derivative_u);
 
 private:

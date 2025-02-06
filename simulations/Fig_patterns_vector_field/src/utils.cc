@@ -827,7 +827,7 @@ std::vector<std::vector<double>> linspace_square_mesh(
 
 //-------------------------------------------------VECTOR FIELD STUFF
 /**
- * @brief Compute and save the vector field in ACTIVITY space (a0,a1).
+ * @brief Compute and save the vector field in rate space (a0,a1).
  *
  * We sample (u0,u1) on a given grid, then compute:
  *    d(u_i)/dt = sum_j [ W[i][j]*v_j ] - leak * u_i
@@ -938,7 +938,7 @@ void compute_and_save_rate_vector_field(Network &net,
  * approach to find the tangent directions in the plane at each point, then
  * project the full 10D derivative onto those directions.
  */
-void compute_and_save_rate_vector_field_two_pattern_interpolate_plane(
+void compute_and_save_rate_vector_field_two_pattern_interpolate_plane( double delta,
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &pattern_1_rate,
     const std::vector<double> &pattern_2_rate, int nb_step) {
@@ -1005,7 +1005,7 @@ void compute_and_save_rate_vector_field_two_pattern_interpolate_plane(
             // Compute 10D derivative
             net.set_state(V);
             // std::vector<double> dV = net.give_derivative_v(net.give_derivative_u());
-            std::vector<double> dV =net.give_derivative_v(net.give_derivative_u());
+            std::vector<double> dV =net.give_derivative_v(net.give_derivative_u(delta));
             // std::cout << "showing the derivative :" << std::endl;
             // std::cout <<i<<" "<<j<< std::endl;
 
@@ -1083,92 +1083,6 @@ void compute_and_save_rate_vector_field_two_pattern_interpolate_plane(
               << std::endl;
 }
 
-
-/**
- * @brief Compute and save the 2D-projected derivative field in RATE space
- * for two patterns p1, p2. We define the plane as:
- *    V(alpha,beta) = clamp( alpha * p1 + beta * p2 , [0,1] )
- * for alpha,beta in [0..1].
- *
- * Then we do a simple dot product approach for the derivatives:
- *    dot_x = dV . p1
- *    dot_y = dV . p2
- */
-void compute_and_save_rate_vector_field_two_pattern_dotproduct(
-    Network &net, const std::string &foldername, const std::string &filename,
-    const std::vector<double> &p1,  // pattern_1_rate
-    const std::vector<double> &p2,  // pattern_2_rate
-    int nb_step                     // how many steps from 0..1
-) {
-    std::string out_filename =
-        foldername + "/vector_field_two_patterns_" + filename + ".txt";
-    std::ofstream file(out_filename, std::ios::trunc);
-    if (!file.is_open()) {
-        std::cerr << "Cannot open file " << out_filename << std::endl;
-        return;
-    }
-
-    int size = net.size;  // e.g. 10
-
-    // A small clamp function to ensure 0 <= rate <= 1
-    auto clamp01 = [&](double x) {
-        if (x < 0.0)
-            return 0.0;
-        if (x > 1.0)
-            return 1.0;
-        return x;
-    };
-
-    // For i=0..nb_step-1, alpha = i/(nb_step-1)
-    // For j=0..nb_step-1, beta  = j/(nb_step-1)
-    // Then we store x=i, y=j in [0..nb_step-1] so Python can reshape.
-    for (int i = 0; i < nb_step; i++) {
-        double alpha = double(i) / (nb_step - 1);
-        for (int j = 0; j < nb_step; j++) {
-            double beta = double(j) / (nb_step - 1);
-
-            // 1) Build V = alpha*p1 + beta*p2
-            std::vector<double> V(size, 0.0);
-            for (int k = 0; k < size; k++) {
-                double val = alpha * p1[k] + beta * p2[k];
-                // clamp to [0,1] if needed
-                V[k] = clamp01(val);
-            }
-
-            // 2) Compute derivative dV in 10D
-            net.set_state(V);
-            std::vector<double> dU = net.give_derivative_u();
-            std::vector<double> dV = net.give_derivative_v(dU);
-
-            // 3) dot_x = dV . p1, dot_y = dV . p2
-            double dot_x = 0.0, dot_y = 0.0;
-            for (int k = 0; k < size; k++) {
-                dot_x += dV[k] * p1[k];
-                dot_y += dV[k] * p2[k];
-            }
-
-            // 4) Our "2D coordinates" = (j, i) or (i, j).
-            // Let's pick (x=j, y=i) so Python can do row-major and then
-            // x = x/(nb_step-1), y= y/(nb_step-1) => [0..1].
-            double xx = j;
-            double yy = i;
-
-            // 5) Write line: x, y, dot_x, dot_y, V0..V(size-1)
-            file << xx << " " << yy << " " << dot_x << " " << dot_y << " ";
-            for (int k = 0; k < size; k++) {
-                file << V[k];
-                if (k < size - 1)
-                    file << " ";
-            }
-            file << "\n";
-        }
-    }
-
-    file.close();
-    std::cout << "Saved dotproduct-based 2D field to " << out_filename
-              << std::endl;
-}
-
 //---------------------------------------------------------
 // Bilinear interpolation in N dimensions
 //---------------------------------------------------------
@@ -1198,8 +1112,8 @@ std::vector<double> bilinear_interpolate(
 // over the bilinear interpolation plane
 //---------------------------------------------------------
 void compute_and_save_rate_vector_field_two_pattern_bilinear(
-    Network &net, const std::string &foldername, const std::string &filename,
-    const std::vector<double> &pattern_1_rate,
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename, const std::vector<double> &pattern_1_rate,
     const std::vector<double> &pattern_2_rate, int nb_step) {
     // (1) Create the four corners in ND:
     //     0_N, v^1, v^2, 1_N
@@ -1247,7 +1161,7 @@ void compute_and_save_rate_vector_field_two_pattern_bilinear(
 
             // (5) Compute 10D derivative for that state
             net.set_state(V);
-            std::vector<double> dU = net.give_derivative_u();
+            std::vector<double> dU = net.give_derivative_u(delta);
             std::vector<double> dV = net.give_derivative_v(dU);
 
             // (6) For a "2D vector field" in the (lambda1,lambda2) plane,
@@ -1321,5 +1235,80 @@ void compute_and_save_rate_vector_field_two_pattern_bilinear(
 
     file.close();
     std::cout << "Saved bilinear 2D vector field to " << out_filename
+              << std::endl;
+}
+
+/**
+ * @brief Compute and save the 2D-projected derivative field in potential space
+ * for two patterns p1, p2 as U states . We define the plane as:
+ *    U(alpha,beta) = alpha * p1 + beta * p2 
+ * for alpha,beta in [0..up_lim].
+ *
+ * Then we do a simple dot product approach for the derivatives:
+ *    dot_x = dU . p1
+ *    dot_y = dU . p2
+ */
+void compute_and_save_potential_vector_field_two_pattern(
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename,
+    const std::vector<double> &p1,  // pattern_1_rate
+    const std::vector<double> &p2,  // pattern_2_rate
+    int nb_step,                    // how many steps from 0..1
+    double up_lim) {
+    std::string out_filename =
+        foldername + "/vector_field_two_patterns_" + filename + ".txt";
+    std::ofstream file(out_filename, std::ios::trunc);
+    if (!file.is_open()) {
+        std::cerr << "Cannot open file " << out_filename << std::endl;
+        return;
+    }
+
+    int size = net.size;  // e.g. 10
+
+    // For i=0..nb_step-1, alpha = i/((nb_step-1)/up_lim)
+    // For j=0..nb_step-1, beta  = j/((nb_step-1)/up_lim)
+    // Then we store x=i, y=j in [0..nb_step-1] so Python can reshape.
+    for (int i = 0; i < nb_step; i++) {
+        double alpha = double(i) / ((nb_step - 1) / up_lim);
+        for (int j = 0; j < nb_step; j++) {
+            double beta = double(j) / ((nb_step - 1) / up_lim);
+
+            // 1) Build U = alpha*p1 + beta*p2
+            std::vector<double> U(size, 0.0);
+            for (int k = 0; k < size; k++) {
+                double val = alpha * p1[k] + beta * p2[k];
+                // clamp to [0,1] if needed
+                U[k] = val;
+            }
+
+            // 2) Compute derivative dV in 10D
+            std::vector<double> V(size,0.0);
+            for (size_t k = 0; k < U.size(); k++)
+            {
+                V[k] = net.transfer(U[k]);
+            }
+            
+            net.set_state(V);
+            std::vector<double> dU = net.give_derivative_u(delta);
+
+            double dot_alpha = 0.0, dot_beta = 0.0;
+            for (int k = 0; k < size; k++) {
+                dot_alpha += dU[k] * p1[k];
+                dot_beta += dU[k] * p2[k];
+            }
+            // 5) Write line: x, y, dot_x, dot_y, V0..V(size-1)
+            file << alpha << " " << beta << " " << dot_alpha << " " << dot_beta
+                 << " ";
+            for (int k = 0; k < size; k++) {
+                file << V[k];
+                if (k < size - 1)
+                    file << " ";
+            }
+            file << "\n";
+        }
+    }
+
+    file.close();
+    std::cout << "Saved dotproduct-based 2D field to " << out_filename
               << std::endl;
 }

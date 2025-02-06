@@ -408,7 +408,7 @@ void Network::derivative_gradient_descent_with_momentum(
 }
 
 // Basic iteration (no depression, no noise)
-std::vector<double> Network::give_derivative_u() {
+std::vector<double> Network::give_derivative_u(double delta) {
     std::vector<double> derivative_u(size,0.0);
 
     // Compute derivative for each neuron i
@@ -422,7 +422,7 @@ std::vector<double> Network::give_derivative_u() {
             avx_dot_product(inhib_matrix[i].data(), rate_list.data(), size);
 
         double d = sum_weight - sum_inhib - (leak * activity_list[i]);
-        derivative_u[i] = d;
+        derivative_u[i] = d*delta;
     }
 
     return derivative_u;

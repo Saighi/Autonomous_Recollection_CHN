@@ -42,8 +42,8 @@ def plot_dotproduct_interpolate_plane(filename, scale):
     # 4) Reshape for NxN
     X  = x.reshape(N, N).T
     Y  = y.reshape(N, N).T
-    DX = dx.reshape(N, N)
-    DY = dy.reshape(N, N)
+    DX = dx.reshape(N, N).T
+    DY = dy.reshape(N, N).T
 
     # 5) Ensure ascending Y
     if not np.all(np.diff(Y[:,0]) > 0):
@@ -64,8 +64,7 @@ def plot_dotproduct_interpolate_plane(filename, scale):
 
     # --- (b) Stream ---    
 
-    strm = ax0.streamplot(X, Y, DX, DY, density=1.0, color='tab:blue',arrowsize=1.5)
-
+    strm = ax0.streamplot(X, Y, DX,DY, density=0.9, color='tab:blue',arrowsize=1.5)
     ax0.set_xlabel(r"$\lambda_1$")
     ax0.set_ylabel(r"$\lambda_2$")
     ax0.set(xlim=(0, 1), ylim=(0, 1))
@@ -79,26 +78,20 @@ def plot_dotproduct_interpolate_plane(filename, scale):
 
     ax_top.grid(False)
     ax_right.grid(False)
-    # ax1.axis("equal")
-    neutral_point=np.full(len(data[0][4:]),0.5)
-    distances = []
-    for i in range(len(x)):
-        distances.append(np.linalg.norm(data[i][4:]-neutral_point))
-    nearest_point = data[np.argmin(distances)][:2]
 
-    plt.plot(nearest_point[0], nearest_point[1], 'X', markersize=10, c="red") 
+    ax0.plot(0.1, 0.1   , 'o', markersize=10, c="red") 
     # plt.tight_layout()
     plt.show()
 #%%
 # Example usage
 #%%
 folder = "../../data/all_data_splited/trained_networks_fast/Fig_patterns_vector_field/sim_nb_0/"
-file_name = "vector_field_bilinear_"
-pre_file  = folder +file_name+"pre_train_interpolate_plane.txt"
-post_training_file = folder +file_name+"post_train_interpolate_plane.txt"
-post_inhib_file = folder +file_name+ "post_inhib_interpolate_plane.txt"
-post_inhib_2_file = folder +file_name+ "post_inhib_2_interpolate_plane.txt"
-post_weight_sum_null_file = folder +file_name+ "post_null_w_wum_interpolate_plane.txt"
+file_name = "vector_field_two_patterns_"
+pre_file  = folder +file_name+"pre_train.txt"
+post_training_file = folder +file_name+"post_train.txt"
+post_inhib_file = folder +file_name+ "post_inhib.txt"
+post_inhib_2_file = folder +file_name+ "post_inhib_2.txt"
+post_weight_sum_null_file = folder +file_name+ "post_null_w.txt"
 # Plot the 'pre-training' field
 
 plot_dotproduct_interpolate_plane(pre_file, scale=30)

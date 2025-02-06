@@ -131,7 +131,7 @@ int run_net_sim_choice(Network &net, SimulationConfig& conf)
     while (max > conf.epsilon && nb_iter <= conf.max_iter)
     {
         if(conf.save_jacobian){
-            std::vector<std::vector<double>> patterns
+            //TODO do stuff 
         }
         if(conf.save){
             writeToCSV(conf.output,net.rate_list);

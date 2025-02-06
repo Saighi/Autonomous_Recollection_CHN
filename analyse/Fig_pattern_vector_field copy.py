@@ -66,7 +66,7 @@ def plot_dotproduct_interpolate_plane(filename, scale):
     # --- (b) Stream ---    
     print(X)
     print(Y)
-    strm = ax0.streamplot(X, Y, DX, DY, density=1.0, color='tab:blue',arrowsize=1.5)
+    strm = ax0.streamplot(X, Y, DX, DY, density=8.0, color='tab:blue',arrowsize=1.5)
 
     ax0.set_xlabel(r"$\lambda_1$")
     ax0.set_ylabel(r"$\lambda_2$")
