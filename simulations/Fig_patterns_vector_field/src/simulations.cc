@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
     }
     double learning_rate ={0.0001};
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.3}},
+        {"beta", {0.35}},
         {"nb_sample_points_vector_field", {6}},
         {"drive_target", {6}},
         {"learning_rate", {learning_rate}},
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
         {"delta", {0.02}},
         {"epsilon_learning", {learning_rate / 1000000}},
         {"noise_level", {1}},
-        {"up_lim_vector_field", {1}}};
+        {"up_lim_vector_field", {1.5}}};
 
     const int max_threads = 20;  // Set the maximum number of concurrent threads
     int active_threads = 0;

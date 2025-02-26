@@ -24,7 +24,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     // Learning constants
     int cpt=0;
     int nb_pat = 5;
-    double epsilon_learning=0.2;
+    double epsilon_learning=0.3;
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
     int network_size = parameters.at("network_size");
@@ -117,7 +117,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     // Clean up
     Mat_VarFree(matvar);
     Mat_Close(matfp);
-    
+    createParameterFile(sim_data_foldername, parameters);
     // createParameterFile(sim_data_foldername, parameters);
     // Build Fully connected network
     vector<vector<bool>> connectivity_matrix(network_size, vector<bool>(network_size, false));
@@ -137,31 +137,32 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     initial_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns);
     query_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), query_patterns);
 
-    vector<double> drive_errors;
-    drive_errors.resize(network_size,0.0);
-    double sum_errors;
-    bool stop_learning = false;
-    cpt=0;
+    vector<double> drives_error;
+    // Initialize velocity matrix for momentum
+    std::vector<std::vector<double>> velocity_matrix(
+        network_size, std::vector<double>(network_size, 0.0));
+    double momentum_coef = 0.9;  // You can adjust this value
+    drives_error.resize(network_size, 0.0);
     // Training loop
-    // show_vector_bool_grid(initial_patterns[0],IMAGE_HEIGHT);
-    // show_vector_bool_grid(query_patterns[0],IMAGE_HEIGHT);
+    double max_error = 1000;
+    cpt = 0;
     std::cout << "WRITING ATTRACTORS" << std::endl;
-    while(!stop_learning)
-    {
-        sum_errors=0.0;
-        for (int j = 0; j < initial_patterns.size(); j++)
-        {
-            net.derivative_gradient_descent(initial_patterns[j],initial_patterns_rates[j],drive_target,learning_rate, leak, drive_errors);
-            sum_errors+=std::accumulate(drive_errors.begin(),drive_errors.end(),0.0);
+    while (max_error > epsilon_learning && cpt <= 10 / learning_rate) {
+        for (int j = 0; j < initial_patterns.size(); j++) {
+            // net.derivative_gradient_descent(initial_patterns[j],initial_patterns_rates[j],drive_target,learning_rate,
+            // leak, drives_error);
+            net.derivative_gradient_descent_with_momentum(
+                initial_patterns[j], initial_patterns_rates[j], drive_target,
+                learning_rate, leak, drives_error, velocity_matrix,
+                momentum_coef);
+            // net.derivative_gradient_descent_anti_inverse_momentum(
+            //     initial_patterns[j], initial_patterns_rates[j], drive_target,
+            //     learning_rate, leak, drives_error, velocity_matrix,
+            //     momentum_coef, 0.1);
         }
-        if(abs(sum_errors)/(network_size*initial_patterns.size())<epsilon_learning){
-            stop_learning=true;
-        }
-        if(cpt==5000){
-            stop_learning=true;
-        }
-        cpt+=1;
-        std::cout <<  abs(sum_errors)/(network_size*initial_patterns.size()) << std::endl;
+        max_error = std::abs(
+            *std::max_element(drives_error.begin(), drives_error.end()));
+        cpt += 1;
         std::cout << cpt << std::endl;
     }
     std::cout << "nombre d'iterations" << std::endl;
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
     unordered_map<string, vector<double>> varying_params = {
         // {"repetitions", repetitions},
         {"drive_target", drive_targets},
-        {"learning_rate", {0.0001}}, // REMOVED-target rates
+        {"learning_rate", {0.0003}}, // REMOVED-target rates
         {"network_size", network_sizes},
         {"leak", {1.3}},
         {"delta", {0.02}}};

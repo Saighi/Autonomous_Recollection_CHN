@@ -32,6 +32,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     int nb_converge_depressed = static_cast<int>(parameters.at("nb_converge_depressed"));
     float noise_stddev = parameters.at("noise_stddev");
     Network net = Network(net_connectivity, network_size, leak);
+    std::cout << network_size << std::endl;
     net.weight_matrix= net_weights;
 
     string sim_data_foldername = foldername_results + "/sim_nb_" + to_string(sim_number);
@@ -56,30 +57,48 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     vector<bool> winning_units;
     // std::cout << "SLEEP PHASE" << std::endl;
     int cpt = 0;
+    int nb_iter_sim;
     while(cpt<nb_iter)
     {
-        string result_file_name_sleep_depressed = sim_data_foldername + "/results_depressed_" + to_string(cpt) + ".data";
+
+        string result_file_name_sleep_depressed = sim_data_foldername + "/depressed_traj_" + to_string(cpt) + ".data";
         std::ofstream result_file_sleep_depressed(result_file_name_sleep_depressed, std::ios::trunc);
-        string result_file_name_sleep = sim_data_foldername + "/results_" + to_string(cpt) + ".data";
+        string result_file_name_sleep = sim_data_foldername + "/free_traj_" + to_string(cpt) + ".data";
         std::ofstream result_file_sleep(result_file_name_sleep, std::ios::trunc);
         string inhib_matrix_file_name_sleep = sim_data_foldername + "/inhib_matrix_" + to_string(cpt) + ".data";
 
-        writeMatrixToFile(net.inhib_matrix, inhib_matrix_file_name_sleep);
         // std::cout << "NEW ITER" << std::endl;
-        net.set_state(vector<double>(network_size, 0.5));
+        net.set_state(vector<double>(network_size, 0.1));
+        // std::cout << "Initial random state:" << std::endl;
+        // show_state_grid(net, 3); // Show initial state
+
+        writeMatrixToFile(net.inhib_matrix, inhib_matrix_file_name_sleep);
+        SimulationConfig config;
+
+        config.output = &result_file_sleep_depressed;
+        config.delta = delta;
+        config.epsilon = delta / 1000000;
+        config.depressed = true;
+        config.save = true;
+        config.max_iter = 100 / delta;
+        nb_iter_sim += run_net_sim_choice(net, config);
+        config.depressed = false;
+        config.output = &result_file_sleep;
+        nb_iter_sim += run_net_sim_choice(net, config);
+        result_file_sleep_depressed.close();
+        result_file_sleep.close();
+        // std::cout << "NEW ITER" << std::endl;
         // std::cout << "Initial random state:" << std::endl;
         // show_state_grid(net, 3); // Show initial state
 
         // Let the network converge
-        run_net_sim_noisy_depressed_save(net, nb_converge_depressed, delta, 0.0, noise_stddev, result_file_sleep_depressed); // Using utility function for noisy iterations and saving
-        run_net_sim_noisy_save(net, nb_converge, delta, 0.0, 0.01, result_file_sleep); // Using utility function for noisy iterations
-        result_file_sleep.close();
-        winning_units = assignBoolThreshold(net.activity_list, 0.5);
-        net.pot_inhib_bin(beta, winning_units); // works with 0.005
         // Check if the output vector is in the target set and hasn't been counted yet
+        // winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
+        net.pot_inhib_symmetric_positive(beta);
         cpt+=1;
         show_vector_bool_grid(winning_units,IMAGE_HEIGHT);
     }
+    
 
     
 }
@@ -103,7 +122,7 @@ int main(int argc, char **argv)
     // vector<double> repetitions = {0};
     
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.05} },
+        {"beta", {0.25} },
         {"nb_iter",{5}},
         {"nb_converge_depressed", {700}},
         {"nb_converge", {300}},

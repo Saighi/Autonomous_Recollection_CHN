@@ -18,6 +18,19 @@ using namespace std;
 
 namespace fs = std::filesystem;
 
+double max_abs_element(const std::vector<std::vector<double>>& matrix) {
+    double max_val = 0.0;
+
+    for (const auto& row : matrix) {
+        for (const auto& element : row) {
+            double abs_val = std::abs(element);
+            max_val = std::max(max_val, abs_val);
+        }
+    }
+
+    return max_val;
+}
+
 void run_simulation(int sim_number, unordered_map<string, double> parameters, const string foldername_results)
 {    
     srand(sim_number);
@@ -99,6 +112,12 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     double max_error=1000;
     int cpt=0;
     std::cout << "WRITING ATTRACTORS" << std::endl;
+    std::vector<std::vector<double>> old_weights;
+    std::vector<std::vector<double>> new_weights;
+    old_weights = net.weight_matrix;
+    std::vector<std::vector<double>> d_weights(
+        net.weight_matrix.size(),std::vector<double>(net.weight_matrix[0].size()));
+
     while (max_error > epsilon_learning && cpt <= 10/learning_rate)
     {
         for (int j = 0; j < initial_patterns.size(); j++)
@@ -115,7 +134,15 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
                                                         momentum_coef
                                                         );
         }
-        max_error = std::abs(*std::max_element(drives_error.begin(),drives_error.end()));
+        new_weights = net.weight_matrix;
+        for (size_t row = 0; row < net.weight_matrix.size(); row++)
+        {
+            for (size_t collumn = 0; collumn < net.weight_matrix[row].size(); collumn++) {
+                d_weights[row][collumn] = new_weights[row][collumn]-old_weights[row][collumn];
+            }
+        }
+        old_weights=new_weights;
+        max_error = max_abs_element(d_weights);
         cpt+=1;
     }
     std::cout << "nombre d'iterations" << std::endl;
@@ -155,7 +182,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 int main(int argc, char **argv)
 {
     // string sim_name = "Fig_load_SR_average_new_inh_plas_big_simulations";
-    string sim_name = "Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized";
+    string sim_name = "Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized_one_repet";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -183,8 +210,8 @@ int main(int argc, char **argv)
     double learning_rate= 0.0001;
     // double learning_rate= 0.00001; one night if 10 repetiotion, 50 to 300, 1, 30
     // vector<double> noise_level = {0.5};
-    vector<double> repetition = generateEvenlySpacedIntegers(0,20,20);
-    // vector<double> repetition = {1};
+    // vector<double> repetition = generateEvenlySpacedIntegers(0,20,20);
+    vector<double> repetition = {1};
     //vector<double> repetition = generateEvenlySpacedIntegers(0,3,3);
     unordered_map<string, vector<double>> varying_params = {
         {"repetitions", {repetition}},
@@ -196,7 +223,7 @@ int main(int argc, char **argv)
         {"network_size", network_sizes},
         {"relative_nb_winner", {1.0/2.0}},
         {"noise_level", {noise_level}},
-        {"epsilon_learning", {learning_rate/1000000}},
+        {"epsilon_learning", {0.00005}},
         {"delta",{0.1}},
         {"init_drive", {0.5}},
         {"leak", {1}}};

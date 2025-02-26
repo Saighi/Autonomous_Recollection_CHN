@@ -1269,9 +1269,9 @@ void compute_and_save_potential_vector_field_two_pattern(
     // For j=0..nb_step-1, beta  = j/((nb_step-1)/up_lim)
     // Then we store x=i, y=j in [0..nb_step-1] so Python can reshape.
     for (int i = 0; i < nb_step; i++) {
-        double alpha = double(i) / ((nb_step - 1) / up_lim);
+        double alpha = double(i) / ((nb_step - 1) / up_lim) -0.25;
         for (int j = 0; j < nb_step; j++) {
-            double beta = double(j) / ((nb_step - 1) / up_lim);
+            double beta = double(j) / ((nb_step - 1) / up_lim) - 0.25;
 
             // 1) Build U = alpha*p1 + beta*p2
             std::vector<double> U(size, 0.0);

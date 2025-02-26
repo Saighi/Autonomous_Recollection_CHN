@@ -83,40 +83,73 @@ for i,beta in enumerate(all_beta):
 
     data_betas[beta]=data_one_beta # store the specific data for later
 #%%
-not_all_beta = all_beta[:3]
+not_all_beta = all_beta[1:-1]
 #%%
 r = 1.1
-fig, axes = plt.subplots(2,3, figsize=(13/r,8/r), sharey=True,sharex=True)
-for i,beta in enumerate(not_all_beta):
-    data_one_beta = data_betas[beta]
+fig, axes = plt.subplots(2, len(not_all_beta), figsize=(9/r, 8/r), sharey=True, sharex=True)
 
-    pivot_table = data_one_beta.pivot_table(values='is_error_before_all_fnd', index='num_patterns', columns='network_size')
-    max_value = pivot_table.values.max()
-    im = axes[0][i].imshow(pivot_table*100,cmap="Reds",vmin=0)
-    axes[0][i].set_xticks(x_tick_indices,all_net_sizes[x_tick_indices])
-    axes[0][i].set_yticks(y_tick_indices,all_num_patterns[y_tick_indices])
-    axes[0][i].grid(False)
+# Calculate global min and max values for both rows
+global_max_error = 0
+global_max_iter = 0
+
+for beta in not_all_beta:
+    data_one_beta = data_betas[beta]
+    # For error rates (first row)
+    pivot_table_error = data_one_beta.pivot_table(values='is_error_before_all_fnd', 
+                                                 index='num_patterns', 
+                                                 columns='network_size')
+    global_max_error = max(global_max_error, pivot_table_error.values.max() * 100)
+    
+    # For first iteration (second row)
+    pivot_table_iter = data_one_beta.pivot_table(values='first_iter_all_fnd', 
+                                                index='num_patterns', 
+                                                columns='network_size')
+    global_max_iter = max(global_max_iter, np.nanmax(pivot_table_iter.values))
+
+# Create plots with global min/max values
+for i, beta in enumerate(not_all_beta):
+    
+    data_one_beta = data_betas[beta]
+    data_one_beta["first_iter_all_fnd"]+=1
+    # First row: Error rates
+    pivot_table = data_one_beta.pivot_table(values='is_error_before_all_fnd', 
+                                          index='num_patterns', 
+                                          columns='network_size')
+    im1 = axes[0][i].imshow(pivot_table*100, cmap="Reds", vmin=0, vmax=global_max_error)
+    axes[0][i].set_xticks(x_tick_indices, all_net_sizes[x_tick_indices])
+    axes[0][i].set_yticks(y_tick_indices, all_num_patterns[y_tick_indices])
     axes[0][i].grid(False)
     axes[0][i].invert_yaxis()
     axes[0][i].set_title(r'$\beta$ = '+str(beta))
-
-    plt.colorbar(im, ax=axes[0][i],shrink=1)
-
-    # FIRST ITER FIGS
-    pivot_table = data_one_beta.pivot_table(values='first_iter_all_fnd', index='num_patterns', columns='network_size')
-    #max_value = pivot_table.values.max()
-    max_val = np.nanmax(pivot_table.values)
-    im2 = axes[1][i].imshow(pivot_table,vmax=max_val,vmin=0)
-    axes[1][i].set_xticks(x_tick_indices,all_net_sizes[x_tick_indices])
-    axes[1][i].set_yticks(y_tick_indices,all_num_patterns[y_tick_indices])
+    
+    # Second row: First iteration
+    pivot_table = data_one_beta.pivot_table(values='first_iter_all_fnd', 
+                                          index='num_patterns', 
+                                          columns='network_size')
+    im2 = axes[1][i].imshow(pivot_table, vmin=0, vmax=global_max_iter)
+    axes[1][i].set_xticks(x_tick_indices, all_net_sizes[x_tick_indices])
+    axes[1][i].set_yticks(y_tick_indices, all_num_patterns[y_tick_indices])
     axes[1][i].grid(False)
     axes[1][i].invert_yaxis()
-    cbar = plt.colorbar(im2, ax=axes[1][i], shrink=0.8)
-    # Manually set ticks to include the max value
-    cbar.set_ticks(np.linspace(0,max_val,5))
-    cbar.set_ticklabels([f'{val:.1f}' for val in np.linspace(0,max_val,5)])
-fig.text(0.47, 0.02, 'Network size', ha='center', va='center')
-fig.text(0.05, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
+
+# Add single colorbar for first row (error rates)
+cbar1_ax = fig.add_axes([0.92, 0.55, 0.02, 0.3])
+cbar1 = fig.colorbar(im1, cax=cbar1_ax)
+cbar1.set_ticks(np.linspace(0, global_max_error, 5))
+cbar1.set_ticklabels([f'{int(val)}' for val in np.linspace(0, global_max_error, 5)])
+
+# Add single colorbar for second row (first iteration)
+cbar2_ax = fig.add_axes([0.92, 0.15, 0.02, 0.3])
+cbar2 = fig.colorbar(im2, cax=cbar2_ax)
+cbar2.set_ticks(np.linspace(0, global_max_iter, 5))
+cbar2.set_ticklabels([f'{int(val)}' for val in np.linspace(1, global_max_iter, 5)])
+
+# Add labels
+fig.text(0.52, 0.04, 'Network size', ha='center', va='center')
+fig.text(0.03, 0.49, 'Number of patterns', ha='left', va='center', rotation=90)
+
+# Adjust layout to make room for colorbars
+plt.subplots_adjust(right=0.9)
 
 
 #%%

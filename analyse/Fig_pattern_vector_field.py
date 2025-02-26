@@ -64,24 +64,33 @@ def plot_dotproduct_interpolate_plane(filename, scale):
 
     # --- (b) Stream ---    
 
-    strm = ax0.streamplot(X, Y, DX,DY, density=0.9, color='tab:blue',arrowsize=1.5)
+    strm = ax0.streamplot(X, Y, DX,DY, density=0.8, color='tab:blue',arrowsize=1.7)
     ax0.set_xlabel(r"$\lambda_1$")
     ax0.set_ylabel(r"$\lambda_2$")
-    ax0.set(xlim=(0, 1), ylim=(0, 1))
+    # ax0.set(xlim=(-0.25, 1), ylim=(-0.25, 1))
 
     # Create a twin axes for the top and right spines
-    ax_top = ax0.twiny()  # Create twin axes for top x-axis
-    ax_right = ax0.twinx()  # Create twin axes for right y-axis
-
+    # ax_top = ax0.twiny()  # Create twin axes for top x-axis
+    # ax_right = ax0.twinx()  # Create twin axes for right y-axis
+    # ax_top.set(ylim=(-0.25, 1))
+    # ax_right.set(xlim=(-0.25, 1))
     # ax_top.set_xlabel(r"$\lambda$ for $\mathcal{I}(\lambda,\mathbf{v}^2,\mathbf{1}_N$)")
     # ax_right.set_ylabel(r"$\lambda$ for $\mathcal{I}(\lambda,\mathbf{v}^1,\mathbf{1}_N$)")
 
-    ax_top.grid(False)
-    ax_right.grid(False)
+    # ax_top.grid(False)
+    # ax_right.grid(False)
 
-    ax0.plot(0.1, 0.1   , 'o', markersize=10, c="red") 
+    ax0.plot(0, 0   , 'o', markersize=10, c="red") 
+    ax0.plot(1, 0   , 'o', markersize=4.5, c="red") 
+    ax0.plot(0, 1   , 'o', markersize=4.5, c="red") 
+
+    ax0.text(0.96, -0.08, r"$\mathbf{1}$",c="red",fontsize=15)
+    ax0.text(-0.015, 1.03, r"$\mathbf{2}$",c="red",fontsize=15)
+    # ax0.text(0.93, -0.01, r"$\mathbf{1}$",c="red",fontsize=15)
+    # ax0.text(-0.015, 1.03, r"$\mathbf{2}$",c="red",fontsize=15)
+
     # plt.tight_layout()
-    plt.show()
+    
 #%%
 # Example usage
 #%%
@@ -95,15 +104,22 @@ post_weight_sum_null_file = folder +file_name+ "post_null_w.txt"
 # Plot the 'pre-training' field
 
 plot_dotproduct_interpolate_plane(pre_file, scale=30)
-
+plt.show()
 # Plot the 'post-training' field
 plot_dotproduct_interpolate_plane(post_training_file, scale=30)
-
+# patterns = np.loadtxt(folder+"patterns.data")
+# first_trajectory = np.loadtxt(folder+"results_evolution_1.data")
+# project_traj_pat_1 = np.dot(first_trajectory,patterns[0])/np.sqrt(np.sum(first_trajectory[0])*np.sum(patterns[0]))
+# project_traj_pat_2 = np.dot(first_trajectory,patterns[1])/np.sqrt(np.sum(first_trajectory[1])*np.sum(patterns[1]))
+# plt.plot(project_traj_pat_1,project_traj_pat_2)
+# print(project_traj_pat_1)
+plt.show()
 # Plot the 'post-inhib' field
 plot_dotproduct_interpolate_plane(post_inhib_file, scale=30)
-
+plt.show()
 # Plot the 'post-inhib_2' field
 plot_dotproduct_interpolate_plane(post_inhib_2_file, scale=30)
-
+plt.show()
 plot_dotproduct_interpolate_plane(post_weight_sum_null_file, scale=30)
+plt.show()
 # %%

@@ -21,7 +21,7 @@ plt.rcParams.update({'font.size': 15})
 # Read the CSV file
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_2025"
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_2025_optimized"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%

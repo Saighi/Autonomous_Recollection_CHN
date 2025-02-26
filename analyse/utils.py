@@ -4,23 +4,36 @@ from collections import defaultdict
 
 def load_simulation_trajectories(myDir, name_file):
     data = []
+    max_index = -1
+    
+    # First pass to determine the size of data list
     for root, dirs, files in os.walk(myDir):
         for dir in dirs:
             if dir.startswith('sim_nb_'):
-                data.append([])
-                x = int(dir.split('_')[-1])  # Extract the number x from sim_nb_x
-                
                 sim_dir = os.path.join(root, dir)
-                cpt = 0
                 for file in os.listdir(sim_dir):
                     if file.startswith(name_file):
-                        cpt+=1
-                        file_path = os.path.join(sim_dir, file)
-                        print(file_path)
-                        matrix = np.loadtxt(file_path,ndmin=2) 
-                        data[-1].append(matrix)
+                        # Extract number from filename (assuming format: name_file + number + ".data")
+                        number = int(file[len(name_file):-5])  # Remove prefix and ".data" suffix
+                        max_index = max(max_index, number)
     
-    return data  
+    # Initialize data list with None values
+    data = [None] * (max_index + 1)
+    
+    # Second pass to fill the data
+    for root, dirs, files in os.walk(myDir):
+        for dir in dirs:
+            if dir.startswith('sim_nb_'):
+                sim_dir = os.path.join(root, dir)
+                for file in os.listdir(sim_dir):
+                    if file.startswith(name_file):
+                        # Extract number from filename
+                        number = int(file[len(name_file):-5])
+                        file_path = os.path.join(sim_dir, file)
+                        # Load matrix and store at correct index
+                        data[number] = np.loadtxt(file_path, ndmin=2)
+    
+    return data
 
 def parse_config_file(file_name):
     config = {}

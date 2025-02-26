@@ -142,7 +142,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
 
 int main(int argc, char **argv) {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_2_units_vector_field";
+    string sim_name = "Fig_pattern_vector_field";
     string foldername_results =
         "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
