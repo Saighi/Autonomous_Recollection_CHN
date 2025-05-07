@@ -24,7 +24,7 @@ nb_sim = max(data['sim_ID'])
 #%%
 set(data['num_patterns'])
 #%%
-nb_iter = 11
+nb_iter = 7
 #%%
 # Cibled simulation
 num_pattern = 5
@@ -73,7 +73,7 @@ for p in range(patterns.shape[0]):
     plt.plot(all_correlations[:, p], label=f'Pattern {p+1}',linewidth=3)
 
 plt.xlabel('t')
-plt.ylabel('PCC')
+plt.ylabel(r'Corr $<\mathbf{u}^{\mu}\mathbf{u}(t)>$')
 # plt.title(f'Correlation between trajectory and patterns (first {nb_iter} iterations)')
 # plt.legend()
 # Add dotted red lines to separate iterations
@@ -136,7 +136,7 @@ for p in range(patterns.shape[0]):
     plt.plot(all_correlations[:, p], label=f'Pattern {p+1}',linewidth=3)
 
 plt.xlabel('t')
-plt.ylabel('PCC')
+plt.ylabel(r'Corr $<u^{\mu},u(t)>$')
 # plt.title(f'Correlation between trajectory and patterns (first {nb_iter} iterations)')
 # plt.legend()
 # Add dotted red lines to separate iterations
@@ -199,7 +199,7 @@ for p in range(patterns.shape[0]):
     plt.plot(all_correlations[:, p], label=f'Pattern {p+1}',linewidth=3)
 
 plt.xlabel('t')
-plt.ylabel('PCC')
+plt.ylabel(r'Corr $<\mathbf{u}^{\mu},\mathbf{u}(t)>$')
 # plt.title(f'Correlation between trajectory and patterns (first {nb_iter} iterations)')
 # plt.legend()
 # Add dotted red lines to separate iterations

@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 void run_simulation(int sim_number, unordered_map<string, double> parameters, const string foldername_results)
 {    
     srand(sim_number);
-    std::cout <<"sim bumber : "<< sim_number << std::endl;
+    std::cout <<"sim number : "<< sim_number << std::endl;
     // Learning constants
     double epsilon_learning=parameters.at("epsilon_learning");
     double drive_target = parameters.at("drive_target");

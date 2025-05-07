@@ -94,4 +94,12 @@ void compute_and_save_potential_vector_field_two_pattern(
     int nb_step,                    // how many steps from 0..1
     double up_lim);
 
+void compute_and_save_potential_vector_field_two_pattern_negative_area(
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename,
+    const std::vector<double> &p1,  // pattern_1_rate
+    const std::vector<double> &p2,  // pattern_2_rate
+    int nb_step,                    // how many steps from 0..1
+    double up_lim, double down_lim);
+
 #endif

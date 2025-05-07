@@ -30,8 +30,22 @@ std::vector<bool> intToBoolVector(const std::vector<int>& intVector) {
     return boolVector;
 }
 
-std::vector<std::vector<bool>> load_digit_patterns(
-    const std::string& filename) {
+std::vector<bool> bitwise_complement(std::vector<bool> vec){
+    std::vector<bool> boolVector(vec.size());
+    for (size_t i = 0; i < vec.size(); i++)
+    {
+        if(vec[i]){
+            boolVector[i]=false;
+        }
+        else{
+            boolVector[i]=true;
+        }
+    }
+    return boolVector;
+}
+
+    std::vector<std::vector<bool>> load_digit_patterns(
+        const std::string& filename) {
     std::ifstream f(filename);
     if (!f.is_open()) {
         throw std::runtime_error("Could not open file: " + filename);
@@ -101,9 +115,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     all_patterns = load_digit_patterns(
         "/home/saighi/Desktop/data/binarized_mnist/mnist_patterns.json");
     initial_patterns = {all_patterns[1], all_patterns[2], all_patterns[3],
-                        all_patterns[4]};
+                        all_patterns[4], all_patterns[5]};
     query_patterns= initial_patterns;
-        
+    for (size_t i = 0; i < initial_patterns.size(); i++)
+    {
+        initial_patterns[i]=bitwise_complement(initial_patterns[i]);
+    }
+    
     // Build Fully connected network
     std::vector<std::vector<bool>>
         connectivity_matrix(network_size,

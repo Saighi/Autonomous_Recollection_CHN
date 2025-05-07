@@ -13,7 +13,7 @@ sns.set_context("paper", font_scale=3)
 
 size_picture = (20,16)
 network_size = size_picture[0]*size_picture[1]
-myDir = '/home/saighi/Desktop/data/all_data_splited/sleep_simulations/Fig_Spontaneous_Recollection'
+myDir = '/home/saighi/Desktop/data/all_data_splited/sleep_simulations/Fig_Spontaneous_Recollection_spurious'
 #%%
 data_trajs_depressed = utils.load_simulation_trajectories(myDir,'depressed_traj_')
 data_trajs_not_depressed = utils.load_simulation_trajectories(myDir,'free_traj_')

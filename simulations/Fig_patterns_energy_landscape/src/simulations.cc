@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
 
     double learning_rate = 0.0001;
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.35}},
+        {"beta", {0.2}},
         {"nb_sample_points_vector_field",
          {24}},  // Increased for better resolution
         {"drive_target", {6}},

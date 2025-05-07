@@ -20,8 +20,8 @@ plt.rcParams.update({'font.size': 15})
 #%%
 # Read the CSV file
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
-# myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
 myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_2025_optimized"
+#myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%
@@ -83,6 +83,14 @@ for i,correlation in enumerate(all_correlation):
 #%%
 r = 1.1
 fig, axes = plt.subplots(2,5, figsize=(20/r,8/r), sharey=True,sharex=True)
+max_val = 0
+for i, correlation in enumerate(all_correlation):
+    data_one_correlation = data_correlations[correlation]
+    pivot_table = data_one_correlation.pivot_table(values='first_iter_all_fnd_normalized', 
+                                                   index='num_patterns', columns='network_size')
+    max_val = max(max_val,np.nanmax(pivot_table.values))
+    print(max_val)
+#%%
 for i, correlation in enumerate(all_correlation):
     data_one_correlation = data_correlations[correlation]
 

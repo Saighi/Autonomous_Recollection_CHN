@@ -68,7 +68,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         string inhib_matrix_file_name_sleep = sim_data_foldername + "/inhib_matrix_" + to_string(cpt) + ".data";
 
         // std::cout << "NEW ITER" << std::endl;
-        net.set_state(vector<double>(network_size, 0.1));
+        net.set_state(vector<double>(network_size, 0.5));
         // std::cout << "Initial random state:" << std::endl;
         // show_state_grid(net, 3); // Show initial state
 
@@ -123,8 +123,8 @@ int main(int argc, char **argv)
     // vector<double> repetitions = {0};
     
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.25} },
-        {"nb_iter",{4}},
+        {"beta", {0.01} },
+        {"nb_iter",{5}},
         {"nb_converge_depressed", {700}},
         {"nb_converge", {300}},
         {"noise_stddev",{0.005}}};   

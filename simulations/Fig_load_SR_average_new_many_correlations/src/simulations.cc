@@ -175,6 +175,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     result_file_name = sim_data_foldername + "/results.data";
     std::ofstream result_file(result_file_name, std::ios::trunc);
     result_file << "nb_found_patterns=" << succes;
+    result_file<<std::endl;
+    result_file << "nb_iter=" << cpt;
     result_file.close();
 
     weights_file_name = sim_data_foldername + "/weights.data";
@@ -188,7 +190,10 @@ int main(int argc, char **argv)
 {
     // string sim_name = "write_net_sizes_relative_num_patterns";
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
-    string sim_name = "Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence";
+    // string sim_name =
+    //     "Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_"
+    //     "new_convergence";
+    string sim_name = "Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence_nb_iter";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
