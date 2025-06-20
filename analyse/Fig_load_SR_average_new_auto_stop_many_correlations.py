@@ -13,14 +13,14 @@ def relative_iter(row,eta):
     # Replace this with your specific condition
     return row['query_iter']==int(eta*row['num_patterns'])
 
-def get_spaced_indices(n, num_ticks=4):
+def get_spaced_indices(a,n, num_ticks=4):
     return np.linspace(0, n - 1, num_ticks, dtype=int)
 
 plt.rcParams.update({'font.size': 15})
 #%%
 # Read the CSV file
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_2025_optimized"
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence_nb_iter"
 #myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
@@ -37,8 +37,8 @@ all_correlation = np.sort(data['noise_level'].unique())
 all_repetitions= np.sort(data['repetitions'].unique())
 nb_sim_one_parameter = len(all_repetitions)
 #%%
-x_tick_indices = get_spaced_indices(len(all_net_sizes),4)
-y_tick_indices = get_spaced_indices(len(all_num_patterns),10)
+x_tick_indices = get_spaced_indices(1,len(all_net_sizes),4)
+y_tick_indices = get_spaced_indices(1,len(all_num_patterns),7)
 #%%
 data_correlations_1 = dict()
 for i,correlation in enumerate(all_correlation):
@@ -62,6 +62,7 @@ for i,correlation in enumerate(all_correlation):
     data_correlations_1[correlation]=data_one_correlation
 data_correlations = dict()
 #%%
+global_max_iter = 0
 for i,correlation in enumerate(all_correlation):
     data_one_correlation=data_correlations_1[correlation]
     # Keep only the last iteration as representent of the simulation
@@ -78,11 +79,20 @@ for i,correlation in enumerate(all_correlation):
                 data_one_correlation.loc[(data_one_correlation['network_size'] == s) & (data_one_correlation['num_patterns'] == n),'more_than_one_noned']=None
 
     data_one_correlation["first_iter_all_fnd_normalized"] = data_one_correlation['first_iter_all_fnd']/data_one_correlation["num_patterns"]
-
     data_correlations[correlation]=data_one_correlation # store the specific data for later
 #%%
+global_max_iter = 0
+for beta in enumerate(all_correlation):
+    data_one_correlation = data_one_correlation.loc[data_one_correlation.groupby("sim_ID")["query_iter"].idxmax()]
+    
+    # For first iteration (second row)
+    pivot_table_iter = data_one_correlation.pivot_table(values='first_iter_all_fnd', 
+                                                index='num_patterns', 
+                                                columns='network_size')
+    global_max_iter = max(global_max_iter, np.nanmax(pivot_table_iter.values))
+#%%
 r = 1.1
-fig, axes = plt.subplots(2,5, figsize=(20/r,8/r), sharey=True,sharex=True)
+fig, axes = plt.subplots(2,5, figsize=(15/r,8/r), sharey=True,sharex=True)
 max_val = 0
 for i, correlation in enumerate(all_correlation):
     data_one_correlation = data_correlations[correlation]
@@ -90,36 +100,49 @@ for i, correlation in enumerate(all_correlation):
                                                    index='num_patterns', columns='network_size')
     max_val = max(max_val,np.nanmax(pivot_table.values))
     print(max_val)
-#%%
+
 for i, correlation in enumerate(all_correlation):
     data_one_correlation = data_correlations[correlation]
-
-    pivot_table = data_one_correlation.pivot_table(values='is_error_before_all_fnd', index='num_patterns', columns='network_size')
-    im1 = axes[0][i].imshow(pivot_table*100, cmap="Reds", vmin=0)
+    data_one_correlation['is_not_error_before_all_fnd'] = ~data_one_correlation['is_error_before_all_fnd']
+    pivot_table = data_one_correlation.pivot_table(values='is_not_error_before_all_fnd', index='num_patterns', columns='network_size')
+    im1 = axes[0][i].imshow(pivot_table*100, vmin=0)
     axes[0][i].set_xticks(x_tick_indices, all_net_sizes[x_tick_indices])
     axes[0][i].set_yticks(y_tick_indices, all_num_patterns[y_tick_indices])
     axes[0][i].grid(False)
     axes[0][i].invert_yaxis()
-    axes[0][i].set_title(r'$\rho$ = '+str(1-correlation))
+    axes[0][i].set_title(r'$\rho$ = '+str(1-correlation),fontsize=15)
 
-    plt.colorbar(im1, ax=axes[0][i], shrink=0.8)
+    # plt.colorbar(im1, ax=axes[0][i], shrink=0.8)
 
     # FIRST ITER FIGS
-    pivot_table = data_one_correlation.pivot_table(values='first_iter_all_fnd_normalized', 
+    pivot_table = data_one_correlation.pivot_table(values='first_iter_all_fnd', 
                                                    index='num_patterns', columns='network_size')
     max_val = np.nanmax(pivot_table.values)
-    im2 = axes[1][i].imshow(pivot_table, vmin=0, vmax=max_val)
+    im2 = axes[1][i].imshow(pivot_table, vmin=0, vmax=global_max_iter)
     axes[1][i].set_xticks(x_tick_indices, all_net_sizes[x_tick_indices])
     axes[1][i].set_yticks(y_tick_indices, all_num_patterns[y_tick_indices])
     axes[1][i].grid(False)
     axes[1][i].invert_yaxis()
-    cbar = plt.colorbar(im2, ax=axes[1][i], shrink=0.8)
+    # cbar = plt.colorbar(im2, ax=axes[1][i], shrink=0.8)
     # Manually set ticks to include the max value
-    cbar.set_ticks(np.linspace(0,max_val,5))
-    cbar.set_ticklabels([f'{val:.1f}' for val in np.linspace(0,max_val,5)])
+    # cbar.set_ticks(np.linspace(0,max_val,5))
+    # cbar.set_ticklabels([f'{val:.1f}' for val in np.linspace(0,max_val,5)])
+
+# Add single colorbar for first row (error rates)
+cbar1_ax = fig.add_axes([0.92, 0.55, 0.01, 0.3])
+cbar1 = fig.colorbar(im1, cax=cbar1_ax)
+
+cbar1.set_ticks(np.linspace(0, 100, 5))
+cbar1.set_ticklabels([f'{int(val)}' for val in np.linspace(0, 100, 5)])
+
+# Add single colorbar for second row (first iteration)
+cbar2_ax = fig.add_axes([0.92, 0.12, 0.01, 0.3])
+cbar2 = fig.colorbar(im2, cax=cbar2_ax)
+cbar2.set_ticks(np.linspace(0, global_max_iter, 5))
+cbar2.set_ticklabels([f'{int(val)}' for val in np.linspace(1, global_max_iter, 5)])
 
 # fig.colorbar(im2, ax=axes[1, :],shrink=0.8)
-fig.text(0.47, 0.02, 'Network size', ha='center', va='center')
+fig.text(0.51, 0.02, 'Network size', ha='center', va='center')
 fig.text(0.07, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
 # %%
 # %%

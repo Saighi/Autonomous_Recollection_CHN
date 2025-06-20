@@ -58,6 +58,21 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     matvar_t *matvar = Mat_VarRead(matfp, "dat");
     // Check if 'dat' is a cell array
     // Access the first cell
+
+    createParameterFile(sim_data_foldername, parameters);
+    // Build Fully connected network
+    vector<vector<bool>> connectivity_matrix(network_size,
+                                             vector<bool>(network_size, false));
+    for (int i = 0; i < network_size; i++) {
+        for (int j = 0; j < network_size; j++) {
+            if (i != j) {
+                connectivity_matrix[i][j] = true;
+            }
+        }
+    }
+
+    Network net = Network(connectivity_matrix, network_size, leak);
+
     for (size_t n = 3; n < 4; n++)
     {
         matvar_t *cell = static_cast<matvar_t **>(matvar->data)[n];
@@ -68,6 +83,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
         std::cout << "First Image:" << std::endl;
         initial_patterns.emplace_back(vector<bool>(20*16,0));
         query_patterns.emplace_back(vector<bool>(20*16,0));
+        query_patterns_rates.emplace_back(vector<double>(20 * 16, 0));
         std::cout << "/* message */" << std::endl;
         for (size_t i = 0; i < IMAGE_HEIGHT; ++i)
         {
@@ -98,11 +114,17 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
         for (size_t i = 0; i < initial_patterns[initial_patterns.size()-1].size(); i++)
         {
             if (i>initial_patterns[initial_patterns.size()-1].size()/3){
-                query_patterns[initial_patterns.size()-1][i]= false;
+                query_patterns_rates[initial_patterns.size() - 1][i] = 0.5;
             }
             else{
-
-                query_patterns[initial_patterns.size()-1][i]= initial_patterns[initial_patterns.size()-1][i];
+                if(initial_patterns[initial_patterns.size()-1][i]==0){
+                    query_patterns_rates[initial_patterns.size() - 1][i] =
+                        net.transfer(drive_target);
+                }else{
+                    query_patterns_rates[initial_patterns.size() - 1][i] =
+                        net.transfer(-drive_target);
+                }
+                // query_patterns[initial_patterns.size()-1][i]= initial_patterns[initial_patterns.size()-1][i];
             }
         }
 
@@ -112,24 +134,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     Mat_VarFree(matvar);
     Mat_Close(matfp);
     
-    createParameterFile(sim_data_foldername, parameters);
-    // Build Fully connected network
-    vector<vector<bool>> connectivity_matrix(network_size, vector<bool>(network_size, false));
-    for (int i = 0; i < network_size; i++)
-    {
-        for (int j = 0; j < network_size; j++)
-        {
-            if (i != j)
-            {
-                connectivity_matrix[i][j] = true;
-            }
-        }
-    }
-
-    Network net = Network(connectivity_matrix, network_size, leak);
     // Loading training data
     initial_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns);
-    query_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), query_patterns);
     vector<double> drive_errors;
     drive_errors.resize(network_size,0.0);
     double sum_errors;
@@ -174,7 +180,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
         net.set_state(query_pattern);
         // run_net_sim_query_drive(net, noisy_pattern, strength_drive, 1200, delta);
         // run_net_sim_noisy(net,2800, delta,0.0,0.01);
-        run_net_sim_save(net,100, delta, result_file_traj);
+        run_net_sim_save(net,250, delta, result_file_traj);
         // run_net_sim_noisy_save_display(net,10, 2800, delta,0,0.01, result_file_traj);// 
         // run_net_sim_noisy_save(net, 2800, delta,0,0.01, result_file_traj);
         for (size_t j = 0; j < initial_patterns[i].size(); j++)

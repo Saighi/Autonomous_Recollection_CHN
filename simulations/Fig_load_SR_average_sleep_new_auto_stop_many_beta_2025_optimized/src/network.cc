@@ -209,7 +209,7 @@ void Network::pot_inhib(double pot_rate) {
 }
 // TODO inhibitory synapses can be negative so dont need inhib strenght ?
 void Network::pot_inhib_symmetric(double pot_rate) {
-    actual_sum_each_inhib = std::vector<double>(size, 0);
+    actual_sum_each_inhib = std::zzvector<double>(size, 0);
     // Adjust weights
     for (int i = 0; i < size; ++i) {
         for (int j = 0; j < size; ++j) {

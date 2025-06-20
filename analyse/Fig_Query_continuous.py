@@ -9,58 +9,23 @@ import matplotlib.animation as animation
 plt.rcParams.update({'font.size': 22})
 #%%
 size_picture = (20,16)
-myDir = '..\\..\\..\\data\\all_data_splited\\trained_networks_fast\\Fig_Query_continuous'
+myDir = '/home/saighi/Desktop/data/all_data_splited/trained_networks_fast/Fig_Query_continuous'
 #%%
 # Read the CSV file
-data = pd.read_csv(myDir+'\\all_simulation_data.csv')
+data = pd.read_csv(myDir+'/all_simulation_data.csv')
 #%%
-data_trajs = utils.load_simulation_trajectories(myDir,'results')
+# data_trajs = utils.load_simulation_trajectories(myDir,'results')
 #%%
-activity_data = data_trajs[0][0]
-
-# Create a figure and axis for the plot
-fig, ax = plt.subplots()
-
-# Initialize the grid with the first time step
-initial_activity = activity_data[0].reshape((size_picture[0], size_picture[1]))
-im = ax.imshow(initial_activity, cmap='viridis', interpolation='nearest')
-
-# Add a colorbar to show the mapping from activity levels to colors
-cbar = fig.colorbar(im, ax=ax)
-cbar.set_label('Activity Level')
-
-# Function to update the grid for each frame
-def update(frame):
-    activity = activity_data[frame].reshape((size_picture[0], size_picture[1]))
-    im.set_array(activity)
-    return [im]
-
-# Create the animation
-ani = animation.FuncAnimation(
-    fig, update, frames=len(activity_data), blit=True, interval=100
-)
-
-# To display the animation inline (if using a Jupyter notebook)
-# from IPython.display import HTML
-# HTML(ani.to_jshtml())
-
-# To save the animation to a file (e.g., MP4 video)
-ani.save('network_activity.mp4', writer='ffmpeg')
-
-# Add a colorbar to show the mapping from activity levels to colors
-cbar = fig.colorbar(im, ax=ax)
-cbar.set_label('Activity Level')
-
-plt.show()
+results = np.loadtxt(myDir+"/sim_nb_0/results_0.data")
 #%%
-plt.imshow(activity_data[0].reshape((size_picture[0], size_picture[1])))
+plt.imshow(results[0].reshape((size_picture[0], size_picture[1])))
 #%%
 #%%
-fig, axes = plt.subplots(1, 5, figsize=(25, 5), sharey=True)
+fig, axes = plt.subplots(1, 4, figsize=(25, 5), sharey=True)
 for i,ax in enumerate(axes):
-    print(int(i*(len(activity_data)/len(axes))))
-    ax.imshow(activity_data[int(i*(len(activity_data)/len(axes)))].reshape((size_picture[0], size_picture[1])))
-    ax.set_title("t="+ str(int(i*(len(activity_data)/len(axes)))))
-cbar = fig.colorbar(im, ax=axes)
-cbar.set_label('Activity Level')
+    print(int(i*(len(results)/len(axes))))
+    im =ax.imshow(results[int(i*(len(results)/len(axes)))].reshape((size_picture[0], size_picture[1])))
+    ax.set_title("t="+ str(int(i*(len(results)/len(axes)))))
+cbar = fig.colorbar(im, ax=axes, pad=0.02)
+cbar.set_label('Rate',fontsize=25)
 # %%

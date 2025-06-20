@@ -88,12 +88,15 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
     result_file_retrieval << "query_iter,";
     result_file_retrieval << "nb_fnd_pat,";
-    result_file_retrieval << "nb_spurious," << endl;
+    result_file_retrieval << "nb_spurious,";
+    result_file_retrieval << "nb_iter_biased,";
+    result_file_retrieval << "nb_iter_free," << endl;
 
     int cpt = 0;
-    int nb_iter_sim = 0;
+    int nb_iter_biased = 0;
+    int nb_iter_free = 0;
     std::cout << "RETRIEVAL" << std::endl;
-    while(cpt<20)
+    while(cpt<40)
     {
         // std::cout << "NEW ITER" << std::endl;
         net.set_state(vector<double>(network_size, init_drive));
@@ -116,9 +119,9 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         config.max_iter = 100/delta;
         config.noise = noise;
         config.stddev=stddev;
-        nb_iter_sim += run_net_sim_choice(net, config); 
+        nb_iter_biased = run_net_sim_choice(net, config);
         config.depressed = false;
-        nb_iter_sim += run_net_sim_choice(net, config); 
+        nb_iter_free = run_net_sim_choice(net, config);
         result_file_sleep.close();
         winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
         // show_vector_bool_grid(winning_units,10);
@@ -147,7 +150,9 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
 
         result_file_retrieval << to_string(cpt) <<",";
         result_file_retrieval << to_string(foundVectors.size()) <<",";
-        result_file_retrieval << to_string(nb_spurious_patterns) <<"," << endl;
+        result_file_retrieval << to_string(nb_spurious_patterns) <<",";
+        result_file_retrieval << to_string(nb_iter_biased) << ",";
+        result_file_retrieval << to_string(nb_iter_free) << "," << endl;
         cpt+=1;
     }
 
@@ -166,8 +171,8 @@ int main(int argc, char **argv)
 {
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
-    string sim_name = "Fig_typical_recovery";
-    string inputs_name = "Fig_typical_recovery";
+    string sim_name = "Fig_typical_recovery_nb_iter_biased_small_network";
+    string inputs_name = "Fig_typical_recovery_nb_iter_biased_small_network";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
     string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
     fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
@@ -183,7 +188,8 @@ int main(int argc, char **argv)
     }
     unordered_map<string, vector<double>> varying_params = {
         {"save", {1}},
-        {"beta", {0.00125}},
+        // {"beta", {0.00125}},
+        {"beta", {0.01}},
         {"delta",{0.01}},
         {"noise",{1}},
         {"stddev",{0.01}}};

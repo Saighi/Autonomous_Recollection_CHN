@@ -14,8 +14,8 @@ def relative_iter(row,eta):
     # Replace this with your specific condition
     return row['query_iter']==int(eta*row['num_patterns'])
 
-def get_spaced_indices(n, num_ticks=4):
-    return np.linspace(0, n - 1, num_ticks, dtype=int)
+def get_spaced_indices(a,n, num_ticks=4):
+    return np.linspace(a, n, num_ticks, dtype=int)
 
 plt.rcParams.update({'font.size': 15})
 #%%
@@ -23,7 +23,7 @@ plt.rcParams.update({'font.size': 15})
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_beta"
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized"
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized_diagonal_inh"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%
@@ -39,8 +39,8 @@ all_beta = np.sort(data['beta'].unique())
 all_repetitions= np.sort(data['repetitions'].unique())
 nb_sim_one_parameter = len(all_repetitions)
 #%%
-x_tick_indices = get_spaced_indices(len(all_net_sizes),4)
-y_tick_indices = get_spaced_indices(len(all_num_patterns),10)
+x_tick_indices = get_spaced_indices(1,len(all_net_sizes)-1,4)
+y_tick_indices = get_spaced_indices(1,len(all_num_patterns)-1,7)
 #%%
 data_betas_1 = dict()
 for i,beta in enumerate(all_beta):
@@ -94,8 +94,9 @@ global_max_iter = 0
 
 for beta in not_all_beta:
     data_one_beta = data_betas[beta]
+    data_one_beta['is_not_error_before_all_fnd'] = ~data_one_beta['is_error_before_all_fnd']
     # For error rates (first row)
-    pivot_table_error = data_one_beta.pivot_table(values='is_error_before_all_fnd', 
+    pivot_table_error = data_one_beta.pivot_table(values='is_not_error_before_all_fnd', 
                                                  index='num_patterns', 
                                                  columns='network_size')
     global_max_error = max(global_max_error, pivot_table_error.values.max() * 100)
@@ -112,15 +113,15 @@ for i, beta in enumerate(not_all_beta):
     data_one_beta = data_betas[beta]
     data_one_beta["first_iter_all_fnd"]+=1
     # First row: Error rates
-    pivot_table = data_one_beta.pivot_table(values='is_error_before_all_fnd', 
+    pivot_table = data_one_beta.pivot_table(values='is_not_error_before_all_fnd', 
                                           index='num_patterns', 
                                           columns='network_size')
-    im1 = axes[0][i].imshow(pivot_table*100, cmap="Reds", vmin=0, vmax=global_max_error)
+    im1 = axes[0][i].imshow(pivot_table*100,vmin=0, vmax=global_max_error)
     axes[0][i].set_xticks(x_tick_indices, all_net_sizes[x_tick_indices])
     axes[0][i].set_yticks(y_tick_indices, all_num_patterns[y_tick_indices])
     axes[0][i].grid(False)
     axes[0][i].invert_yaxis()
-    axes[0][i].set_title(r'$\beta$ = '+str(beta))
+    axes[0][i].set_title(r'$\beta$ = '+str(beta),fontsize=15)
     
     # Second row: First iteration
     pivot_table = data_one_beta.pivot_table(values='first_iter_all_fnd', 

@@ -85,6 +85,8 @@
         "string_view": "cpp",
         "mutex": "cpp",
         "cfenv": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp"
     }
 }
