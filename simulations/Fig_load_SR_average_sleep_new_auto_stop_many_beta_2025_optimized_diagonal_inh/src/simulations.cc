@@ -169,7 +169,7 @@ int main(int argc, char **argv)
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     string sim_name =
-        "Fig_load_SR_average_new_inh_plas_many_betta_big_simulations_2025_optimized_diagonal_inh"; 
+        "Fig_load_SR_average_new_inh_plas_many_betta_big_simulations_2025_optimized_diagonal_inh_2"; 
     string inputs_name =
         "Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
@@ -186,7 +186,8 @@ int main(int argc, char **argv)
         return 1;
     }
     // vector<double> beta = {0.00125 / 4, 0.00125, 0.0035, 0.005, 0.01};
-    vector<double> beta = {0.00125 / 4, 0.00125, 0.0035, 0.005, 0.01};
+    vector<double> beta = { 0.00125 / 8, 0.00125 / 4, 0.00125, 0.0035};
+
     // vector<double> beta = {0.00125 / 4}; ///TODO revert for trying new noise implementation
     unordered_map<string, vector<double>> varying_params = {
         {"save", {0}},

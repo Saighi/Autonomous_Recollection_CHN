@@ -357,3 +357,22 @@ void Network::pot_inhib_bin_scale(double pot_rate, std::vector<bool> winners)
         }
     }
 }
+
+// Basic iteration (no depression, no noise)
+std::vector<double> Network::give_derivative_u(double delta) {
+    std::vector<double> derivative_u(size, 0.0);
+
+    // Compute derivative for each neuron i
+    for (int i = 0; i < size; i++) {
+        // sum of excitatory or "normal" synapses
+        int sum = 0 ;
+        for (int j = 0; j < size; j++) {
+            sum+=weight_matrix[i][j]*rate_list[j];
+            // std::cout << sum << std::endl;
+        }
+        double d = sum - (leak * activity_list[i]);
+        derivative_u[i] = d * delta;
+    }
+
+    return derivative_u;
+}

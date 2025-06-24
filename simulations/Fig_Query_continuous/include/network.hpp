@@ -1,6 +1,8 @@
 #ifndef NETWORK_HPP
 #define NETWORK_HPP
 
+#include <immintrin.h>
+
 #include <vector>
 
 class Network{
@@ -31,7 +33,8 @@ class Network{
         void set_state(std::vector<double>);
         void reinforce_attractor(std::vector<double>, double);
         void pot_inhib(double);
-        void pot_inhib_bin(double pot_rate, std::vector<bool> winners);
+        std::vector<double> give_derivative_u(double delta); 
+        void pot_inhib_bin(double pot_rate,std::vector<bool> winners);
         // void pot_inhib_normalize(double, int);
         void iterative_normalize(int, double);
         void reset_inhib();

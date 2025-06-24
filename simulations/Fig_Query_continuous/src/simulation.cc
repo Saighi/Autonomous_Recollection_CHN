@@ -38,6 +38,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     vector<vector<bool>> initial_patterns;
     vector<vector<bool>> query_patterns;
     vector<vector<double>> initial_patterns_rates;
+    vector<vector<double>> initial_patterns_potentials;
     vector<vector<double>> query_patterns_rates;
     vector<bool> winning_units;
 
@@ -73,7 +74,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 
     Network net = Network(connectivity_matrix, network_size, leak);
 
-    for (size_t n = 3; n < 4; n++)
+    for (size_t n = 3; n < 5; n++)
     {
         matvar_t *cell = static_cast<matvar_t **>(matvar->data)[n];
         // Get the data pointer
@@ -113,11 +114,28 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
 
         for (size_t i = 0; i < initial_patterns[initial_patterns.size()-1].size(); i++)
         {
-            if (i>initial_patterns[initial_patterns.size()-1].size()/3){
-                query_patterns_rates[initial_patterns.size() - 1][i] = 0.5;
+            if (n==3){
+
+                if (i >
+                    (initial_patterns[initial_patterns.size() - 1].size() / 3)){
+                    query_patterns_rates[initial_patterns.size() - 1][i] = 0.5;
+                } else {
+                    if(initial_patterns[initial_patterns.size()-1][i]==1){
+                        query_patterns_rates[initial_patterns.size() - 1][i] =
+                            net.transfer(drive_target);
+                    }else{
+                        query_patterns_rates[initial_patterns.size() - 1][i] =
+                            net.transfer(-drive_target);
+                    }
+                    // query_patterns[initial_patterns.size()-1][i]= initial_patterns[initial_patterns.size()-1][i];
+                }
             }
-            else{
-                if(initial_patterns[initial_patterns.size()-1][i]==0){
+            if (n==4){
+            if (i <
+                (initial_patterns[initial_patterns.size() - 1].size() / 1.5)){
+                query_patterns_rates[initial_patterns.size() - 1][i] = 0.5;
+            } else {
+                if(initial_patterns[initial_patterns.size()-1][i]==1){
                     query_patterns_rates[initial_patterns.size() - 1][i] =
                         net.transfer(drive_target);
                 }else{
@@ -125,6 +143,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
                         net.transfer(-drive_target);
                 }
                 // query_patterns[initial_patterns.size()-1][i]= initial_patterns[initial_patterns.size()-1][i];
+            } 
+
             }
         }
 
@@ -133,9 +153,18 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     // Clean up
     Mat_VarFree(matvar);
     Mat_Close(matfp);
-    
+
+    std::string patterns_file_name = sim_data_foldername + "/patterns.data";
+    std::ofstream file(patterns_file_name, std::ios::trunc);
+    for (int i = 0; i < 2; i++) {
+        writeBoolToCSV(file, initial_patterns[i]);
+        // show_vector_bool_grid(initial_patterns[i], col_with);
+    }
+
     // Loading training data
     initial_patterns_rates = patterns_as_states(net.transfer(drive_target), net.transfer(-drive_target), initial_patterns);
+    initial_patterns_potentials = patterns_as_states(drive_target, -drive_target, initial_patterns);
+    
     vector<double> drive_errors;
     drive_errors.resize(network_size,0.0);
     double sum_errors;
@@ -160,11 +189,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
             stop_learning=true;
         }
         cpt+=1;
-        std::cout <<  abs(sum_errors)/(network_size*initial_patterns.size()) << std::endl;
-        std::cout << cpt << std::endl;
+        // std::cout <<  abs(sum_errors)/(network_size*initial_patterns.size()) << std::endl;
+        // std::cout << cpt << std::endl;
     }
     std::cout << "nombre d'iterations" << std::endl;
     std::cout << cpt << std::endl;
+
+
     // Querying
     std::cout << "Querying initial memories" << std::endl;
     vector<double> query_pattern;
@@ -180,7 +211,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
         net.set_state(query_pattern);
         // run_net_sim_query_drive(net, noisy_pattern, strength_drive, 1200, delta);
         // run_net_sim_noisy(net,2800, delta,0.0,0.01);
-        run_net_sim_save(net,250, delta, result_file_traj);
+        run_net_sim_save(net,80, delta, result_file_traj);
         // run_net_sim_noisy_save_display(net,10, 2800, delta,0,0.01, result_file_traj);// 
         // run_net_sim_noisy_save(net, 2800, delta,0,0.01, result_file_traj);
         for (size_t j = 0; j < initial_patterns[i].size(); j++)
@@ -204,6 +235,11 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     connectivity_file_name = sim_data_foldername + "/connectivity.data";
     writeBoolMatrixToFile(net.connectivity_matrix, connectivity_file_name);
     std::cout << nb_winners << std::endl;
+    
+    compute_and_save_potential_vector_field_two_pattern(
+        delta, net, sim_data_foldername, "post_train",
+        initial_patterns_potentials[0], initial_patterns_potentials[1],
+        6, 1.5);
 }
 
 int main(int argc, char **argv)

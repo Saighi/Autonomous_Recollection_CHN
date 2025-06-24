@@ -118,8 +118,9 @@ for ax in axs:
     ax.set_aspect('equal')
 
 # Save figure
-plt.savefig('images/Fig_pattern_vector_field_3plots.png', dpi=300, bbox_inches='tight')
+plt.savefig('plots/Fig_pattern_vector_field_3plots.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 if __name__ == "__main__":
     print("Figure with three vector field plots created and saved.")
+# %%

@@ -20,8 +20,10 @@ plt.rcParams.update({'font.size': 15})
 #%%
 # Read the CSV file
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence_nb_iter"
-#myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence"
+# myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence_nb_iter"
+# myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_diagonal_inh"
+# myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_new_convergence"
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_correlations_2025_optimized"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%
@@ -142,7 +144,7 @@ cbar2.set_ticks(np.linspace(0, global_max_iter, 5))
 cbar2.set_ticklabels([f'{int(val)}' for val in np.linspace(1, global_max_iter, 5)])
 
 # fig.colorbar(im2, ax=axes[1, :],shrink=0.8)
-fig.text(0.51, 0.02, 'Network size', ha='center', va='center')
+fig.text(0.51, 0.04, 'Network size', ha='center', va='center')
 fig.text(0.07, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
 # %%
 # %%
@@ -150,22 +152,23 @@ fig.text(0.07, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
 # sns.set(font_scale=2)
 # Create a pivot table that counts how many simulations ended with an error before all found
 pivot_table = data_correlations[0.5].pivot_table(
-    values='is_error_before_all_fnd', 
+    values='is_not_error_before_all_fnd', 
     index='num_patterns', 
     columns='network_size', 
     aggfunc='sum'  # Count how many True values we got
 )
 
 fig, ax = plt.subplots(figsize=(20, 20))  # Large figure size
-heatmap = sns.heatmap(pivot_table, annot=True, fmt="g", cmap="Reds", ax=ax,annot_kws={"fontsize": 24},cbar=False)
+heatmap = sns.heatmap(pivot_table, annot=True, fmt="g", ax=ax,annot_kws={"fontsize": 27},cbar=False)
 # Adjust the colorbar font size
 
-ax.set_xlabel("Network size", fontsize=28)
-ax.set_ylabel("Nb stored pattern", fontsize=28)
+ax.set_xlabel("Network size", fontsize=28,labelpad=25)
+ax.set_ylabel("Nb stored pattern", fontsize=28,labelpad=25)
 plt.xticks(rotation=45, ha='right', fontsize=25)
 plt.yticks(rotation=0, fontsize=25)
 ax.invert_yaxis()
 #plt.title("Number of simulations with errors before all patterns found", fontsize=24, pad=20)
 plt.tight_layout()
+plt.savefig("./plots/Fig_detailed_recovery_data.png",dpi=200)
 plt.show()
 # %%

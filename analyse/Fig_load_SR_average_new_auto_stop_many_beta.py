@@ -7,6 +7,9 @@ import math
 # Update the styling
 sns.set_style("darkgrid")  # or "whitegrid", "dark", "white", "ticks"
 sns.set_context("paper", font_scale=1.5)  # or "paper", "talk", "poster"
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Computer Modern Roman']
 def equally_spaced_from_array(arr, n, ratio_taken):
     return arr[np.linspace(0, (len(arr)*ratio_taken)-1, n, dtype=int)]
 
