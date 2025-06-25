@@ -172,7 +172,7 @@ int main(int argc, char **argv)
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     string sim_name = "Fig_typical_recovery_nb_iter_biased_diagonal_inh";
-    string inputs_name = "Fig_typical_recovery_nb_iter_biased";
+    string inputs_name = "Fig_typical_recovery_nb_iter_biased_for_diag_inh";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
     string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
     fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
         return 1;
     }
     unordered_map<string, vector<double>> varying_params = {
-        {"save", {1}},
+        {"save", {0}},
         // {"beta", {0.00125}},
         {"beta", {0.1}},
         {"delta",{0.01}},

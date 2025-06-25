@@ -182,7 +182,7 @@ int main(int argc, char **argv)
     // vector<double> noise_level = linspace(0.2, 1, 15);
     // vector<double> noise_level = {0.5};
     // vector<double> noise_level = {0.1,0.25,0.5,0.75,1};
-    vector<double> noise_level = linspace(0.1,1,10);
+    vector<double> noise_level = linspace(0.25,1,10);
     double learning_rate= 0.00001;
     // double learning_rate= 0.00001; one night if 10 repetiotion, 50 to 300, 1, 30
     // vector<double> noise_level = {0.5};

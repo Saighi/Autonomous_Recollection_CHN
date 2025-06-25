@@ -41,8 +41,8 @@ set(data['network_size'])
 set(data['num_patterns'])
 #%%
 # Cibled simulation
-num_pattern = 13
-network_size = 60
+num_pattern = 4
+network_size = 30
 sub_data = data[(data['network_size'] == network_size) & (data['num_patterns'] == num_pattern)].sort_values(by='query_iter')
 #%%
 sim_ID = list(sub_data['sim_ID'])[0]

@@ -314,7 +314,7 @@ std::vector<bool> generateNoisyBalancedPattern(const std::vector<bool> &basePatt
     }
     return noisyPattern;
 }
-
+// 
 std::vector<double> setToValueRandomElements(const std::vector<double> &baseValues, int numFlips, double value)
 {
     std::vector<double> newVector = baseValues;
@@ -349,10 +349,6 @@ std::vector<std::vector<bool>> generatePatterns(int K, int N, int nb_winning_uni
 {
     std::vector<std::vector<bool>> patterns;
     std::vector<bool> basePattern = generateBasePattern(N, nb_winning_units);
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::shuffle(basePattern.begin(), basePattern.end(), generator);
-
     int numFlips = static_cast<int>(noiseLevel*nb_winning_units); // Calculate number of flips based on noise level
 
     while (patterns.size() < K)
