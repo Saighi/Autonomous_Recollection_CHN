@@ -9,9 +9,9 @@ import seaborn as sns
 #%%
 sns.set_theme(style="ticks")
 
-# plt.rcParams['text.usetex'] = True
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Computer Modern Roman']
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Computer Modern Roman']
 plt.rcParams.update({
     'text.usetex': True,
     'font.size': 17,
@@ -27,7 +27,8 @@ plt.rcParams.update({
 })
 #%%
 size_picture = (20,16)
-myDir = '/home/saighi/Desktop/data/all_data_splited/trained_networks_fast/Fig_Query_continuous'
+# myDir = '/home/saighi/Desktop/data/all_data_splited/trained_networks_fast/Fig_Query_continuous'
+myDir = '../../data/all_data_splited/trained_networks_fast/Fig_Query_continuous'
 #%%
 # Read the CSV file
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
@@ -51,7 +52,7 @@ for i,ax in enumerate(axes[1]):
     im =ax.imshow(results_1[int(i*(len(results_1)/len(axes[1])))].reshape((size_picture[0], size_picture[1])), cmap='gray')
     ax.set_xticks([])
     ax.set_yticks([])
-fig.savefig(fname="./plots/Fig_querying",transparent=True,dpi=300)
+fig.savefig(fname="./plots/Fig_query_continuous",transparent=True,dpi=300)
 # # %%
 # def plot_dotproduct_interpolate_plane(ax, filename, display_pattern_numbers = True):
 #     """

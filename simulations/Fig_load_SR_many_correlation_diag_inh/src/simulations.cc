@@ -124,7 +124,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     std::cout << "Querying initial memories" << std::endl;
     vector<double> query_pattern;
     int succes= 0 ;
-    // double strength_drive = 0.1;
+    // // double strength_drive = 0.1;
     // for (int i = 0; i < num_patterns; i++)
     // {
     //     //TODO - change the pattern_as_states and link the target drive not magic number
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     // string sim_name = "write_net_sizes_relative_num_patterns";
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string sim_name = "Fig_typical_recovery_nb_iter_biased_small_network";
-    string sim_name = "Fig_typical_recovery_nb_iter_biased_for_diag_inh";
+    string sim_name = "Fig_load_SR_many_correlation_diag_inh";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
     vector<double> drive_targets = {6};
     vector<double> network_sizes = generateEvenlySpacedIntegers(25, 250, 20);
     vector<double> init_drive = {0.25};
-    vector<double> noise_level = {0.5};
+    vector<double> noise_level = {0.0,0.25,0.5,0.75,1};
     double learning_rate= 0.0001;
     unordered_map<string, vector<double>> varying_params = {
         {"ratio_flip_writing", {0.1}},
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         {"learning_rate", {learning_rate}}, // REMOVED-target rates
         {"network_size", network_sizes},
         {"relative_nb_winner", {1.0/2.0}},
-        {"noise_level", {noise_level}},
+        {"noise_level", noise_level},
         {"epsilon_learning", {learning_rate/1000000}},
         {"delta",{0.1}},
         {"init_drive", {0.5}},

@@ -25,6 +25,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     bool save_trajectories=false;
     if (parameters.at("save")){
         save_trajectories=true;
+        std::cout << "is saving !" << std::endl;
     }
     // Inherited
     double init_drive = parameters.at("init_drive");
@@ -42,7 +43,6 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         noise=true;
     }
     double stddev=parameters.at("stddev");
-    int nb_iter_max = static_cast<int>(parameters.at("typicall_mult")* (parameters.at("typicall_beta")/beta)* parameters.at("num_patterns")); 
     int col_with = sqrt(network_size);
 
     Network net = Network(net_connectivity, network_size, leak);
@@ -76,6 +76,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     string result_file_name_retrieval;
     int iter_all_retrieved;
     int nb_spurious_patterns = 0;
+    bool check = false;
     std::set<std::vector<bool>> foundVectors;
     vector<bool> winning_units;
 
@@ -86,14 +87,16 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     float sum_rates;
 
     result_file_retrieval << "query_iter,";
-    result_file_retrieval << "nb_fnd_pat,"<< endl;
+    result_file_retrieval << "nb_fnd_pat,";
+    result_file_retrieval << "nb_spurious,";
+    result_file_retrieval << "nb_iter_biased,";
+    result_file_retrieval << "nb_iter_free," << endl;
 
     int cpt = 0;
-    int nb_iter_sim = 0;
-    bool spurious = false;
-    bool all_found = false;
+    int nb_iter_biased = 0;
+    int nb_iter_free = 0;
     std::cout << "RETRIEVAL" << std::endl;
-    while(cpt<nb_iter_max && !spurious && !all_found)
+    while(cpt<200 && nb_spurious_patterns==0 && !check)
     {
         // std::cout << "NEW ITER" << std::endl;
         net.set_state(vector<double>(network_size, init_drive));
@@ -110,15 +113,15 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         std::ofstream result_file_sleep(result_file_name_sleep, std::ios::trunc);
         config.output=&result_file_sleep;
         config.delta = delta;
-        config.epsilon = delta/10000;
+        config.epsilon = delta/1000;
         config.depressed = true;
         config.save = save_trajectories;
         config.max_iter = 100/delta;
         config.noise = noise;
         config.stddev=stddev;
-        nb_iter_sim += run_net_sim_choice(net, config); 
+        nb_iter_biased = run_net_sim_choice(net, config);
         config.depressed = false;
-        nb_iter_sim += run_net_sim_choice(net, config); 
+        nb_iter_free = run_net_sim_choice(net, config);
         result_file_sleep.close();
         winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
         // show_vector_bool_grid(winning_units,10);
@@ -138,18 +141,18 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
         else
         {
             nb_spurious_patterns += 1;
-            spurious=true;
-            std::cout << "SPURIOUS" << std::endl; 
         }
-        if (foundVectors.size() == patterns.size())
+        if (foundVectors.size() == patterns.size() && !check)
         {
             iter_all_retrieved = is_found_patterns.size()-1;
-            all_found = true;
-            std::cout << "ALL_FOUND" << std::endl; 
+            check = true;
         }
 
         result_file_retrieval << to_string(cpt) <<",";
-        result_file_retrieval << to_string(foundVectors.size()) <<std::endl;
+        result_file_retrieval << to_string(foundVectors.size()) <<",";
+        result_file_retrieval << to_string(nb_spurious_patterns) <<",";
+        result_file_retrieval << to_string(nb_iter_biased) << ",";
+        result_file_retrieval << to_string(nb_iter_free) << "," << endl;
         cpt+=1;
     }
 
@@ -159,7 +162,7 @@ void run_sleep(int sim_number, std::vector<std::vector<double>> net_weights, std
     // std::cout << "Number of unique vectors found: " << foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " << beta << " nb_spurious : " << nb_spurious_patterns << std::endl
     //           << " nb_winers : " << nb_winners << std::endl;
     std::cout <<"sim_number " << sim_number << std::endl;
-    std::cout <<" nb_found_patterns : "<< foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " <<" nb_flip : " << " Network size: " << network_size << std::endl;
+    std::cout <<"nb_spurious :"<< nb_spurious_patterns <<" nb_found_patterns : "<< foundVectors.size() << " nb_patterns : " << num_patterns << " beta : " <<" nb_flip : " << " Network size: " << network_size << std::endl;
 
     result_file_retrieval.close();
 }
@@ -168,11 +171,8 @@ int main(int argc, char **argv)
 {
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string inputs_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
-    string sim_name =
-        "Fig_load_SR_average_new_inh_plas_many_betta_big_simulations_2025_optimized_diagonal_inh_more"; 
-        // "Fig_load_SR_average_new_inh_plas_many_betta_big_simulations_2025_optimized_diagonal_inh_2"; 
-    string inputs_name =
-        "Fig_load_SR_average_new_inh_plas_big_simulations_2025_optimized";
+    string sim_name = "Fig_load_SR_many_beta_diag_inh_sleep_more";
+    string inputs_name = "Fig_typical_recovery_nb_iter_biased_for_diag_inh";
     // string inputs_name = "write_parameter_many_nb_iter_learning";
     string foldername_results = "../../../data/all_data_splited/sleep_simulations/" + sim_name;
     fs::path foldername_inputs = "../../../data/all_data_splited/trained_networks_fast/" + inputs_name;
@@ -186,20 +186,16 @@ int main(int argc, char **argv)
         std::cerr << "Error creating directory: " << foldername_results << std::endl;
         return 1;
     }
-    // vector<double> beta = {0.00125 / 4, 0.00125, 0.0035, 0.005, 0.01};
-    // vector<double> beta = { 0.00125 / 8, 0.00125 / 4, 0.00125, 0.0035};
-    vector<double> beta = { 0.00125/16, 0.00125 / 8, 0.00125 / 4, 0.00125, 0.0035, 0.01};
-
-    // vector<double> beta = {0.00125 / 4}; ///TODO revert for trying new noise implementation
+    // vector<double> beta = {0.05,0.1,0.5,1};
+    vector<double> beta = {0.05,0.05,0.1,0.5,1,5};
     unordered_map<string, vector<double>> varying_params = {
         {"save", {0}},
+        // {"beta", {0.00125}},
         {"beta", beta},
-        {"delta", {0.01}},
-        {"noise", {1}},
-        // {"stddev", {0.02}},  // TODO modify stddev
-        {"stddev", {0.01}},
-        {"typicall_mult", {4.0}},
-        {"typicall_beta", {0.00125}}};
+        {"delta",{0.01}},
+        {"noise",{1}},
+        {"stddev",{0.01}}};
+
 
     unordered_map<string, double> inherited_params;
     vector<vector<bool>> patterns;
