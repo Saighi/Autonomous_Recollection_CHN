@@ -7,23 +7,24 @@ import utils
 import matplotlib.animation as animation
 import seaborn as sns
 
+
 sns.set_theme(style="ticks")
 
-# plt.rcParams['text.usetex'] = True
-# plt.rcParams['font.family'] = 'serif'
-# plt.rcParams['font.serif'] = ['Computer Modern Roman']
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Times']
 plt.rcParams.update({
-    'text.usetex': True,
-    'font.size': 17,
-    'axes.labelsize': 18,
-    'axes.titlesize': 16,
+    'font.size': 20,
+    'axes.labelsize': 20,
+    'axes.titlesize': 20,
     'xtick.labelsize': 17,
     'ytick.labelsize': 17,
-    'legend.fontsize': 14,
+    'legend.fontsize': 20,
     'figure.titlesize': 20,
     'lines.linewidth': 2.5,
     'axes.linewidth': 1.5,
-    'axes.grid': False
+    'axes.grid': False,
+    'font.weight' : 'bold'
 })
 #%%
 
@@ -97,7 +98,7 @@ for i in range(len(data_trajs_depressed)):
         #         ax.set_title(r"$t={:.1f}".format(int(times_depressed[j]+1)))
     
     ax = axes[i][0]
-    im_inhib = ax.imshow(inhib_drive, cmap='Reds', vmin=min_inhib_drive, vmax=max_inhib_drive)
+    im_inhib = ax.imshow(inhib_drive/10, cmap='Reds', vmin=min_inhib_drive/20, vmax=max_inhib_drive/10)
     ax.set_xticks([])  # Remove x ticks
     ax.set_yticks([])  # Remove y ticks
 
@@ -106,10 +107,10 @@ for i in range(len(data_trajs_depressed)):
 
 cbar_ax = fig.add_axes([0.453, 0.05, 0.4, 0.015])  # Adjust 'left' (0.85) to shift horizontally
 cbar = fig.colorbar(im, cax=cbar_ax, shrink=0.3, orientation='horizontal', location='bottom', pad=0.05)
-cbar.set_label(r'$v(t)$', labelpad=6)
+cbar.set_label(r'$\mathbf{v}(t)$', labelpad=6)
 
 cbar_inhib = fig.colorbar(im_inhib, ax=axes, shrink=0.4, orientation='vertical', location='left', pad=0.05)
-cbar_inhib.set_label(r'$\mathbf{I}^{inh}$', labelpad=8)
+cbar_inhib.set_label(r'$\mathbf{A}$', labelpad=18,rotation=0)
 plt.tight_layout(rect=[1, 0.07, 1, 1.5])  # leave space at bottom for horizontal colorbar
 
 # Add iteration labels on the right of each row
@@ -119,5 +120,5 @@ for i in range(n_rows):
     ypos = 0.8 - i * (0.8 / n_rows)  # empirically adjusted
     fig.text(0.91, ypos, fr"iter n°{i+1}", va='center', ha='left')
 
-fig.savefig("./plots/Fig_mnist_autonomous_rehearsal.png",transparent=True,dpi=300)
+fig.savefig("./plots/Fig_mnist_autonomous_rehearsal.png",transparent=True,dpi=300,bbox_inches='tight')
 #%%

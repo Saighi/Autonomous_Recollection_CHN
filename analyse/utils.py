@@ -2,6 +2,12 @@ import os
 import numpy as np
 from collections import defaultdict
 
+def thousands_formatter(x, pos):
+    if x >= 1000:
+        return f'{x/1000:.0f}K'
+    else:
+        return f'{x:.0f}'
+
 def load_simulation_trajectories(myDir, name_file):
     data = []
     max_index = -1

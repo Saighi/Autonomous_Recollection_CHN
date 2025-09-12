@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     // string sim_name = "write_net_sizes_relative_num_patterns";
     // string sim_name = "Fig_load_SR_average_new_inh_plas_many_betta_larger_networks_2";
     // string sim_name = "Fig_typical_recovery_nb_iter_biased_small_network";
-    string sim_name = "Fig_typical_recovery_nb_iter_biased_for_diag_inh";
+    string sim_name = "Fig_typical_recovery_size_30_network";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
     // Create directory if it doesn't exist
@@ -171,9 +171,9 @@ int main(int argc, char **argv)
         return 1;
     }
     // Define varying parameters
-    vector<double> num_patterns = generateEvenlySpacedIntegers(1,25,25);
+    vector<double> num_patterns = generateEvenlySpacedIntegers(3,10,8);
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = generateEvenlySpacedIntegers(25, 250, 25);
+    vector<double> network_sizes = {30};
     vector<double> init_drive = {0.25};
     vector<double> noise_level = {0.5};
     double learning_rate= 0.0001;

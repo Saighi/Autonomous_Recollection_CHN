@@ -3,8 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-sns.set_style("darkgrid") 
-sns.set_context("paper", font_scale=1.5)
+sns.set_theme(style="ticks")
+
+# sns.set_style("darkgrid")  # or "whitegrid", "dark", "white", "ticks"
+# sns.set_context("paper", font_scale=1.5)  # or "paper", "talk", "poster"
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Times']
+plt.rcParams.update({
+    'font.size': 30,
+    'axes.labelsize': 30,
+    'axes.titlesize': 30,
+    'xtick.labelsize': 25,
+    'ytick.labelsize': 25,
+    'legend.fontsize': 25,
+    'figure.titlesize': 20,
+    'lines.linewidth': 2.5,
+    'axes.linewidth': 1.5,
+    'axes.grid': False,
+    'font.weight' : 'bold'
+})
 
 def plot_dotproduct_interpolate_plane(ax, filename, display_pattern_numbers = True):
     """
@@ -52,7 +70,7 @@ def plot_dotproduct_interpolate_plane(ax, filename, display_pattern_numbers = Tr
     yi = np.linspace(y_min, y_max, N)
     
     # Stream plot with interpolated data
-    strm = ax.streamplot(xi, yi, DX, DY, density=1, color='tab:blue', arrowsize=1.7)
+    strm = ax.streamplot(xi, yi, DX, DY, density=0.9, color='tab:blue', arrowsize=2.5, linewidth = 2)
     
     if display_pattern_numbers:
         # Add points and labels
@@ -60,20 +78,20 @@ def plot_dotproduct_interpolate_plane(ax, filename, display_pattern_numbers = Tr
         ax.plot(1, 0, 'o', markersize=4.5, c="red") 
         ax.plot(0, 1, 'o', markersize=4.5, c="red") 
 
-        ax.text(0.96, +0.08, r"$\mathbf{2}$", c="red", fontsize=20)
-        ax.text(+0.08, 0.95, r"$\mathbf{1}$", c="red", fontsize=20)
+        ax.text(0.92, +0.07, r" $\mathbf{2}$", c="red", fontsize=31,fontfamily="monospace")
+        ax.text(+0.08, 0.95, r" $\mathbf{1}$", c="red", fontsize=31,fontfamily="monospace")
         
     return xi, yi
 
 def plot_trajectory(ax, patterns, traj):
-    coordinates = (((patterns*2)-1) @ ((traj.T*2)-1) / len(patterns[1]))
+    coordinates = (((patterns*2)-1) @ ((traj.T*2)-1) / len(patterns[0]))
     x = coordinates[0]
     y = coordinates[1]
-    return ax.plot(x, y, c='red', linewidth=2.0)[0]
+    return ax.plot(x, y, c='red', linewidth=3.0)[0]
 
 #%%
 # Define file paths
-folder = "../../data/all_data_splited/trained_networks_fast/Fig_patterns_vector_field_energy/sim_nb_0/"
+folder = "../../data/all_data_splited/trained_networks_fast/Fig_vector_fields_patterns_inhib_and_exc/sim_nb_0/"
 file_name = "vector_field_two_patterns_"
 pre_file = folder + file_name + "pre_train.txt"
 post_training_file = folder + file_name + "post_train.txt"
@@ -88,29 +106,32 @@ first_trajectory = np.loadtxt(first_trajectory_file)
 second_trajectory = np.loadtxt(second_trajectory_file)
 
 # Create figure with shared y-axis
-fig, axs = plt.subplots(1, 3, figsize=(15, 5), sharey=True, gridspec_kw={'wspace': 0.05})
+fig, axs = plt.subplots(1, 3, figsize=(17, 6), sharey=True, gridspec_kw={'wspace': 0.05})
 
 # Plot titles
 titles = ["Pre-training", "Post-training", "Post-inhibition"]
-
+sns.despine(left=True,bottom=True,top=True, right=True)
 # Plot 1: Pre-training field
 plot_dotproduct_interpolate_plane(axs[0], pre_file, False)
-axs[0].set_xlabel(r"$\lambda_1$")
-axs[0].set_ylabel(r"$\lambda_2$")
+# axs[0].set_xlabel(r"$\lambda_1$")
+axs[0].set_ylabel(r"$\lambda_2$",rotation=90)
 axs[0].set_title(titles[0])
-
+axs[0].set_xticks([0,0.5,1])
+axs[0].set_yticks([0,0.5,1])
 # Plot 2: Post-training field with first trajectory
 plot_dotproduct_interpolate_plane(axs[1], post_training_file)
 plot_trajectory(axs[1], patterns, first_trajectory)
-axs[1].set_xlabel(r"$\lambda_1$")
+# axs[1].set_xlabel(r"$\lambda_1$")
 axs[1].set_title(titles[1])
+axs[1].set_xticks([0,0.5,1])
 
 # Plot 3: Post-inhibition field with second trajectory
 plot_dotproduct_interpolate_plane(axs[2], post_inhib_file)
 plot_trajectory(axs[2], patterns, second_trajectory)
-axs[2].set_xlabel(r"$\lambda_1$")
+# axs[2].set_xlabel(r"$\lambda_1$")
 axs[2].set_title(titles[2])
-
+axs[2].set_xticks([0,0.5,1])
+fig.text(0.5,0.01,r"$\lambda_1$",ha="left",va="center")
 # Ensure consistent aspect ratio and limits across all plots
 for ax in axs:
     ax.set_xlim(-0.1, 1.1)
