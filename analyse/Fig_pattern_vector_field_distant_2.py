@@ -131,16 +131,14 @@ def plot_energy_field(ax, X, Y, E, vmin=None, vmax=None, show_pattern_labels=Tru
 folder = "../../data/all_data_splited/trained_networks_fast/Fig_vector_fields_patterns_different_distances/sim_nb_0/"
 vec_prefix = folder + "vector_field_two_patterns_"
 eng_prefix = folder + "energy_field_two_patterns_"
+inh_eng_prefix = folder + "energy_field_two_patterns_inhib_only_"
 stages = ["pre_train", "post_train", "post_inhib"]
 
 patterns_file = folder + "patterns.data"
-first_trajectory_file = folder + "results_evolution_iter_1.data"
-second_trajectory_file = folder + "results_evolution_iter_2.data"
+trajectory_file = folder + "results_evolution_"
 
 # Load shared data
 patterns = np.loadtxt(patterns_file)
-first_trajectory = np.loadtxt(first_trajectory_file)
-second_trajectory = np.loadtxt(second_trajectory_file)
 #%%
 # 4-row plot: classic stream (row 1), energy (row 2), excit-only stream (row 3), inhib-only stream (row 4)
 import os
@@ -148,7 +146,7 @@ import os
 excit_prefix = folder + "vector_field_two_patterns_excit_only_"
 inhib_prefix = folder + "vector_field_two_patterns_inhib_only_"
 # Use the full set of stages present for the new files
-stages_4rows = ["pre_train", "post_train", "iter_1"]
+stages_4rows = ["pre_train", "post_train", "iter_1","iter_2"]
 stage_titles = {
     "pre_train": "Pre-training",
     "post_train": "Post-training",
@@ -177,29 +175,28 @@ for ax_lab, txt in zip(right_labels_axes, right_labels):
 sns.despine(left=True, bottom=True, top=True, right=True)
 
 # Row 1: classic stream plots
-for j, stage in enumerate(stages_4rows):
+for j in range(len(stages_4rows)-1):
     ax = axs4[0, j]
-    display_labels = (stage != "pre_train")
-    vec_file = vec_prefix + stage + ".txt"
+    display_labels = (stages_4rows[j] != "pre_train")
+    vec_file = vec_prefix + stages_4rows[j]  + ".txt"
     if not os.path.exists(vec_file):
         ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
         ax.set_axis_off()
         continue
     plot_stream_field(ax, vec_file, display_labels)
-    if stage == "post_train":
-        plot_trajectory(ax, patterns, first_trajectory)
-    elif stage == "post_inhib":
-        plot_trajectory(ax, patterns, second_trajectory)
-    ax.set_title(stage_titles.get(stage, stage))
+    if not j>=len(stages_4rows) and j!=0:
+        data_traj = np.loadtxt(trajectory_file+stages_4rows[j+1]+".data")
+        plot_trajectory(ax, patterns, data_traj)
+    ax.set_title(stage_titles.get(stages_4rows[j] , stages_4rows[j] ))
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
 
 # # Row 2: excit-only stream plots
-# for j, stage in enumerate(stages_4rows):
+# for j in range(len(stages_4rows)-1):
 #     ax = axs4[1, j]
-#     display_labels = (stage != "pre_train")
-#     vec_file = excit_prefix + stage + ".txt"
+#     display_labels = (stages_4rows[j]  != "pre_train")
+#     vec_file = excit_prefix + stages_4rows[j]  + ".txt"
 #     if not os.path.exists(vec_file):
 #         ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
 #         ax.set_axis_off()
@@ -209,36 +206,73 @@ for j, stage in enumerate(stages_4rows):
 #     if j == 0:
 #         ax.set_ylabel(r"$\lambda_2$", rotation=90)
 
-# Row 3: inhib-only stream plots
-for j, stage in enumerate(stages_4rows):
+
+# Row 2 energy landscapes inhib only with shared color scale and single colorbar across row
+energy_fields_inh = [load_energy_field(inh_eng_prefix +st + ".txt") for st in stages_4rows]
+vmin4 = min(np.min(E) for (_, _, E) in energy_fields_inh)
+vmax4 = max(np.max(E) for (_, _, E) in energy_fields_inh)
+
+last_cs4 = None
+for j in range(len(stages_4rows)-1):
+    (X, Y, E) = energy_fields_inh[j]
     ax = axs4[1, j]
-    display_labels = (stage != "pre_train")
-    vec_file = inhib_prefix + stage + ".txt"
-    if not os.path.exists(vec_file):
-        ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
-        ax.set_axis_off()
-        continue
-    # Enhance weak inhibitory fields to avoid blank-looking plots
-    plot_stream_field(ax, vec_file, display_labels, enhance_weak=True, weak_threshold=1e-6)
+    last_cs4 = plot_energy_field(ax, X, Y, E, vmin=vmin4, vmax=vmax4, show_pattern_labels=True)
+    # Overlay trajectories for consistency
+    stage = stages_4rows[j]
+    
+    if not j>=len(stages_4rows) and j!=0:
+        data_traj = np.loadtxt(trajectory_file+stages_4rows[j+1]+".data")
+        plot_trajectory(ax, patterns, data_traj)
+        
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
+    ax.set_xlabel(r"$\lambda_1$")
+
+if last_cs4 is not None:
+    cbar = fig4.colorbar(last_cs4, cax=cax4)
+    cbar.set_label('Energy')
+
+# Consistent limits and aspect across all subplots
+for r in range(3):
+    for c in range(len(stages_4rows)-1):
+        ax = axs4[r, c]
+        if ax.has_data():
+            ax.set_xlim(-0.1, 1.1)
+            ax.set_ylim(-0.1, 1.1)
+            ax.set_aspect('equal')
+
+
+# # Row 3: inhib-only stream plots
+# for j in range(len(stages_4rows)-1):
+#     ax = axs4[1, j]
+#     display_labels = (stages_4rows[j] != "pre_train")
+#     vec_file = inhib_prefix + stages_4rows[j] + ".txt"
+#     if not os.path.exists(vec_file):
+#         ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
+#         ax.set_axis_off()
+#         continue
+#     # Enhance weak inhibitory fields to avoid blank-looking plots
+#     plot_stream_field(ax, vec_file, display_labels, enhance_weak=True, weak_threshold=1e-6)
+#     ax.set_xticks([0, 0.5, 1])
+#     if j == 0:
+#         ax.set_ylabel(r"$\lambda_2$", rotation=90)
     
 # Row 3 energy landscapes with shared color scale and single colorbar across row
-energy_fields_4 = [load_energy_field(eng_prefix + st + ".txt") for st in stages_4rows]
-vmin4 = min(np.min(E) for (_, _, E) in energy_fields_4)
-vmax4 = max(np.max(E) for (_, _, E) in energy_fields_4)
+energy_fields = [load_energy_field(eng_prefix + st + ".txt") for st in stages_4rows]
+vmin4 = min(np.min(E) for (_, _, E) in energy_fields)
+vmax4 = max(np.max(E) for (_, _, E) in energy_fields)
 
 last_cs4 = None
-for j, (X, Y, E) in enumerate(energy_fields_4):
+for j in range(len(stages_4rows)-1):
+    (X, Y, E) = energy_fields[j]
     ax = axs4[2, j]
     last_cs4 = plot_energy_field(ax, X, Y, E, vmin=vmin4, vmax=vmax4, show_pattern_labels=True)
     # Overlay trajectories for consistency
     stage = stages_4rows[j]
-    if stage == "post_train":
-        plot_trajectory(ax, patterns, first_trajectory)
-    elif stage == "post_inhib":
-        plot_trajectory(ax, patterns, second_trajectory)
+    if not j>=len(stages_4rows) and j!=0:
+        data_traj = np.loadtxt(trajectory_file+stages_4rows[j+1]+".data")
+        plot_trajectory(ax, patterns, data_traj)
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
@@ -257,9 +291,11 @@ for r in range(3):
             ax.set_ylim(-0.1, 1.1)
             ax.set_aspect('equal')
 
-plt.savefig('plots/Fig_pattern_vector_field_4rows_stream_excit_inhib_energy.png', dpi=300, bbox_inches='tight')
-plt.show()
+# plt.savefig('plots/Fig_pattern_vector_field_4rows_stream_excit_inhib_energy.png', dpi=300, bbox_inches='tight')
+# plt.show()
 
-if __name__ == "__main__":
-    print("Figure with 4 rows (classic, energy, excit-only, inhib-only) created and saved.")
+# if __name__ == "__main__":
+#     print("Figure with 4 rows (classic, energy, excit-only, inhib-only) created and saved.")
+# # %%
+
 # %%

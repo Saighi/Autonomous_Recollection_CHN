@@ -24,6 +24,7 @@ public:
     std::vector<std::vector<double>> weight_matrix;
     std::vector<std::vector<double>> inhib_matrix;
     std::vector<std::vector<int>> scale_inhib;
+    std::vector<double> bias;  // Per-neuron bias (plastic)
 
     // Added or updated methods that use AVX:
     void iterate(double delta);
@@ -47,15 +48,21 @@ public:
 
     double transfer(double activation);
     double transfer_inverse(double activation);
-    void derivative_gradient_descent(std::vector<bool>& target_bin_state,
-                                     std::vector<double>& target_rates,
-                                     double target_drive, double learning_rate,
+    void derivative_gradient_descent(std::vector<double>& target_drives,
+                                     double learning_rate,
                                      double leak,
                                      std::vector<double>& drive_errors);
+    void derivative_gradient_descent_with_bias(std::vector<double>& target_drives,
+                                               double learning_rate,
+                                               double leak,
+                                               std::vector<double>& drive_errors);
     
     void derivative_gradient_descent_arbitrary(std::vector<double>& target_rates,
                                           double learning_rate, double leak,
                                           std::vector<double>& drive_errors);
+    void derivative_gradient_descent_arbitrary_with_bias(
+        std::vector<double>& target_rates, double learning_rate, double leak,
+        std::vector<double>& drive_errors);
 
     void derivative_gradient_descent_with_momentum(
         std::vector<bool>& target_bin_state, std::vector<double>& target_rates,
@@ -64,12 +71,7 @@ public:
         std::vector<std::vector<double>>& velocity_matrix,
         double momentum_coef);
 
-    void derivative_gradient_descent_with_momentum_null_sum(
-        std::vector<bool>& target_bin_state, std::vector<double>& target_rates,
-        double target_drive, double learning_rate, double leak,
-        std::vector<double>& drive_errors,
-        std::vector<std::vector<double>>& velocity_matrix, double momentum_coef,
-        double alpha_homeo);
+    // null-sum training path removed
 
     double compute_energy();
     std::vector<double> give_derivative_u(double delta);
@@ -81,6 +83,8 @@ public:
     // Note: leak term is intentionally excluded to isolate synaptic contributions.
     std::vector<double> give_derivative_u_excit_only(double delta);
     std::vector<double> give_derivative_u_inhib_only(double delta);
+    // Weights-only: exclude inhibition, leak, and bias entirely
+    std::vector<double> give_derivative_u_W_only(double delta);
 
 private:
     // ... your existing members ...

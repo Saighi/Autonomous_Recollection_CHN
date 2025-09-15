@@ -64,7 +64,7 @@ void Network::iterate(double delta) {
         double sum =
             avx_dot_product(weight_matrix[i].data(), rate_list.data(), size);
 
-        double d = sum - (leak * activity_list[i]);
+        double d = sum - (leak * activity_list[i]) + bias[i];
         activity_list[i] += delta * d;
         rate_list[i] = transfer(activity_list[i]);
     }
@@ -89,7 +89,7 @@ void Network::noisy_iterate(double delta, double mean, double stddev) {
             avx_dot_product(weight_matrix[i].data(), rate_list.data(), size);
         // Add random Gaussian noise
         double noise = distribution(generator);
-        double d = sum - (leak * activity_list[i]) + noise;
+        double d = sum - (leak * activity_list[i]) + bias[i] + noise;
         activity_list[i] += delta * d;
         rate_list[i] = transfer(activity_list[i]);
     }
@@ -106,7 +106,7 @@ void Network::depressed_iterate(double delta) {
         double sum_inhib =
             avx_dot_product(inhib_matrix[i].data(), rate_list.data(), size);
 
-        double d = sum_weight - sum_inhib - (leak * activity_list[i]);
+        double d = sum_weight - sum_inhib - (leak * activity_list[i]) + bias[i];
         activity_list[i] += delta * d;
         rate_list[i] = transfer(activity_list[i]);
     }
@@ -127,7 +127,7 @@ void Network::noisy_depressed_iterate(double delta, double mean,
         double sum_inhib =
             avx_dot_product(inhib_matrix[i].data(), rate_list.data(), size);
 
-        double d = sum_weight - sum_inhib - (leak * activity_list[i]) + noise;
+        double d = sum_weight - sum_inhib - (leak * activity_list[i]) + bias[i] + noise;
         activity_list[i] += delta * d;
         rate_list[i] = transfer(activity_list[i]);
     }
@@ -149,6 +149,7 @@ void Network::blank_init() {
     derivative_activity_list.resize(size, 0.0);
     target_sum_each_inhib.resize(size, 0.0);
     actual_sum_each_inhib.resize(size, 0.0);
+    bias.resize(size, 0.0);
 
     weight_matrix.assign(size, std::vector<double>(size, 0.0));
     inhib_matrix.assign(size, std::vector<double>(size, 0.0));
@@ -331,9 +332,7 @@ void Network::pot_inhib_bin_scale(double pot_rate, std::vector<bool> winners) {
 
 // gradient descent code :
 
-void Network::derivative_gradient_descent(std::vector<bool>& target_bin_state,
-                                          std::vector<double>& target_rates,
-                                          double target_drive,
+void Network::derivative_gradient_descent(std::vector<double>& target_drives,
                                           double learning_rate, double leak,
                                           std::vector<double>& drive_errors) {
     double input = 0;
@@ -344,22 +343,54 @@ void Network::derivative_gradient_descent(std::vector<bool>& target_bin_state,
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
             if (connectivity_matrix[i][j] == 1) {
-                input += weight_matrix[i][j] * target_rates[j];
+                input += weight_matrix[i][j] * transfer(target_drives[j]);
             }
         }
-        // std::cout << input << std::endl;
-        ui = input / leak;
-        unit_target_drive = ((target_bin_state[i] * 2) - 1) *
-                            target_drive;  // target drive of the unit
+        ui = (input + 0.0) / leak; // legacy path: bias not used/updated
+        unit_target_drive = target_drives[i];  // target drive of the unit
+        // unit_target_drive = ((target_bin_state[i] * 2) - 1) *
+        //                     target_drive;  // target drive of the unit
         diff = unit_target_drive - ui;
         drive_errors[i] = diff;
         for (int j = 0; j < size; j++) {
             if (connectivity_matrix[i][j] == 1) {
-                update = learning_rate * 2 * diff * target_rates[j];
+                update = learning_rate * 2 * diff * transfer(target_drives[j]);
                 weight_matrix[i][j] += update;
-                weight_matrix[j][i] += update;
+                // weight_matrix[j][i] += update;
             }
         }
+        input = 0;
+    }
+}
+
+// Gradient descent that includes and learns per-neuron bias
+void Network::derivative_gradient_descent_with_bias(
+    std::vector<double>& target_drives, double learning_rate, double leak,
+    std::vector<double>& drive_errors) {
+    double input = 0;
+    double ui;
+    double update;
+    double unit_target_drive;
+    double diff;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (connectivity_matrix[i][j] == 1) {
+                input += weight_matrix[i][j] * transfer(target_drives[j]);
+            }
+        }
+        ui = (input + bias[i]) / leak;
+        unit_target_drive = target_drives[i];
+        diff = unit_target_drive - ui;
+        drive_errors[i] = diff;
+        for (int j = 0; j < size; j++) {
+            if (connectivity_matrix[i][j] == 1) {
+                update = learning_rate * 2 * diff * transfer(target_drives[j]);
+                weight_matrix[i][j] += update;
+                // weight_matrix[j][i] += update;
+            }
+        }
+        // Bias update (acts like weight to a constant 1 input)
+        bias[i] += learning_rate * 2 * diff;
         input = 0;
     }
 }
@@ -378,8 +409,7 @@ void Network::derivative_gradient_descent_arbitrary(std::vector<double>& target_
                 input += weight_matrix[i][j] * target_rates[j];
             }
         }
-        // std::cout << input << std::endl;
-        ui = input / leak;
+        ui = (input + 0.0) / leak; // legacy path: bias not used/updated
         unit_target_drive = transfer_inverse(target_rates[i]);  // target drive of the unit
         diff = unit_target_drive - ui;
         drive_errors[i] = diff;
@@ -390,6 +420,37 @@ void Network::derivative_gradient_descent_arbitrary(std::vector<double>& target_
                 weight_matrix[j][i] += update;
             }
         }
+        input = 0;
+    }
+}
+
+// Rate-target version that includes and learns per-neuron bias
+void Network::derivative_gradient_descent_arbitrary_with_bias(
+    std::vector<double>& target_rates, double learning_rate, double leak,
+    std::vector<double>& drive_errors) {
+    double input = 0;
+    double ui;
+    double update;
+    double unit_target_drive;
+    double diff;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (connectivity_matrix[i][j] == 1) {
+                input += weight_matrix[i][j] * target_rates[j];
+            }
+        }
+        ui = (input + bias[i]) / leak;
+        unit_target_drive = transfer_inverse(target_rates[i]);
+        diff = unit_target_drive - ui;
+        drive_errors[i] = diff;
+        for (int j = 0; j < size; j++) {
+            if (connectivity_matrix[i][j] == 1) {
+                update = learning_rate * 2 * diff * target_rates[j];
+                weight_matrix[i][j] += update;
+                weight_matrix[j][i] += update;
+            }
+        }
+        bias[i] += learning_rate * 2 * diff;
         input = 0;
     }
 }
@@ -452,7 +513,7 @@ std::vector<double> Network::give_derivative_u(double delta) {
         double sum_inhib =
             avx_dot_product(inhib_matrix[i].data(), rate_list.data(), size);
 
-        double d = sum_weight - sum_inhib - (leak * activity_list[i]);
+        double d = sum_weight - sum_inhib - (leak * activity_list[i]) + bias[i];
         derivative_u[i] = d*delta;
     }
 
@@ -505,75 +566,19 @@ std::vector<double> Network::give_derivative_u_inhib_only(double delta) {
     return derivative_u;
 }
 
-void Network::derivative_gradient_descent_with_momentum_null_sum(
-    std::vector<bool>& target_bin_state, std::vector<double>& target_rates,
-    double target_drive, double learning_rate, double leak,
-    std::vector<double>& drive_errors,
-    std::vector<std::vector<double>>& velocity_matrix, double momentum_coef,
-    double alpha_homeo) {
-    double input = 0;
-    double ui;
-    double update;
-    double unit_target_drive;
-    double diff;
-    double sum_weights;
+// Weights-only push: exclude inhibition, leak and bias
+std::vector<double> Network::give_derivative_u_W_only(double delta) {
+    std::vector<double> derivative_u(size, 0.0);
 
     for (int i = 0; i < size; i++) {
-        input = 0;
-        for (int j = 0; j < size; j++) {
-            if (connectivity_matrix[i][j] == 1) {
-                input += weight_matrix[i][j] * target_rates[j];
-            }
-        }
-        ui = input / leak;
-        unit_target_drive = ((target_bin_state[i] * 2) - 1) * target_drive;
-        diff = unit_target_drive - ui;
-        drive_errors[i] = diff;
-
-        for (int j = 0; j < size; j++) {
-            if (connectivity_matrix[i][j] == 1) {
-                // Calculate gradient update
-                update = learning_rate * 2 * diff * target_rates[j];
-
-                // Apply momentum update
-                velocity_matrix[i][j] =
-                    momentum_coef * velocity_matrix[i][j] + update;
-                velocity_matrix[j][i] =
-                    velocity_matrix[i][j];  // Maintain symmetry
-
-                // Update weights with momentum
-                weight_matrix[i][j] += velocity_matrix[i][j];
-                weight_matrix[j][i] = weight_matrix[i][j];  // Maintain symmetry
-            }
-        }
+        double sum_weight =
+            avx_dot_product(weight_matrix[i].data(), rate_list.data(), size);
+        derivative_u[i] = sum_weight * delta;
     }
 
-    // ------------------------------------------------------
-    // 2) Force sum_j w_{i,j} = 0 by post-update normalization
-    // ------------------------------------------------------
-    // Typically you want to do this with a small correction,
-    // but if you want exact sum = 0 each time, do it directly:
-    for (int i = 0; i < size; i++) {
-        // Calculate the sum of row i
-        double row_sum = 0.0;
-        for (int j = 0; j < size; j++) {
-            if (connectivity_matrix[i][j] == 1) {
-                row_sum += weight_matrix[i][j];
-            }
-        }
-        // Distribute a negative "average" across each w_{i,j}
-        double correction = alpha_homeo * (row_sum / double(size));
-
-        // Subtract the correction from each w_{i,j}
-        for (int j = 0; j < size; j++) {
-            if (connectivity_matrix[i][j] == 1) {
-                weight_matrix[i][j] -= correction;
-                // keep symmetry
-                weight_matrix[j][i] = weight_matrix[i][j];
-            }
-        }
-    }
+    return derivative_u;
 }
+
 
 double Network::compute_energy() {
     double energy = 0.0;
@@ -598,7 +603,12 @@ double Network::compute_energy() {
         }
     }
 
-    // 3. Contribution from leak term (self-energy)
+    // 3. Contribution from bias (Hopfield-like threshold term)
+    for (int i = 0; i < size; i++) {
+        energy -= bias[i] * rate_list[i];
+    }
+
+    // 4. Contribution from leak term (self-energy)
     for (int i = 0; i < size; i++) {
         // Convert rate back to activity for leak calculation
         double activity = activity_list[i];

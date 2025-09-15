@@ -46,9 +46,15 @@ std::vector<std::vector<bool>> loadPatterns(const std::string &filename);
 void createParameterFile(
     const std::string &directory,
     const std::unordered_map<std::string, double> &parameters);
+
+// Turn binary pattern into their respictive neuronal drive or rate states
 std::vector<std::vector<double>> patterns_as_states(
     double up_rate, double down_rate,
     std::vector<std::vector<bool>> bin_patterns);
+std::vector<double> pattern_as_states(
+    double up_rate, double down_rate,
+    std::vector<bool> bin_pattern);
+
 std::vector<std::unordered_map<std::string, double>> generateCombinations(
     const std::unordered_map<std::string, std::vector<double>> &varying_params);
 std::unordered_map<std::string, double> fuseMaps(
@@ -109,5 +115,24 @@ void compute_and_save_energy_field_two_pattern(
     double delta, Network &net, const std::string &foldername,
     const std::string &filename, const std::vector<double> &pattern_1_potential,
     const std::vector<double> &pattern_2_potential, int nb_step, double up_lim);
+// Normalized [0,1] energy landscapes for components
+void compute_and_save_energy_field_two_pattern_bias_only(
+    Network &net, const std::string &foldername, const std::string &filename,
+    const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
+    double up_lim);
+void compute_and_save_energy_field_two_pattern_inhib_only(
+    Network &net, const std::string &foldername, const std::string &filename,
+    const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
+    double up_lim);
+
+// Note: The network supports a learnable per-neuron bias. Use
+// Network::derivative_gradient_descent_with_bias or
+// Network::derivative_gradient_descent_arbitrary_with_bias to train it.
+
+// Vector field using weights-only (no inhibition, no leak, no bias)
+void compute_and_save_potential_vector_field_two_pattern_weights_only(
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename, const std::vector<double> &p1,
+    const std::vector<double> &p2, int nb_step, double up_lim);
 
 #endif

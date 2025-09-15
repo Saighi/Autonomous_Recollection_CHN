@@ -80,6 +80,17 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         net.transfer(drive_target), net.transfer(-drive_target), patterns);
     vector<vector<double>> patterns_potentials =
         patterns_as_states(drive_target, -drive_target, patterns);
+    
+    float dst_mul = 1.2;
+    float drive_target_0 = drive_target;
+    float drive_target_1 = drive_target*1.5;
+
+    patterns_rates[0] = pattern_as_states(
+        net.transfer(drive_target_0), net.transfer(-drive_target_0), patterns[0]);
+    patterns_rates[1] = pattern_as_states(
+        net.transfer(drive_target_1), net.transfer(-drive_target_1), patterns[1]);
+    patterns_potentials[0] = pattern_as_states(drive_target_0, -drive_target_0, patterns[0]);
+    patterns_potentials[1] = pattern_as_states(drive_target_1, -drive_target_1, patterns[1]);
 
     // Compute and save vector field and energy field for pre-training state
     std::cout << "Computing pre-training vector field and energy landscape..."
@@ -88,13 +99,17 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
-
     // Also save decomposed synaptic pushes (excit-only and inhib-only)
     compute_and_save_potential_vector_field_two_pattern_excit_only(
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
-    compute_and_save_potential_vector_field_two_pattern_inhib_only(
+    compute_and_save_energy_field_two_pattern_inhib_only(
+        net, sim_data_foldername, "pre_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
+    // Weights-only (no leak, no inhibition, no bias)
+    compute_and_save_potential_vector_field_two_pattern_weights_only(
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
@@ -104,8 +119,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
 
+    compute_and_save_potential_vector_field_two_pattern_inhib_only(
+        delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
+
     //---------------------------------------------------------- Training
-    std::cout << "TRAINING THE NETWORK" << std::endl;
+    std::cout << "TRAINING THE NETWORK (with bias)" << std::endl;
     // Initialize velocity matrix for momentum
     std::vector<std::vector<double>> velocity_matrix(
         network_size, std::vector<double>(network_size, 0.0));
@@ -117,11 +137,17 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     double max_error = 1000;
     int cpt = 0;
     while (max_error > epsilon_learning && cpt <= 10 / learning_rate) {
-        for (int j = 0; j < patterns.size(); j++) {
-            net.derivative_gradient_descent(patterns[j], patterns_rates[j],
-                                            drive_target, learning_rate, leak,
-                                            drives_error);
-        }
+        // net.derivative_gradient_descent(patterns_potentials[0],
+        //                                     learning_rate, leak,
+        //                                     drives_error);
+        // net.derivative_gradient_descent(patterns_potentials[1],learning_rate, leak,
+        //                                       drives_error);
+        net.derivative_gradient_descent_with_bias(patterns_potentials[0],
+                                                  learning_rate, leak,
+                                                  drives_error);
+        net.derivative_gradient_descent_with_bias(patterns_potentials[1],
+                                                  learning_rate, leak,
+                                                  drives_error);
         // net.derivative_gradient_descent_arbitrary(neutral_state_rates,
         //                                   learning_rate, leak,
         //                                   drives_error);
@@ -129,7 +155,21 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
             *std::max_element(drives_error.begin(), drives_error.end()));
         cpt += 1;
     }
+
     std::cout << "Number of training iterations: " << cpt << std::endl;
+
+    // Save learned bias vector after training
+    {
+        std::string bias_file = sim_data_foldername + "/bias_post_train.data";
+        std::ofstream bout(bias_file, std::ios::trunc);
+        if (bout.is_open()) {
+            writeToCSV(&bout, net.bias);
+            bout.close();
+        } else {
+            std::cerr << "Unable to open file to save bias: " << bias_file
+                      << std::endl;
+        }
+    }
 
     // Compute and save vector field and energy field for post-training state
     std::cout << "Computing post-training vector field and energy landscape..."
@@ -143,7 +183,11 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
-    compute_and_save_potential_vector_field_two_pattern_inhib_only(
+    compute_and_save_energy_field_two_pattern_inhib_only(
+        net, sim_data_foldername, "post_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
+    compute_and_save_potential_vector_field_two_pattern_weights_only(
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
@@ -153,142 +197,74 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
 
-    //---------------------------------------------------------- Network
-    //evolution
-    std::cout << "Letting the network evolve from neutral state" << endl;
-    net.set_state(vector<double>(network_size, 0.5));
-    string result_file_traj_1_name =
-        sim_data_foldername + "/results_evolution_1.data";
-    std::ofstream result_file_1_traj(result_file_traj_1_name, std::ios::trunc);
-
-    SimulationConfig config;
-    config.output = &result_file_1_traj;
-    config.delta = delta;
-    config.epsilon = delta / 10000;
-    config.depressed = true;
-    config.save = true;
-    config.max_iter = 100 / delta;
-    config.noise = false;
-    int nb_iter_sim = 0;
-
-    nb_iter_sim += run_net_sim_choice(net, config);
-    std::cout << "Number of iterations to convergence: " << nb_iter_sim
-              << std::endl;
-
-    // Apply inhibitory potentiation
-    std::cout << "Applying inhibitory potentiation (beta = " << beta << ")"
-              << std::endl;
-    net.pot_inhib_symmetric(beta);
-
-    // Compute and save vector field and energy field after inhibitory
-    // potentiation
-    std::cout
-        << "Computing post-inhibition vector field and energy landscape..."
-        << std::endl;
-    compute_and_save_potential_vector_field_two_pattern(
-        delta, net, sim_data_foldername, "post_inhib", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-
-    compute_and_save_potential_vector_field_two_pattern_excit_only(
-        delta, net, sim_data_foldername, "post_inhib", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
     compute_and_save_potential_vector_field_two_pattern_inhib_only(
-        delta, net, sim_data_foldername, "post_inhib", patterns_potentials[0],
+        delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
 
-    compute_and_save_energy_field_two_pattern(
-        delta, net, sim_data_foldername, "post_inhib", patterns_potentials[0],
+    // Bias-only energy landscape (from learned biases)
+    compute_and_save_energy_field_two_pattern_bias_only(
+        net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
 
-    // Run evolution again after inhibitory potentiation
-    net.set_state(vector<double>(network_size, 0.5));
-    nb_iter_sim = 0;
-    string result_file_traj_2_name =
-        sim_data_foldername + "/results_evolution_2.data";
-    std::ofstream result_file_2_traj(result_file_traj_2_name, std::ios::trunc);
-    config.output = &result_file_2_traj;
-    nb_iter_sim += run_net_sim_choice(net, config);
-    std::cout << "Number of iterations to convergence after inhibition: "
-              << nb_iter_sim << std::endl;
+    //---------------------------------------------------------- Trajectory + inhibitory potentiation loop
+    int num_inhib_iterations = 2;  // repeat n times
+    for (int iter = 1; iter <= num_inhib_iterations; ++iter) {
+        std::cout << "Iteration " << iter
+                  << ": resetting state to neutral and running trajectory"
+                  << std::endl;
 
-    // Apply more inhibitory potentiation
-    std::cout << "Applying additional inhibitory potentiation (beta = "
-              << beta * 2 << ")" << std::endl;
-    net.pot_inhib_symmetric(beta * 2);
+        // Reset network state to neutral (keep inhibition)
+        net.set_state(vector<double>(network_size, 0.5));
 
-    // Compute and save vector field and energy field after second inhibitory
-    // potentiation
-    std::cout
-        << "Computing post-inhibition-2 vector field and energy landscape..."
-        << std::endl;
-    compute_and_save_potential_vector_field_two_pattern(
-        delta, net, sim_data_foldername, "post_inhib_2", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        // Prepare trajectory output file
+        string traj_file_name = sim_data_foldername + "/results_evolution_iter_" +
+                                 to_string(iter) + ".data";
+        std::ofstream traj_out(traj_file_name, std::ios::trunc);
 
-    compute_and_save_potential_vector_field_two_pattern_excit_only(
-        delta, net, sim_data_foldername, "post_inhib_2",
-        patterns_potentials[0], patterns_potentials[1],
-        nb_sample_points_vector_field, up_lim_vector_field);
-    compute_and_save_potential_vector_field_two_pattern_inhib_only(
-        delta, net, sim_data_foldername, "post_inhib_2",
-        patterns_potentials[0], patterns_potentials[1],
-        nb_sample_points_vector_field, up_lim_vector_field);
+        SimulationConfig config;
+        config.output = &traj_out;
+        config.delta = delta;
+        config.epsilon = delta / 10000;
+        config.depressed = true;
+        config.save = true;
+        config.max_iter = 100 / delta;
+        config.noise = false;
 
-    compute_and_save_energy_field_two_pattern(
-        delta, net, sim_data_foldername, "post_inhib_2", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        int nb_iter_sim = run_net_sim_choice(net, config);
+        std::cout << "Converged in " << nb_iter_sim
+                  << " iterations for loop iteration " << iter << std::endl;
 
-    // Reset inhibition and try null-sum weights
-    net.reset_inhib();
+        // Potentiate inhibition after trajectory
+        std::cout << "Potentiating inhibition (beta = " << beta
+                  << ") after iteration " << iter << std::endl;
+        net.pot_inhib_symmetric(beta);
 
-    std::cout << "TRAINING WITH NULL-SUM WEIGHTS" << std::endl;
-    // Initialize velocity matrix for momentum
-    velocity_matrix = std::vector<std::vector<double>>(
-        network_size, std::vector<double>(network_size, 0.0));
-    drives_error.resize(network_size, 0.0);
-    // Training loop
-    max_error = 1000;
-    cpt = 0;
-    while (max_error > epsilon_learning && cpt <= 10 / learning_rate) {
-        for (int j = 0; j < patterns.size(); j++) {
-            net.derivative_gradient_descent_with_momentum_null_sum(
-                patterns[j], patterns_rates[j], drive_target, learning_rate,
-                leak, drives_error, velocity_matrix, momentum_coef, 0.1);
-        }
-        max_error = std::abs(
-            *std::max_element(drives_error.begin(), drives_error.end()));
-        cpt += 1;
+        // Save inhibitory-only vector field and energy landscape
+        std::string tag = "iter_" + to_string(iter);
+        compute_and_save_potential_vector_field_two_pattern_inhib_only(
+            delta, net, sim_data_foldername, tag, patterns_potentials[0],
+            patterns_potentials[1], nb_sample_points_vector_field,
+            up_lim_vector_field);
+
+        compute_and_save_energy_field_two_pattern_inhib_only(
+            net, sim_data_foldername, tag, patterns_potentials[0],
+            patterns_potentials[1], nb_sample_points_vector_field,
+            up_lim_vector_field);
+
+        compute_and_save_potential_vector_field_two_pattern(
+            delta, net, sim_data_foldername, tag,
+            patterns_potentials[0], patterns_potentials[1],
+            nb_sample_points_vector_field, up_lim_vector_field);
+
+        compute_and_save_energy_field_two_pattern(
+            delta, net, sim_data_foldername, tag,
+            patterns_potentials[0], patterns_potentials[1],
+            nb_sample_points_vector_field, up_lim_vector_field);
     }
-    std::cout << "Number of null-sum training iterations: " << cpt << std::endl;
 
-    // Compute and save vector field and energy field after null-sum weight
-    // training
-    std::cout << "Computing post-null-sum vector field and energy landscape..."
-              << std::endl;
-    compute_and_save_potential_vector_field_two_pattern(
-        delta, net, sim_data_foldername, "post_null_w", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-
-    compute_and_save_potential_vector_field_two_pattern_excit_only(
-        delta, net, sim_data_foldername, "post_null_w", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-    compute_and_save_potential_vector_field_two_pattern_inhib_only(
-        delta, net, sim_data_foldername, "post_null_w", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-
-    compute_and_save_energy_field_two_pattern(
-        delta, net, sim_data_foldername, "post_null_w", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+    // (Removed) null-sum training path
 
     std::cout << "Simulation " << sim_number << " completed successfully."
               << std::endl;
@@ -296,7 +272,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
 
 int main(int argc, char **argv) {
     // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_vector_fields_patterns_inhib_and_exc";
+    string sim_name = "Fig_vector_fields_patterns_different_distances";
     string foldername_results =
         "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
@@ -311,7 +287,7 @@ int main(int argc, char **argv) {
 
     double learning_rate = 0.0001;
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.01}},
+        {"beta", {0.03}},
         {"nb_sample_points_vector_field",
          {24}},  // Increased for better resolution
         {"drive_target", {6}},
