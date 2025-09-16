@@ -579,6 +579,15 @@ std::vector<double> Network::give_derivative_u_W_only(double delta) {
     return derivative_u;
 }
 
+// Bias-only push: exclude weights, inhibition and leak; only bias contributes
+std::vector<double> Network::give_derivative_u_bias_only(double delta) {
+    std::vector<double> derivative_u(size, 0.0);
+    for (int i = 0; i < size; i++) {
+        derivative_u[i] = bias[i] * delta;
+    }
+    return derivative_u;
+}
+
 
 double Network::compute_energy() {
     double energy = 0.0;

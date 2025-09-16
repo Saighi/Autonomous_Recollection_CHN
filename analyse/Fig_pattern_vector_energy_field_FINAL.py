@@ -165,7 +165,7 @@ for i in range(3):
 
 # Right-side labels for all 4 rows (no colorbar at right)
 right_labels_axes = [fig4.add_subplot(gs4[i, 3]) for i in range(4)]
-right_labels = [r"$\mathbf{W} + \mathbf{A}$", r"$\mathbf{A}$", r"$\mathbf{W} + \mathbf{A}$", r"$\mathbf{A}$"]
+right_labels = [r"$\mathbf{W} + \mathbf{A}$", r"$\mathbf{A}$", r"$\mathbf{A}$", r"$\mathbf{W} + \mathbf{A}$"]
 for ax_lab, txt in zip(right_labels_axes, right_labels):
     ax_lab.set_axis_off()
     ax_lab.text(0.5, 0.5, txt, ha='center', va='center')

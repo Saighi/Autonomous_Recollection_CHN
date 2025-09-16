@@ -1025,6 +1025,61 @@ void compute_and_save_potential_vector_field_two_pattern_inhib_only(
     std::cout << "Saved inhib-only 2D field to " << out_filename << std::endl;
 }
 
+// Vector field using only bias (no W, no inhibition, no leak)
+void compute_and_save_potential_vector_field_two_pattern_bias_only(
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename, const std::vector<double> &p1,
+    const std::vector<double> &p2, int nb_step, double up_lim) {
+    std::string out_filename = foldername +
+                               "/vector_field_two_patterns_bias_only_" +
+                               filename + ".txt";
+    std::ofstream file(out_filename, std::ios::trunc);
+    if (!file.is_open()) {
+        std::cerr << "Cannot open file " << out_filename << std::endl;
+        return;
+    }
+
+    int size = net.size;
+    for (int i = 0; i < nb_step; i++) {
+        double alpha = double(i) / ((nb_step - 1) / up_lim) - 0.25;
+        for (int j = 0; j < nb_step; j++) {
+            double beta = double(j) / ((nb_step - 1) / up_lim) - 0.25;
+
+            std::vector<double> U(size, 0.0);
+            for (int k = 0; k < size; k++) {
+                U[k] = alpha * p1[k] + beta * p2[k];
+            }
+
+            std::vector<double> V(size, 0.0);
+            for (int k = 0; k < size; k++) {
+                V[k] = net.transfer(U[k]);
+            }
+            net.set_state(V);
+
+            // Bias-only push
+            std::vector<double> dU = net.give_derivative_u_bias_only(delta);
+
+            double dot_alpha = 0.0, dot_beta = 0.0;
+            for (int k = 0; k < size; k++) {
+                dot_alpha += dU[k] * p1[k];
+                dot_beta += dU[k] * p2[k];
+            }
+
+            file << alpha << " " << beta << " " << dot_alpha << " "
+                 << dot_beta << " ";
+            for (int k = 0; k < size; k++) {
+                file << V[k];
+                if (k < size - 1)
+                    file << " ";
+            }
+            file << "\n";
+        }
+    }
+
+    file.close();
+    std::cout << "Saved bias-only 2D field to " << out_filename << std::endl;
+}
+
 void compute_and_save_energy_field_two_pattern(
     double delta, Network &net, const std::string &foldername,
     const std::string &filename, const std::vector<double> &p1,

@@ -108,6 +108,19 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
+
+    // Bias-only (no W, no inhibition, no leak)
+    compute_and_save_potential_vector_field_two_pattern_bias_only(
+        delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
+
+    // Bias-only energy landscape (from learned biases)
+    compute_and_save_energy_field_two_pattern_bias_only(
+        net, sim_data_foldername, "pre_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
+
     // Weights-only (no leak, no inhibition, no bias)
     compute_and_save_potential_vector_field_two_pattern_weights_only(
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
@@ -192,6 +205,12 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
 
+    // Bias-only vector field for post-training
+    compute_and_save_potential_vector_field_two_pattern_bias_only(
+        delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
+
     compute_and_save_energy_field_two_pattern(
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
@@ -262,6 +281,12 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
             delta, net, sim_data_foldername, tag,
             patterns_potentials[0], patterns_potentials[1],
             nb_sample_points_vector_field, up_lim_vector_field);
+
+        // Bias-only energy landscape (from learned biases)
+        compute_and_save_energy_field_two_pattern_bias_only(
+            net, sim_data_foldername, tag, patterns_potentials[0],
+            patterns_potentials[1], nb_sample_points_vector_field,
+            up_lim_vector_field);
     }
 
     // (Removed) null-sum training path

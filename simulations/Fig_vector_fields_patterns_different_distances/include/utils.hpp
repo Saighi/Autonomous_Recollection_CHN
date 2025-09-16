@@ -110,6 +110,11 @@ void compute_and_save_potential_vector_field_two_pattern_inhib_only(
     double delta, Network &net, const std::string &foldername,
     const std::string &filename, const std::vector<double> &p1,
     const std::vector<double> &p2, int nb_step, double up_lim);
+// Vector field using bias-only (no W, no inhibition, no leak)
+void compute_and_save_potential_vector_field_two_pattern_bias_only(
+    double delta, Network &net, const std::string &foldername,
+    const std::string &filename, const std::vector<double> &p1,
+    const std::vector<double> &p2, int nb_step, double up_lim);
 
 void compute_and_save_energy_field_two_pattern(
     double delta, Network &net, const std::string &foldername,

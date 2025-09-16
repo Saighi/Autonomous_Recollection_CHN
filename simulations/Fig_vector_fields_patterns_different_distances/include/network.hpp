@@ -85,6 +85,8 @@ public:
     std::vector<double> give_derivative_u_inhib_only(double delta);
     // Weights-only: exclude inhibition, leak, and bias entirely
     std::vector<double> give_derivative_u_W_only(double delta);
+    // Bias-only: contribution from bias term only on u
+    std::vector<double> give_derivative_u_bias_only(double delta);
 
 private:
     // ... your existing members ...
