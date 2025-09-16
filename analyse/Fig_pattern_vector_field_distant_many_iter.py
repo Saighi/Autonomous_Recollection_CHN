@@ -153,149 +153,109 @@ stage_titles = {
     "post_inhib": "Post-inhibition",
 }
 
-# Prepare figure (GridSpec): 4 rows x 3 columns of plots + 1 dedicated colorbar column
-fig4 = plt.figure(figsize=(20, 22))
-gs4 = fig4.add_gridspec(nrows=4, ncols=4, width_ratios=[1, 1, 1, 0.05], wspace=0.05, hspace=0.18)
-axs4 = np.empty((3, 3), dtype=object)
-for i in range(3):
-    axs4[0, i] = fig4.add_subplot(gs4[0, i])
-    axs4[1, i] = fig4.add_subplot(gs4[1, i])
-    axs4[2, i] = fig4.add_subplot(gs4[2, i])
-    # axs4[3, i] = fig4.add_subplot(gs4[3, i])
-# Dedicated colorbar axis for the energy row
-cax4 = fig4.add_subplot(gs4[2, 3])
+# Two-row energy-only figure (W+B+A on row 1; A-only on row 2)
+import os
 
-# Right-side labels for rows 0–1 only (leave [2,3] for the colorbar)
-right_labels_axes = [fig4.add_subplot(gs4[i, 3]) for i in range(2)]
-right_labels = [r"$\mathbf{W} + \mathbf{A}$", r"$\mathbf{A}$"]
-for ax_lab, txt in zip(right_labels_axes, right_labels):
+# Columns to display: post_train, iter_1, iter_2, iter_3 (no pre_train)
+cols = ["post_train", "iter_1", "iter_2", "iter_3"]
+
+# Prepare figure (GridSpec): 2 rows x 4 columns + 1 right-label column
+fig2 = plt.figure(figsize=(26, 14))
+gs2 = fig2.add_gridspec(nrows=2, ncols=5, width_ratios=[1, 1, 1, 1, 0.05], wspace=0.06, hspace=0.18)
+axs2 = np.empty((2, 4), dtype=object)
+for i in range(4):
+    axs2[0, i] = fig2.add_subplot(gs2[0, i])
+    axs2[1, i] = fig2.add_subplot(gs2[1, i])
+
+# Right-side labels for both rows
+right_axes2 = [fig2.add_subplot(gs2[i, 4]) for i in range(2)]
+right_labels2 = [r"$\mathbf{W} + \mathbf{B} + \mathbf{A}$", r"$\mathbf{A}$"]
+for ax_lab, txt in zip(right_axes2, right_labels2):
     ax_lab.set_axis_off()
     ax_lab.text(0.5, 0.5, txt, ha='center', va='center')
 
 sns.despine(left=True, bottom=True, top=True, right=True)
 
-# Row 1: classic stream plots
-for j in range(len(stages_4rows)-1):
-    ax = axs4[0, j]
-    display_labels = (stages_4rows[j] != "pre_train")
-    vec_file = vec_prefix + stages_4rows[j]  + ".txt"
-    if not os.path.exists(vec_file):
-        ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
-        ax.set_axis_off()
-        continue
-    plot_stream_field(ax, vec_file, display_labels)
-    if not j>=len(stages_4rows) and j!=0:
-        data_traj = np.loadtxt(trajectory_file+stages_4rows[j+1]+".data")
-        plot_trajectory(ax, patterns, data_traj)
-    ax.set_title(stage_titles.get(stages_4rows[j] , stages_4rows[j] ))
+# Load energy fields for both rows and compute global normalization
+full_fields = []
+inh_fields = []
+for st in cols:
+    full_fields.append(load_energy_field(eng_prefix + st + ".txt"))
+    inh_fields.append(load_energy_field(inh_eng_prefix + st + ".txt"))
+
+vmin_all = min(min(np.min(E) for (_, _, E) in full_fields),
+               min(np.min(E) for (_, _, E) in inh_fields))
+vmax_all = max(max(np.max(E) for (_, _, E) in full_fields),
+               max(np.max(E) for (_, _, E) in inh_fields))
+
+# Mapping for trajectory overlay: show next-iteration trajectory on the previous column
+traj_map = {
+    "post_train": "iter_1",
+    "iter_1": "iter_2",
+    "iter_2": "iter_3",
+    # "iter_3": None  # final, no trajectory
+}
+
+last_cs = None
+# Row 1: W+B+A energy
+for j, st in enumerate(cols):
+    X, Y, E = full_fields[j]
+    ax = axs2[0, j]
+    last_cs = plot_energy_field(ax, X, Y, E, vmin=vmin_all, vmax=vmax_all, show_pattern_labels=True)
+    # Overlay offset trajectory if available
+    next_stage = traj_map.get(st)
+    if next_stage is not None:
+        traj_path = trajectory_file + next_stage + ".data"
+        if os.path.exists(traj_path):
+            data_traj = np.loadtxt(traj_path)
+            plot_trajectory(ax, patterns, data_traj)
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
+    ax.set_title(st.replace('_', ' '))
 
-# # Row 2: excit-only stream plots
-# for j in range(len(stages_4rows)-1):
-#     ax = axs4[1, j]
-#     display_labels = (stages_4rows[j]  != "pre_train")
-#     vec_file = excit_prefix + stages_4rows[j]  + ".txt"
-#     if not os.path.exists(vec_file):
-#         ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
-#         ax.set_axis_off()
-#         continue
-#     plot_stream_field(ax, vec_file, display_labels)
-#     ax.set_xticks([0, 0.5, 1])
-#     if j == 0:
-#         ax.set_ylabel(r"$\lambda_2$", rotation=90)
-
-
-# Row 2 energy landscapes inhib only with shared color scale and single colorbar across row
-energy_fields_inh = [load_energy_field(inh_eng_prefix +st + ".txt") for st in stages_4rows]
-vmin4 = min(np.min(E) for (_, _, E) in energy_fields_inh)
-vmax4 = max(np.max(E) for (_, _, E) in energy_fields_inh)
-
-last_cs4 = None
-for j in range(len(stages_4rows)-1):
-    (X, Y, E) = energy_fields_inh[j]
-    ax = axs4[1, j]
-    last_cs4 = plot_energy_field(ax, X, Y, E, vmin=vmin4, vmax=vmax4, show_pattern_labels=True)
-    # Overlay trajectories for consistency
-    stage = stages_4rows[j]
-    
-    if not j>=len(stages_4rows) and j!=0:
-        data_traj = np.loadtxt(trajectory_file+stages_4rows[j+1]+".data")
-        plot_trajectory(ax, patterns, data_traj)
-        
-    ax.set_xticks([0, 0.5, 1])
-    if j == 0:
-        ax.set_ylabel(r"$\lambda_2$", rotation=90)
-    ax.set_xlabel(r"$\lambda_1$")
-
-if last_cs4 is not None:
-    cbar = fig4.colorbar(last_cs4, cax=cax4)
-    cbar.set_label('Energy')
-
-# Consistent limits and aspect across all subplots
-for r in range(3):
-    for c in range(len(stages_4rows)-1):
-        ax = axs4[r, c]
-        if ax.has_data():
-            ax.set_xlim(-0.1, 1.1)
-            ax.set_ylim(-0.1, 1.1)
-            ax.set_aspect('equal')
-
-
-# # Row 3: inhib-only stream plots
-# for j in range(len(stages_4rows)-1):
-#     ax = axs4[1, j]
-#     display_labels = (stages_4rows[j] != "pre_train")
-#     vec_file = inhib_prefix + stages_4rows[j] + ".txt"
-#     if not os.path.exists(vec_file):
-#         ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
-#         ax.set_axis_off()
-#         continue
-#     # Enhance weak inhibitory fields to avoid blank-looking plots
-#     plot_stream_field(ax, vec_file, display_labels, enhance_weak=True, weak_threshold=1e-6)
-#     ax.set_xticks([0, 0.5, 1])
-#     if j == 0:
-#         ax.set_ylabel(r"$\lambda_2$", rotation=90)
-    
-# Row 3 energy landscapes with shared color scale and single colorbar across row
-energy_fields = [load_energy_field(eng_prefix + st + ".txt") for st in stages_4rows]
-vmin4 = min(np.min(E) for (_, _, E) in energy_fields)
-vmax4 = max(np.max(E) for (_, _, E) in energy_fields)
-
-last_cs4 = None
-for j in range(len(stages_4rows)-1):
-    (X, Y, E) = energy_fields[j]
-    ax = axs4[2, j]
-    last_cs4 = plot_energy_field(ax, X, Y, E, vmin=vmin4, vmax=vmax4, show_pattern_labels=True)
-    # Overlay trajectories for consistency
-    stage = stages_4rows[j]
-    if not j>=len(stages_4rows) and j!=0:
-        data_traj = np.loadtxt(trajectory_file+stages_4rows[j+1]+".data")
-        plot_trajectory(ax, patterns, data_traj)
+# Row 2: A-only energy
+for j, st in enumerate(cols):
+    X, Y, E = inh_fields[j]
+    ax = axs2[1, j]
+    cs = plot_energy_field(ax, X, Y, E, vmin=vmin_all, vmax=vmax_all, show_pattern_labels=True)
+    # Overlay offset trajectory if available (same mapping)
+    next_stage = traj_map.get(st)
+    if next_stage is not None:
+        traj_path = trajectory_file + next_stage + ".data"
+        if os.path.exists(traj_path):
+            data_traj = np.loadtxt(traj_path)
+            plot_trajectory(ax, patterns, data_traj)
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
     ax.set_xlabel(r"$\lambda_1$")
 
-if last_cs4 is not None:
-    cbar = fig4.colorbar(last_cs4, cax=cax4)
+# Shared vertical colorbar to the left, spanning both rows
+if last_cs is not None:
+    pos_r1 = axs2[0, 0].get_position()
+    pos_r2 = axs2[1, 0].get_position()
+    total_h = pos_r1.y1 - pos_r2.y0
+    shrink = 0.8
+    cbar_h = total_h * shrink
+    cbar_y0 = pos_r2.y0 + (total_h - cbar_h) / 2
+    cbar_width = 0.02
+    left_offset = 0.06
+    cbar_x0 = max(0.01, pos_r1.x0 - (left_offset + cbar_width))
+    cax = fig2.add_axes([cbar_x0, cbar_y0, cbar_width, cbar_h])
+    cbar = fig2.colorbar(last_cs, cax=cax)
     cbar.set_label('Energy')
+    cbar.ax.yaxis.set_ticks_position('left')
+    cbar.ax.yaxis.set_label_position('left')
+    cbar.ax.tick_params(labelleft=True, labelright=False)
 
-# Consistent limits and aspect across all subplots
-for r in range(3):
-    for c in range(len(stages_4rows)):
-        ax = axs4[r, c]
+# Consistent limits and aspect
+for r in range(2):
+    for c in range(len(cols)):
+        ax = axs2[r, c]
         if ax.has_data():
             ax.set_xlim(-0.1, 1.1)
             ax.set_ylim(-0.1, 1.1)
             ax.set_aspect('equal')
 
-# plt.savefig('plots/Fig_pattern_vector_field_4rows_stream_excit_inhib_energy.png', dpi=300, bbox_inches='tight')
-# plt.show()
-
-# if __name__ == "__main__":
-#     print("Figure with 4 rows (classic, energy, excit-only, inhib-only) created and saved.")
-# # %%
-
-# %%
+plt.savefig('plots/Fig_pattern_vector_field_distant_many_iter_2rows_energy.png', dpi=300, bbox_inches='tight')

@@ -131,6 +131,11 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
+    // Weights-only energy landscape pre-train
+    compute_and_save_energy_field_two_pattern_weights_only(
+        net, sim_data_foldername, "pre_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 
     compute_and_save_potential_vector_field_two_pattern_inhib_only(
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
@@ -215,6 +220,11 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
         up_lim_vector_field);
+    // Weights-only energy landscape post-train
+    compute_and_save_energy_field_two_pattern_weights_only(
+        net, sim_data_foldername, "post_train", patterns_potentials[0],
+        patterns_potentials[1], nb_sample_points_vector_field,
+        up_lim_vector_field);
 
     compute_and_save_potential_vector_field_two_pattern_inhib_only(
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
@@ -228,7 +238,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         up_lim_vector_field);
 
     //---------------------------------------------------------- Trajectory + inhibitory potentiation loop
-    int num_inhib_iterations = 2;  // repeat n times
+    int num_inhib_iterations = 3;  // repeat n times
     for (int iter = 1; iter <= num_inhib_iterations; ++iter) {
         std::cout << "Iteration " << iter
                   << ": resetting state to neutral and running trajectory"
@@ -312,7 +322,7 @@ int main(int argc, char **argv) {
 
     double learning_rate = 0.0001;
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.03}},
+        {"beta", {0.01}},
         {"nb_sample_points_vector_field",
          {24}},  // Increased for better resolution
         {"drive_target", {6}},

@@ -240,7 +240,6 @@ for j in range(len(stages_4rows)-1):
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
-    ax.set_xlabel(r"$\lambda_1$")
 
 """
 Row 4: full (W+A) energy landscapes, using the same global normalization

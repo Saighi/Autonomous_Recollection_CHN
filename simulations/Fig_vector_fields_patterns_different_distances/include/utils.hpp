@@ -125,6 +125,10 @@ void compute_and_save_energy_field_two_pattern_bias_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
     double up_lim);
+void compute_and_save_energy_field_two_pattern_weights_only(
+    Network &net, const std::string &foldername, const std::string &filename,
+    const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
+    double up_lim);
 void compute_and_save_energy_field_two_pattern_inhib_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
