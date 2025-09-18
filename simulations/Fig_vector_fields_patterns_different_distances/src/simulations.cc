@@ -28,6 +28,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     double drive_target = parameters.at("drive_target");
     double learning_rate = parameters.at("learning_rate");
     int network_size = 400;
+    float dst_mul = 1;
     double leak = parameters.at("leak");
     double delta = parameters.at("delta");
     double noise_level = parameters.at("noise_level");
@@ -81,9 +82,9 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     vector<vector<double>> patterns_potentials =
         patterns_as_states(drive_target, -drive_target, patterns);
     
-    float dst_mul = 1.2;
+
     float drive_target_0 = drive_target;
-    float drive_target_1 = drive_target*1.5;
+    float drive_target_1 = drive_target*dst_mul;
 
     patterns_rates[0] = pattern_as_states(
         net.transfer(drive_target_0), net.transfer(-drive_target_0), patterns[0]);
@@ -238,7 +239,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         up_lim_vector_field);
 
     //---------------------------------------------------------- Trajectory + inhibitory potentiation loop
-    int num_inhib_iterations = 3;  // repeat n times
+    int num_inhib_iterations = 4;  // repeat n times
     for (int iter = 1; iter <= num_inhib_iterations; ++iter) {
         std::cout << "Iteration " << iter
                   << ": resetting state to neutral and running trajectory"
@@ -306,8 +307,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
 }
 
 int main(int argc, char **argv) {
-    // string sim_name = "write_net_sizes_relative_num_patterns";
-    string sim_name = "Fig_vector_fields_patterns_different_distances";
+    // string sim_name = "Fig_vector_fields_patterns_different_distances";
+    string sim_name = "Fig_vector_fields_patterns_same_distances";
     string foldername_results =
         "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
 
@@ -322,7 +323,7 @@ int main(int argc, char **argv) {
 
     double learning_rate = 0.0001;
     unordered_map<string, vector<double>> varying_params = {
-        {"beta", {0.01}},
+        {"beta", {0.009}},
         {"nb_sample_points_vector_field",
          {24}},  // Increased for better resolution
         {"drive_target", {6}},

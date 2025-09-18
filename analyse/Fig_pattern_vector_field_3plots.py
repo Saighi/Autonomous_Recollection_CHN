@@ -78,8 +78,8 @@ def plot_dotproduct_interpolate_plane(ax, filename, display_pattern_numbers = Tr
         ax.plot(1, 0, 'o', markersize=4.5, c="red") 
         ax.plot(0, 1, 'o', markersize=4.5, c="red") 
 
-        ax.text(0.92, +0.07, r" $\mathbf{2}$", c="red", fontsize=31,fontfamily="monospace")
-        ax.text(+0.08, 0.95, r" $\mathbf{1}$", c="red", fontsize=31,fontfamily="monospace")
+        ax.text(0.92, +0.07, r" $\mathbf{1}$", c="red", fontsize=31,fontfamily="monospace")
+        ax.text(+0.08, 0.95, r" $\mathbf{2}$", c="red", fontsize=31,fontfamily="monospace")
         
     return xi, yi
 

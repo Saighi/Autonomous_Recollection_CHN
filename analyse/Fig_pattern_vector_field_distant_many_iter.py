@@ -9,6 +9,7 @@ sns.set_theme(style="ticks")
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times']
+
 plt.rcParams.update({
     'font.size': 30,
     'axes.labelsize': 30,
@@ -23,8 +24,7 @@ plt.rcParams.update({
     'font.weight': 'bold',
 })
 
-
-def plot_stream_field(ax, filename, display_pattern_numbers=True, enhance_weak=False, weak_threshold=1e-6):
+def plot_stream_field(ax, filename, show_pattern_labels=True, enhance_weak=False, weak_threshold=1e-6):
     """Stream plot using the exact formatting used in 3plots."""
     data = np.loadtxt(filename)
     x, y, dx, dy = data[:, 0], data[:, 1], data[:, 2], data[:, 3]
@@ -69,16 +69,16 @@ def plot_stream_field(ax, filename, display_pattern_numbers=True, enhance_weak=F
                 use_DY = DY * inv
 
     # Use the same streamplot style as 3plots
-    ax.streamplot(xi, yi, use_DX, use_DY, density=0.9, color='tab:blue', arrowsize=2.5, linewidth=2)
+    ax.streamplot(xi, yi, use_DX, use_DY, density=1, color='tab:blue', arrowsize=3, linewidth=2.5)
 
-    if display_pattern_numbers:
-        ax.plot(0, 0, 'o', markersize=10, c="red")
-        ax.plot(1, 0, 'o', markersize=4.5, c="red")
-        ax.plot(0, 1, 'o', markersize=4.5, c="red")
+    if show_pattern_labels:
+        ax.plot(0, 0, 'o', markersize=13, c="red")
+        ax.plot(1, 0, 'o', markersize=7, c="red")
+        ax.plot(0, 1, 'o', markersize=7, c="red")
 
         # Use the same label positions/fonts as 3plots
-        ax.text(0.92, +0.07, r" $\mathbf{2}$", c="red", fontsize=31, fontfamily="monospace")
-        ax.text(+0.08, 0.95, r" $\mathbf{1}$", c="red", fontsize=31, fontfamily="monospace")
+        ax.text(0.92, +0.07, r" $\mathbf{2}$", c="red", fontsize=39, fontfamily="monospace")
+        ax.text(+0.08, 0.95, r" $\mathbf{1}$", c="red", fontsize=39, fontfamily="monospace")
 
 
 def plot_trajectory(ax, patterns, traj):
@@ -111,17 +111,25 @@ def load_energy_field(filename):
 
 
 def plot_energy_field(ax, X, Y, E, vmin=None, vmax=None, show_pattern_labels=True):
-    cs = ax.contourf(X, Y, E, 60, cmap='viridis', vmin=vmin, vmax=vmax)
-    lines = ax.contour(X, Y, E, 8, colors='white', alpha=0.5, linewidths=0.5)
+    # Use consistent levels if a range is provided to avoid partial/empty colorbars
+    if (vmin is not None) and (vmax is not None):
+        levels = np.linspace(vmin, vmax, 60)
+        line_levels = np.linspace(vmin, vmax, 8)
+        cs = ax.contourf(X, Y, E, levels=levels, cmap='viridis')
+        lines = ax.contour(X, Y, E, levels=line_levels, colors='white', alpha=0.5, linewidths=0.5)
+    else:
+        cs = ax.contourf(X, Y, E, 60, cmap='viridis')
+        lines = ax.contour(X, Y, E, 8, colors='white', alpha=0.5, linewidths=0.5)
     ax.clabel(lines, inline=True, fontsize=8, fmt='%.1f')
 
     if show_pattern_labels:
-        ax.plot(0, 0, 'o', markersize=10, c="red")
-        ax.plot(1, 0, 'o', markersize=4.5, c="red")
-        ax.plot(0, 1, 'o', markersize=4.5, c="red")
-        # Match 3plots labeling style
-        ax.text(0.92, +0.07, r" $\mathbf{2}$", c="red", fontsize=31, fontfamily="monospace")
-        ax.text(+0.08, 0.95, r" $\mathbf{1}$", c="red", fontsize=31, fontfamily="monospace")
+        ax.plot(0, 0, 'o', markersize=13, c="red")
+        ax.plot(1, 0, 'o', markersize=7, c="red")
+        ax.plot(0, 1, 'o', markersize=7, c="red")
+
+        # Use the same label positions/fonts as 3plots
+        ax.text(0.92, +0.07, r" $\mathbf{2}$", c="red", fontsize=39, fontfamily="monospace")
+        ax.text(+0.08, 0.95, r" $\mathbf{1}$", c="red", fontsize=39, fontfamily="monospace")
 
     return cs
 
@@ -160,7 +168,7 @@ import os
 cols = ["post_train", "iter_1", "iter_2", "iter_3"]
 
 # Prepare figure (GridSpec): 2 rows x 4 columns + 1 right-label column
-fig2 = plt.figure(figsize=(26, 14))
+fig2 = plt.figure(figsize=(29, 14))
 gs2 = fig2.add_gridspec(nrows=2, ncols=5, width_ratios=[1, 1, 1, 1, 0.05], wspace=0.06, hspace=0.18)
 axs2 = np.empty((2, 4), dtype=object)
 for i in range(4):
@@ -169,35 +177,35 @@ for i in range(4):
 
 # Right-side labels for both rows
 right_axes2 = [fig2.add_subplot(gs2[i, 4]) for i in range(2)]
-right_labels2 = [r"$\mathbf{W} + \mathbf{B} + \mathbf{A}$", r"$\mathbf{A}$"]
+right_labels2 = ["$\\mathbf{W}$\n$+\\mathbf{B}$\n$+\\mathbf{A}$", r"$\mathbf{A}$"]
 for ax_lab, txt in zip(right_axes2, right_labels2):
     ax_lab.set_axis_off()
     ax_lab.text(0.5, 0.5, txt, ha='center', va='center')
 
 sns.despine(left=True, bottom=True, top=True, right=True)
 
-# Load energy fields for both rows and compute global normalization
+# Load energy fields for both rows (original scale, no normalization)
 full_fields = []
 inh_fields = []
 for st in cols:
     full_fields.append(load_energy_field(eng_prefix + st + ".txt"))
     inh_fields.append(load_energy_field(inh_eng_prefix + st + ".txt"))
 
-vmin_all = min(min(np.min(E) for (_, _, E) in full_fields),
-               min(np.min(E) for (_, _, E) in inh_fields))
-vmax_all = max(max(np.max(E) for (_, _, E) in full_fields),
-               max(np.max(E) for (_, _, E) in inh_fields))
+# Compute shared vmin/vmax across both rows
+all_E = [E for (_, _, E) in full_fields] + [E for (_, _, E) in inh_fields]
+vmin_all = min(np.min(E) for E in all_E)
+vmax_all = max(np.max(E) for E in all_E)
 
 # Mapping for trajectory overlay: show next-iteration trajectory on the previous column
 traj_map = {
     "post_train": "iter_1",
     "iter_1": "iter_2",
     "iter_2": "iter_3",
-    # "iter_3": None  # final, no trajectory
+    "iter_3": "iter_4",
 }
 
 last_cs = None
-# Row 1: W+B+A energy
+# Row 1: W+B+A energy (original scale)
 for j, st in enumerate(cols):
     X, Y, E = full_fields[j]
     ax = axs2[0, j]
@@ -214,7 +222,7 @@ for j, st in enumerate(cols):
         ax.set_ylabel(r"$\lambda_2$", rotation=90)
     ax.set_title(st.replace('_', ' '))
 
-# Row 2: A-only energy
+# Row 2: A-only energy (original scale)
 for j, st in enumerate(cols):
     X, Y, E = inh_fields[j]
     ax = axs2[1, j]
@@ -245,6 +253,13 @@ if last_cs is not None:
     cax = fig2.add_axes([cbar_x0, cbar_y0, cbar_width, cbar_h])
     cbar = fig2.colorbar(last_cs, cax=cax)
     cbar.set_label('Energy')
+    # Four readable integer ticks spanning [vmin_all, vmax_all]
+    try:
+        ticks2 = np.linspace(vmin_all, vmax_all, 4)
+        cbar.set_ticks(ticks2)
+        cbar.set_ticklabels([f"{int(round(t))}" for t in ticks2])
+    except Exception:
+        pass
     cbar.ax.yaxis.set_ticks_position('left')
     cbar.ax.yaxis.set_label_position('left')
     cbar.ax.tick_params(labelleft=True, labelright=False)
@@ -254,8 +269,152 @@ for r in range(2):
     for c in range(len(cols)):
         ax = axs2[r, c]
         if ax.has_data():
+            ax.set_xlim(-0.2, 1.1)
+            ax.set_ylim(-0.2, 1.1)
+            ax.set_aspect('equal')
+
+# Only bottom row shows x tick labels; only first column shows y tick labels (2-row fig)
+rows2, cols2 = axs2.shape
+for r in range(rows2):
+    for c in range(cols2):
+        ax = axs2[r, c]
+        if r != rows2 - 1:
+            ax.tick_params(labelbottom=False)
+        if c != 0:
+            ax.tick_params(labelleft=False)
+plt.savefig('plots/Fig_pattern_vector_field_distant_many_iter_2rows_energy.png', dpi=300, bbox_inches='tight')
+
+#%%
+# Three-row figure: Row1 streams (W+B+A), Row2 energy (W+B+A), Row3 energy (A)
+# Stream and energy columns (no pre_train)
+cols_stream = ["post_train", "iter_1", "iter_2", "iter_3"]
+cols_energy = ["post_train", "iter_1", "iter_2", "iter_3"]
+
+fig3 = plt.figure(figsize=(28, 18))
+gs3 = fig3.add_gridspec(nrows=3, ncols=5, width_ratios=[1, 1, 1, 1, 0.05], wspace=0.06, hspace=0.18)
+axs3 = np.empty((3, 4), dtype=object)
+for i in range(4):
+    axs3[0, i] = fig3.add_subplot(gs3[0, i])
+    axs3[1, i] = fig3.add_subplot(gs3[1, i])
+    axs3[2, i] = fig3.add_subplot(gs3[2, i])
+
+# Right labels
+right_axes3 = [fig3.add_subplot(gs3[i, 4]) for i in range(3)]
+right_labels3 = ["$\\mathbf{W}+\\mathbf{B}$\n$+\\mathbf{A}$", "$\\mathbf{W}+\\mathbf{B}$\n$+\\mathbf{A}$", r"$\mathbf{A}$"]
+for ax_lab, txt in zip(right_axes3, right_labels3):
+    ax_lab.set_axis_off()
+    ax_lab.text(0.5, 0.5, txt, ha='center', va='center')
+    
+sns.despine(left=True, bottom=True, top=True, right=True)
+# Row 1 streams
+for j, st in enumerate(cols_stream):
+    ax = axs3[0, j]
+    vec_file = vec_prefix + st + ".txt"
+    if not os.path.exists(vec_file):
+        ax.text(0.5, 0.5, f"Missing: {os.path.basename(vec_file)}", ha='center', va='center')
+        ax.set_axis_off()
+        continue
+    display_labels = (st != "pre_train")
+    plot_stream_field(ax, vec_file, display_labels)
+    ax.set_xticks([0, 0.5, 1])
+    nxt = traj_map.get(st)
+    if nxt is not None:
+        tpath = trajectory_file + nxt + ".data"
+        if os.path.exists(tpath):
+            plot_trajectory(ax, patterns, np.loadtxt(tpath))
+    if j == 0:
+        ax.set_ylabel(r"$\lambda_2$", rotation=90)
+    ax.set_title(st.replace('_', ' '))
+
+# Load energies (original scale) and compute shared vmin/vmax
+full_fields3 = [load_energy_field(eng_prefix + st + ".txt") for st in cols_energy]
+inh_fields3  = [load_energy_field(inh_eng_prefix + st + ".txt") for st in cols_energy]
+all_E3 = [E for (_, _, E) in full_fields3] + [E for (_, _, E) in inh_fields3]
+vmin3 = min(np.min(E) for E in all_E3)
+vmax3 = max(np.max(E) for E in all_E3)
+
+# Trajectory overlay mapping
+traj_map = {
+    "post_train": "iter_1",
+    "iter_1": "iter_2",
+    "iter_2": "iter_3",
+    "iter_3": "iter_4",
+}
+
+last_cs3 = None
+# Row 2 energies (W+B+A)
+for j, st in enumerate(cols_energy):
+    X, Y, E = full_fields3[j]
+    ax = axs3[1, j]
+    last_cs3 = plot_energy_field(ax, X, Y, E, vmin=vmin3, vmax=vmax3, show_pattern_labels=True)
+    nxt = traj_map.get(st)
+    if nxt is not None:
+        tpath = trajectory_file + nxt + ".data"
+        if os.path.exists(tpath):
+            plot_trajectory(ax, patterns, np.loadtxt(tpath))
+    ax.set_xticks([0, 0.5, 1])
+    if j == 0:
+        ax.set_ylabel(r"$\lambda_2$", rotation=90)
+
+# Row 3 energies (A-only)
+for j, st in enumerate(cols_energy):
+    X, Y, E = inh_fields3[j]
+    ax = axs3[2, j]
+    cs = plot_energy_field(ax, X, Y, E, vmin=vmin3, vmax=vmax3, show_pattern_labels=True)
+    nxt = traj_map.get(st)
+    if nxt is not None:
+        tpath = trajectory_file + nxt + ".data"
+        if os.path.exists(tpath):
+            plot_trajectory(ax, patterns, np.loadtxt(tpath))
+    ax.set_xticks([0, 0.5, 1])
+    if j == 0:
+        ax.set_ylabel(r"$\lambda_2$", rotation=90)
+    ax.set_xlabel(r"$\lambda_1$")
+
+# Colorbar to the left of energy rows only
+if last_cs3 is not None:
+    pos_r2 = axs3[1, 0].get_position()
+    pos_r3 = axs3[2, 0].get_position()
+    total_h = pos_r2.y1 - pos_r3.y0
+    cbar_h = total_h * 0.5
+    cbar_y0 = pos_r3.y0 + (total_h - cbar_h) / 2
+    cbar_width = 0.015
+    left_offset = 0.04
+    cbar_x0 = max(0.01, pos_r2.x0 - (left_offset + cbar_width))
+    cax3 = fig3.add_axes([cbar_x0, cbar_y0, cbar_width, cbar_h])
+    cbar3 = fig3.colorbar(last_cs3, cax=cax3)
+    cbar3.set_label('Energy')
+    # Four readable integer ticks spanning [vmin3, vmax3]
+    try:
+        ticks3 = np.linspace(vmin3, vmax3, 4)
+        cbar3.set_ticks(ticks3)
+        cbar3.set_ticklabels([f"{int(round(t))}" for t in ticks3])
+    except Exception:
+        pass
+    cbar3.ax.yaxis.set_ticks_position('left')
+    cbar3.ax.yaxis.set_label_position('left')
+    cbar3.ax.tick_params(labelleft=True, labelright=False)
+
+for r in range(3):
+    for c in range(4):
+        ax = axs3[r, c]
+        if ax is not None and ax.has_data():
             ax.set_xlim(-0.1, 1.1)
             ax.set_ylim(-0.1, 1.1)
             ax.set_aspect('equal')
 
-plt.savefig('plots/Fig_pattern_vector_field_distant_many_iter_2rows_energy.png', dpi=300, bbox_inches='tight')
+# Only bottom row shows x tick labels; only first column shows y tick labels (3-row fig)
+rows3, cols3 = axs3.shape
+for r in range(rows3):
+    for c in range(cols3):
+        ax = axs3[r, c]
+        if ax is None:
+            continue
+        if r != rows3 - 1:
+            ax.tick_params(labelbottom=False)
+        if c != 0:
+            ax.tick_params(labelleft=False)
+
+plt.savefig('plots/Fig_pattern_vector_field_distant_many_iter_3rows_stream_and_energy.png', dpi=300, bbox_inches='tight')
+
+# %%

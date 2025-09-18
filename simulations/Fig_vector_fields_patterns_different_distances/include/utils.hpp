@@ -119,20 +119,21 @@ void compute_and_save_potential_vector_field_two_pattern_bias_only(
 void compute_and_save_energy_field_two_pattern(
     double delta, Network &net, const std::string &foldername,
     const std::string &filename, const std::vector<double> &pattern_1_potential,
-    const std::vector<double> &pattern_2_potential, int nb_step, double up_lim);
+    const std::vector<double> &pattern_2_potential, int nb_step, double up_lim,
+    bool normalize = false);
 // Normalized [0,1] energy landscapes for components
 void compute_and_save_energy_field_two_pattern_bias_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
-    double up_lim);
+    double up_lim, bool normalize = false);
 void compute_and_save_energy_field_two_pattern_weights_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
-    double up_lim);
+    double up_lim, bool normalize = false);
 void compute_and_save_energy_field_two_pattern_inhib_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
-    double up_lim);
+    double up_lim, bool normalize = false);
 
 // Note: The network supports a learnable per-neuron bias. Use
 // Network::derivative_gradient_descent_with_bias or

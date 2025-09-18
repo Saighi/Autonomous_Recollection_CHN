@@ -1025,61 +1025,6 @@ void compute_and_save_potential_vector_field_two_pattern_inhib_only(
     std::cout << "Saved inhib-only 2D field to " << out_filename << std::endl;
 }
 
-// Vector field using only bias (no W, no inhibition, no leak)
-void compute_and_save_potential_vector_field_two_pattern_bias_only(
-    double delta, Network &net, const std::string &foldername,
-    const std::string &filename, const std::vector<double> &p1,
-    const std::vector<double> &p2, int nb_step, double up_lim) {
-    std::string out_filename = foldername +
-                               "/vector_field_two_patterns_bias_only_" +
-                               filename + ".txt";
-    std::ofstream file(out_filename, std::ios::trunc);
-    if (!file.is_open()) {
-        std::cerr << "Cannot open file " << out_filename << std::endl;
-        return;
-    }
-
-    int size = net.size;
-    for (int i = 0; i < nb_step; i++) {
-        double alpha = double(i) / ((nb_step - 1) / up_lim) - 0.25;
-        for (int j = 0; j < nb_step; j++) {
-            double beta = double(j) / ((nb_step - 1) / up_lim) - 0.25;
-
-            std::vector<double> U(size, 0.0);
-            for (int k = 0; k < size; k++) {
-                U[k] = alpha * p1[k] + beta * p2[k];
-            }
-
-            std::vector<double> V(size, 0.0);
-            for (int k = 0; k < size; k++) {
-                V[k] = net.transfer(U[k]);
-            }
-            net.set_state(V);
-
-            // Bias-only push
-            std::vector<double> dU = net.give_derivative_u_bias_only(delta);
-
-            double dot_alpha = 0.0, dot_beta = 0.0;
-            for (int k = 0; k < size; k++) {
-                dot_alpha += dU[k] * p1[k];
-                dot_beta += dU[k] * p2[k];
-            }
-
-            file << alpha << " " << beta << " " << dot_alpha << " "
-                 << dot_beta << " ";
-            for (int k = 0; k < size; k++) {
-                file << V[k];
-                if (k < size - 1)
-                    file << " ";
-            }
-            file << "\n";
-        }
-    }
-
-    file.close();
-    std::cout << "Saved bias-only 2D field to " << out_filename << std::endl;
-}
-
 void compute_and_save_energy_field_two_pattern(
     double delta, Network &net, const std::string &foldername,
     const std::string &filename, const std::vector<double> &p1,
@@ -1244,68 +1189,6 @@ void compute_and_save_energy_field_two_pattern_inhib_only(
     }
     file.close();
     std::cout << "Saved inhibitory-only energy field (normalized) to "
-              << out_filename << std::endl;
-}
-
-// Weights-only energy landscape: E = -0.5 * sum_ij w_ij * v_i * v_j (normalized)
-void compute_and_save_energy_field_two_pattern_weights_only(
-    Network &net, const std::string &foldername, const std::string &filename,
-    const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
-    double up_lim) {
-    std::string out_filename = foldername +
-                               "/energy_field_two_patterns_weights_only_" +
-                               filename + ".txt";
-    int size = net.size;
-
-    struct Row { double alpha, beta, energy; std::vector<double> V; };
-    std::vector<Row> rows;
-    rows.reserve(nb_step * nb_step);
-    double e_min = std::numeric_limits<double>::infinity();
-    double e_max = -std::numeric_limits<double>::infinity();
-
-    for (int i = 0; i < nb_step; i++) {
-        double alpha = double(i) / ((nb_step - 1) / up_lim) - 0.25;
-        for (int j = 0; j < nb_step; j++) {
-            double beta = double(j) / ((nb_step - 1) / up_lim) - 0.25;
-            std::vector<double> U(size, 0.0), V(size, 0.0);
-            for (int k = 0; k < size; k++) {
-                U[k] = alpha * p1[k] + beta * p2[k];
-                V[k] = net.transfer(U[k]);
-            }
-            net.set_state(V);
-
-            double e = 0.0;
-            for (int i2 = 0; i2 < size; i2++) {
-                double row = 0.0;
-                for (int j2 = 0; j2 < size; j2++) {
-                    if (net.connectivity_matrix[i2][j2]) {
-                        row += net.weight_matrix[i2][j2] * V[i2] * V[j2];
-                    }
-                }
-                e += -0.5 * row;
-            }
-            e_min = std::min(e_min, e);
-            e_max = std::max(e_max, e);
-            rows.push_back(Row{alpha, beta, e, std::move(V)});
-        }
-    }
-    std::ofstream file(out_filename, std::ios::trunc);
-    if (!file.is_open()) {
-        std::cerr << "Cannot open file " << out_filename << std::endl;
-        return;
-    }
-    double range = (e_max > e_min) ? (e_max - e_min) : 1.0;
-    for (const auto &r : rows) {
-        double e_norm = (r.energy - e_min) / range;
-        file << r.alpha << " " << r.beta << " " << e_norm << " ";
-        for (int k = 0; k < size; k++) {
-            file << r.V[k];
-            if (k < size - 1) file << " ";
-        }
-        file << "\n";
-    }
-    file.close();
-    std::cout << "Saved weights-only energy field (normalized) to "
               << out_filename << std::endl;
 }
 

@@ -9,6 +9,7 @@ sns.set_theme(style="ticks")
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times']
+
 plt.rcParams.update({
     'font.size': 30,
     'axes.labelsize': 30,
@@ -22,7 +23,6 @@ plt.rcParams.update({
     'axes.grid': False,
     'font.weight': 'bold',
 })
-
 
 def plot_stream_field(ax, filename, display_pattern_numbers=True, enhance_weak=False, weak_threshold=1e-6):
     """Stream plot using the exact formatting used in 3plots."""
@@ -188,7 +188,7 @@ for j in range(len(stages_4rows)-1):
     ax.set_title(stage_titles.get(stages_4rows[j] , stages_4rows[j] ))
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
-        ax.set_ylabel(r"$\lambda_2$", rotation=90)
+        ax.set_ylabel(r"$\lambda_1$", rotation=90)
 
 """
 Row 2: inhibitory-only stream plots with trajectories
@@ -208,7 +208,7 @@ for j in range(len(stages_4rows)-1):
         plot_trajectory(ax, patterns, data_traj)
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
-        ax.set_ylabel(r"$\lambda_2$", rotation=90)
+        ax.set_ylabel(r"$\lambda_1$", rotation=90)
 
 
 """
@@ -239,7 +239,7 @@ for j in range(len(stages_4rows)-1):
         plot_trajectory(ax, patterns, data_traj)
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
-        ax.set_ylabel(r"$\lambda_2$", rotation=90)
+        ax.set_ylabel(r"$\lambda_1$", rotation=90)
 
 """
 Row 4: full (W+A) energy landscapes, using the same global normalization
@@ -255,8 +255,8 @@ for j in range(len(stages_4rows)-1):
         plot_trajectory(ax, patterns, data_traj)
     ax.set_xticks([0, 0.5, 1])
     if j == 0:
-        ax.set_ylabel(r"$\lambda_2$", rotation=90)
-    ax.set_xlabel(r"$\lambda_1$")
+        ax.set_ylabel(r"$\lambda_1$", rotation=90)
+    ax.set_xlabel(r"$\lambda_2$")
 
 # Add a single shared vertical colorbar to the left, spanning rows 3 and 4
 if last_cs4 is not None:
