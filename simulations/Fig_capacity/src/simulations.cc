@@ -143,7 +143,8 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
             succes += 1;
         }
     }
-    // The number of patterns successfully recovered
+
+    //The number of patterns successfully recovered
     std::cout << "Number of vectors found: " << succes << " nb_patterns : " << num_patterns
               << " nb_winners : " << nb_winners << " nb_flip : " << int(network_size * ratio_flip_writing)
               << " Network size: " << network_size << std::endl;
@@ -165,7 +166,6 @@ int main(int argc, char **argv)
     // Capacity experiment
     string sim_name = "Fig_capacity";
     string foldername_results = "../../../data/all_data_splited/trained_networks_fast/" + sim_name;
-
     // Create directory if it exists to start fresh
     if (fs::exists(foldername_results))
     {
@@ -176,19 +176,18 @@ int main(int argc, char **argv)
         std::cerr << "Error creating directory: " << foldername_results << std::endl;
         return 1;
     }
-
     // Define varying parameters per request
     // - noise level: {0.1, 0.25, 0.5, 0.75, 0.9}
     // - network_size: {10, 20, 30, 40, 50}
     // - num_patterns: 1..50
     // - 10 networks per setting via seed {0..9}
     vector<double> drive_targets = {6};
-    vector<double> network_sizes = {10, 15, 20, 25, 30};
-    vector<double> num_patterns = {5,10,15,20,25,30,35,40,45,50};
+    vector<double> network_sizes = {20,21,22,23,24,25,26,27,28,29,30};
+    vector<double> num_patterns =  {15,17,19,21,23,25,27,29,31,33,35};
     vector<double> noise_levels = {0.5};
-    vector<double> ratio_flip_writing = {0.3, 0.4, 0.5, 0.6};
+    vector<double> ratio_flip_writing = {0.5};
     vector<double> seeds = {0};
-    // for (int i = 0; i < 10; ++i) seeds.push_back(static_cast<double>(i));
+    // for (int i = 0; i < 10; ++i) seeds.push_back(sstatic_cast<double>(i));
 
     double learning_rate = 0.001;
 
