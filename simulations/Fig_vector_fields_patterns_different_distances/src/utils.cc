@@ -1028,7 +1028,7 @@ void compute_and_save_potential_vector_field_two_pattern_inhib_only(
 void compute_and_save_energy_field_two_pattern(
     double delta, Network &net, const std::string &foldername,
     const std::string &filename, const std::vector<double> &p1,
-    const std::vector<double> &p2, int nb_step, double up_lim) {
+    const std::vector<double> &p2, int nb_step, double up_lim, bool normalize) {
     std::string out_filename =
         foldername + "/energy_field_two_patterns_" + filename + ".txt";
     int size = net.size;
@@ -1083,7 +1083,7 @@ void compute_and_save_energy_field_two_pattern(
 void compute_and_save_energy_field_two_pattern_bias_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
-    double up_lim) {
+    double up_lim, bool normalize) {
     std::string out_filename =
         foldername + "/energy_field_two_patterns_bias_only_" + filename + ".txt";
     int size = net.size;
@@ -1135,7 +1135,7 @@ void compute_and_save_energy_field_two_pattern_bias_only(
 void compute_and_save_energy_field_two_pattern_inhib_only(
     Network &net, const std::string &foldername, const std::string &filename,
     const std::vector<double> &p1, const std::vector<double> &p2, int nb_step,
-    double up_lim) {
+    double up_lim, bool normalize) {
     std::string out_filename = foldername +
                                "/energy_field_two_patterns_inhib_only_" +
                                filename + ".txt";

@@ -108,19 +108,19 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     compute_and_save_energy_field_two_pattern_inhib_only(
         net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        up_lim_vector_field, false);
 
     // Bias-only (no W, no inhibition, no leak)
-    compute_and_save_potential_vector_field_two_pattern_bias_only(
-        delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+    // compute_and_save_potential_vector_field_two_pattern_bias_only(
+    //     delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
+    //     patterns_potentials[1], nb_sample_points_vector_field,
+    //     up_lim_vector_field);
 
     // Bias-only energy landscape (from learned biases)
     compute_and_save_energy_field_two_pattern_bias_only(
         net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        up_lim_vector_field, false);
 
     // Weights-only (no leak, no inhibition, no bias)
     compute_and_save_potential_vector_field_two_pattern_weights_only(
@@ -131,12 +131,12 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     compute_and_save_energy_field_two_pattern(
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        up_lim_vector_field, false);
     // Weights-only energy landscape pre-train
-    compute_and_save_energy_field_two_pattern_weights_only(
-        net, sim_data_foldername, "pre_train", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+    // compute_and_save_energy_field_two_pattern_weights_only(
+    //     net, sim_data_foldername, "pre_train", patterns_potentials[0],
+    //     patterns_potentials[1], nb_sample_points_vector_field,
+    //     up_lim_vector_field, false);
 
     compute_and_save_potential_vector_field_two_pattern_inhib_only(
         delta, net, sim_data_foldername, "pre_train", patterns_potentials[0],
@@ -205,27 +205,16 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     compute_and_save_energy_field_two_pattern_inhib_only(
         net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-    compute_and_save_potential_vector_field_two_pattern_weights_only(
-        delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-
-    // Bias-only vector field for post-training
-    compute_and_save_potential_vector_field_two_pattern_bias_only(
-        delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
-
+        up_lim_vector_field, false);
     compute_and_save_energy_field_two_pattern(
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        up_lim_vector_field, false);
     // Weights-only energy landscape post-train
-    compute_and_save_energy_field_two_pattern_weights_only(
-        net, sim_data_foldername, "post_train", patterns_potentials[0],
-        patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+    // compute_and_save_energy_field_two_pattern_weights_only(
+    //     net, sim_data_foldername, "post_train", patterns_potentials[0],
+    //     patterns_potentials[1], nb_sample_points_vector_field,
+    //     up_lim_vector_field, false);
 
     compute_and_save_potential_vector_field_two_pattern_inhib_only(
         delta, net, sim_data_foldername, "post_train", patterns_potentials[0],
@@ -236,7 +225,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
     compute_and_save_energy_field_two_pattern_bias_only(
         net, sim_data_foldername, "post_train", patterns_potentials[0],
         patterns_potentials[1], nb_sample_points_vector_field,
-        up_lim_vector_field);
+        up_lim_vector_field, false);
 
     //---------------------------------------------------------- Trajectory + inhibitory potentiation loop
     int num_inhib_iterations = 4;  // repeat n times
@@ -281,7 +270,7 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         compute_and_save_energy_field_two_pattern_inhib_only(
             net, sim_data_foldername, tag, patterns_potentials[0],
             patterns_potentials[1], nb_sample_points_vector_field,
-            up_lim_vector_field);
+            up_lim_vector_field, false);
 
         compute_and_save_potential_vector_field_two_pattern(
             delta, net, sim_data_foldername, tag,
@@ -291,13 +280,13 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters,
         compute_and_save_energy_field_two_pattern(
             delta, net, sim_data_foldername, tag,
             patterns_potentials[0], patterns_potentials[1],
-            nb_sample_points_vector_field, up_lim_vector_field);
+            nb_sample_points_vector_field, up_lim_vector_field, false);
 
         // Bias-only energy landscape (from learned biases)
         compute_and_save_energy_field_two_pattern_bias_only(
             net, sim_data_foldername, tag, patterns_potentials[0],
             patterns_potentials[1], nb_sample_points_vector_field,
-            up_lim_vector_field);
+            up_lim_vector_field, false);
     }
 
     // (Removed) null-sum training path

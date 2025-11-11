@@ -5,8 +5,8 @@ CFLAGS=-pthread -g -Wall -std=c++17 -O3 -march=native
 
 all : main
 
-main: obj $(SRC)/simulations.cc $(SRC)/utils.cc $(SRC)/network.cc obj/network.o obj/utils.o 
-	$(CC) $(CFLAGS) $(SRC)/simulations.cc -o simulations -I$(INCLUDE_DIR) ./obj/*.o
+main: obj $(SRC)/simulations.cc $(SRC)/utils.cc $(SRC)/network.cc obj/network.o obj/utils.o
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(SRC)/simulations.cc ./obj/*.o -o simulations -lstdc++
 
 obj: 
 	if [ ! -d "./obj" ]; then mkdir obj; fi
