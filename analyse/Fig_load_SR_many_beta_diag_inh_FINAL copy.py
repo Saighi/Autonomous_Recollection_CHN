@@ -38,7 +38,7 @@ def get_spaced_indices(a,n, num_ticks=4):
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_beta"
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_many_beta_diag_inh_sleep"
+myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_many_distances_from_neutral_state"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%
@@ -50,7 +50,6 @@ data['is_error_before_all_fnd'] = False
 #%%
 all_num_patterns = np.sort(data['num_patterns'].unique())
 all_net_sizes = np.sort(data['network_size'].unique())
-all_beta = np.sort(data['beta'].unique())
 # all_repetitions= np.sort(data['repetitions'].unique())
 # nb_sim_one_parameter = len(all_repetitions)
 #%%
@@ -91,15 +90,15 @@ df_last = df_last.merge(err_stats, on=["network_size", "num_patterns"])
 
 # 0️⃣  choose which β values to display
 # betas_to_plot = np.sort(df_last["beta"].unique())        # or slice / mask as you like
-betas_to_plot = [0.05,0.1,1.0]        # or slice / mask as you like
-n_cols        = len(betas_to_plot)
+distance_noise_level_to_plot = [0,0.25,0.5,0.75,1.0]        # or slice / mask as you like
+n_cols        = len(distance_noise_level_to_plot)
 
 # 1️⃣  global colour-scale limits (so every panel shares one scale)
 global_max_error = 0
 global_max_iter  = 0
 
-for beta in betas_to_plot:
-    sub = df_last.loc[df_last["beta"] == beta].copy()
+for distance in distance_noise_level_to_plot:
+    sub = df_last.loc[df_last["distance_noise_level"] == distance].copy()
     sub["is_not_error_before_all_fnd"] = ~sub["is_error_before_all_fnd"]
 
     # success-rate (1st row)
@@ -119,20 +118,14 @@ for beta in betas_to_plot:
     global_max_iter = max(global_max_iter, np.nanmax(pt_itr.values))
 
 #%%
-# ── Heat-maps: % sims w/o error  &  first-iteration (grey = no convergence) ─
 
-# 0️⃣  which β’s to show
-# betas_to_plot = np.sort(df_last["beta"].unique())
-betas_to_plot = [0.05,0.1,1.0]        # or slice / mask as you like
-
-n_cols        = len(betas_to_plot)
 
 # 1️⃣  global colour-scale limits (so all panels share one scale)
 global_max_error = 0
 global_max_iter  = 0
 
-for beta in betas_to_plot:
-    sub = df_last.loc[df_last["beta"] == beta].copy()
+for distance in distance_noise_level_to_plot:
+    sub = df_last.loc[df_last["distance_noise_level"] == distance].copy()
     sub["is_not_error_before_all_fnd"] = ~sub["is_error_before_all_fnd"]
     sub.loc[sub["is_error_before_all_fnd"], "first_iter_all_fnd"] = np.nan  # <-- drop
 
@@ -162,8 +155,8 @@ r = 1.1
 fig, axes = plt.subplots(2, n_cols, figsize=(9 / r, 8 / r),
                          sharex=True, sharey=True)
 
-for i, beta in enumerate(betas_to_plot):
-    sub = df_last.loc[df_last["beta"] == beta].copy()
+for i, distance in enumerate(distance_noise_level_to_plot):
+    sub = df_last.loc[df_last["distance_noise_level"] == distance].copy()
     sub["is_not_error_before_all_fnd"] = ~sub["is_error_before_all_fnd"]
     sub.loc[sub["is_error_before_all_fnd"], "first_iter_all_fnd"] = np.nan
 
@@ -175,7 +168,7 @@ for i, beta in enumerate(betas_to_plot):
     )
     im1 = axes[0, i].imshow(pt_err * 100,
                             vmin=0, vmax=global_max_error)
-    axes[0, i].set_title(rf"$\beta={beta}$")
+    axes[0, i].set_title(rf"$\beta={distance}$")
     axes[0, i].invert_yaxis()
     axes[0, i].grid(False)
 
@@ -224,7 +217,7 @@ cbar2.set_ticklabels([f'{int(val)}' for val in np.linspace(1, global_max_iter, 5
 
 fig.text(0.51, 0.04, 'Network size', ha='center', va='center')
 fig.text(0.04, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
-plt.savefig("./plots/Fig_load_SR_average_betas_diag_inh.png",dpi=300)
+plt.savefig("./plots/Fig_load_SR_average_many_distances.png",dpi=300)
 plt.show()
 
 
