@@ -22,6 +22,7 @@ plt.rcParams.update({
     'axes.linewidth': 1.5,
     'axes.grid': False,
     'font.weight': 'bold',
+    'axes.labelpad': 10,
 })
 
 def plot_stream_field(ax, filename, show_pattern_labels=True, enhance_weak=False, weak_threshold=1e-6):
@@ -136,7 +137,8 @@ def plot_energy_field(ax, X, Y, E, vmin=None, vmax=None, show_pattern_labels=Tru
 
 #%%
 # Files and configuration
-folder = "../../data/all_data_splited/trained_networks_fast/Fig_vector_fields_patterns_different_distances/sim_nb_0/"
+
+folder = "../../data/all_data_splited/trained_networks_fast/Fig_vector_fields_patterns_same_distances_2/sim_nb_0/"
 vec_prefix = folder + "vector_field_two_patterns_"
 eng_prefix = folder + "energy_field_two_patterns_"
 inh_eng_prefix = folder + "energy_field_two_patterns_inhib_only_"
@@ -164,20 +166,20 @@ stage_titles = {
 # Two-row energy-only figure (W+B+A on row 1; A-only on row 2)
 import os
 
-# Columns to display: post_train, iter_1, iter_2, iter_3 (no pre_train)
-cols = ["post_train", "iter_1", "iter_2", "iter_3"]
+# Columns to display: post_train, iter_1 (no pre_train)
+cols = ["post_train", "iter_1"]
 
-# Prepare figure (GridSpec): 2 rows x 4 columns + 1 right-label column
-fig2 = plt.figure(figsize=(29, 14))
-gs2 = fig2.add_gridspec(nrows=2, ncols=5, width_ratios=[1, 1, 1, 1, 0.05], wspace=0.06, hspace=0.18)
-axs2 = np.empty((2, 4), dtype=object)
-for i in range(4):
+# Prepare figure (GridSpec): 2 rows x 2 columns + 1 right-label column
+fig2 = plt.figure(figsize=(16, 14))
+gs2 = fig2.add_gridspec(nrows=2, ncols=3, width_ratios=[1, 1, 0.05], wspace=0.06, hspace=0.18)
+axs2 = np.empty((2, 2), dtype=object)
+for i in range(2):
     axs2[0, i] = fig2.add_subplot(gs2[0, i])
     axs2[1, i] = fig2.add_subplot(gs2[1, i])
 
 # Right-side labels for both rows
-right_axes2 = [fig2.add_subplot(gs2[i, 4]) for i in range(2)]
-right_labels2 = ["$\\mathbf{W}$\n$+\\mathbf{B}$\n$+\\mathbf{A}$", r"$\mathbf{A}$"]
+right_axes2 = [fig2.add_subplot(gs2[i, 2]) for i in range(2)]
+right_labels2 = ["$\\mathbf{W}$\n$+\\mathbf{A}$", r"$\mathbf{A}$"]
 for ax_lab, txt in zip(right_axes2, right_labels2):
     ax_lab.set_axis_off()
     ax_lab.text(0.5, 0.5, txt, ha='center', va='center')
@@ -248,21 +250,14 @@ if last_cs is not None:
     cbar_h = total_h * shrink
     cbar_y0 = pos_r2.y0 + (total_h - cbar_h) / 2
     cbar_width = 0.02
-    left_offset = 0.06
+    left_offset = 0.10
     cbar_x0 = max(0.01, pos_r1.x0 - (left_offset + cbar_width))
     cax = fig2.add_axes([cbar_x0, cbar_y0, cbar_width, cbar_h])
     cbar = fig2.colorbar(last_cs, cax=cax)
-    cbar.set_label('Energy')
-    # Four readable integer ticks spanning [vmin_all, vmax_all]
-    try:
-        ticks2 = np.linspace(vmin_all, vmax_all, 4)
-        cbar.set_ticks(ticks2)
-        cbar.set_ticklabels([f"{int(round(t))}" for t in ticks2])
-    except Exception:
-        pass
-    cbar.ax.yaxis.set_ticks_position('left')
+    cbar.set_label('Energy', labelpad=15)
+    # Remove ticks
+    cbar.set_ticks([])
     cbar.ax.yaxis.set_label_position('left')
-    cbar.ax.tick_params(labelleft=True, labelright=False)
 
 # Consistent limits and aspect
 for r in range(2):
@@ -285,22 +280,22 @@ for r in range(rows2):
 plt.savefig('plots/Fig_pattern_vector_field_distant_many_iter_2rows_energy.png', dpi=300, bbox_inches='tight')
 
 #%%
-# Three-row figure: Row1 streams (W+B+A), Row2 energy (W+B+A), Row3 energy (A)
+# Three-row figure: Row1 streams (W+A), Row2 energy (W+A), Row3 energy (A)
 # Stream and energy columns (no pre_train)
-cols_stream = ["post_train", "iter_1", "iter_2", "iter_3"]
-cols_energy = ["post_train", "iter_1", "iter_2", "iter_3"]
+cols_stream = ["post_train", "iter_1"]
+cols_energy = ["post_train", "iter_1"]
 
-fig3 = plt.figure(figsize=(28, 18))
-gs3 = fig3.add_gridspec(nrows=3, ncols=5, width_ratios=[1, 1, 1, 1, 0.05], wspace=0.06, hspace=0.18)
-axs3 = np.empty((3, 4), dtype=object)
-for i in range(4):
+fig3 = plt.figure(figsize=(16, 18))
+gs3 = fig3.add_gridspec(nrows=3, ncols=3, width_ratios=[1, 1, 0.05], wspace=0.06, hspace=0.18)
+axs3 = np.empty((3, 2), dtype=object)
+for i in range(2):
     axs3[0, i] = fig3.add_subplot(gs3[0, i])
     axs3[1, i] = fig3.add_subplot(gs3[1, i])
     axs3[2, i] = fig3.add_subplot(gs3[2, i])
 
 # Right labels
-right_axes3 = [fig3.add_subplot(gs3[i, 4]) for i in range(3)]
-right_labels3 = ["$\\mathbf{W}+\\mathbf{B}$\n$+\\mathbf{A}$", "$\\mathbf{W}+\\mathbf{B}$\n$+\\mathbf{A}$", r"$\mathbf{A}$"]
+right_axes3 = [fig3.add_subplot(gs3[i, 2]) for i in range(3)]
+right_labels3 = ["$\\mathbf{W}$\n$+\\mathbf{A}$", "$\\mathbf{W}$\n$+\\mathbf{A}$", r"$\mathbf{A}$"]
 for ax_lab, txt in zip(right_axes3, right_labels3):
     ax_lab.set_axis_off()
     ax_lab.text(0.5, 0.5, txt, ha='center', va='center')
@@ -379,24 +374,17 @@ if last_cs3 is not None:
     cbar_h = total_h * 0.5
     cbar_y0 = pos_r3.y0 + (total_h - cbar_h) / 2
     cbar_width = 0.015
-    left_offset = 0.04
+    left_offset = 0.08
     cbar_x0 = max(0.01, pos_r2.x0 - (left_offset + cbar_width))
     cax3 = fig3.add_axes([cbar_x0, cbar_y0, cbar_width, cbar_h])
     cbar3 = fig3.colorbar(last_cs3, cax=cax3)
-    cbar3.set_label('Energy')
-    # Four readable integer ticks spanning [vmin3, vmax3]
-    try:
-        ticks3 = np.linspace(vmin3, vmax3, 4)
-        cbar3.set_ticks(ticks3)
-        cbar3.set_ticklabels([f"{int(round(t))}" for t in ticks3])
-    except Exception:
-        pass
-    cbar3.ax.yaxis.set_ticks_position('left')
+    cbar3.set_label('Energy', labelpad=15)
+    # Remove ticks
+    cbar3.set_ticks([])
     cbar3.ax.yaxis.set_label_position('left')
-    cbar3.ax.tick_params(labelleft=True, labelright=False)
 
 for r in range(3):
-    for c in range(4):
+    for c in range(2):
         ax = axs3[r, c]
         if ax is not None and ax.has_data():
             ax.set_xlim(-0.1, 1.1)

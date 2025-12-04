@@ -94,7 +94,7 @@ for ax in axes:
     ax.set_yticks(y_tick_indices, all_num_patterns[y_tick_indices])
 
 # Add single colorbar for first row (error rates)
-cbar1_ax = fig.add_axes([0.92, 0.16, 0.02, 0.6])
+cbar1_ax = fig.add_axes([0.92, 0.2, 0.02, 0.6])
 cbar1 = fig.colorbar(im1, cax=cbar1_ax)
 
 # cbar1.set_ticks(np.linspace(0, 100, 5))
@@ -105,41 +105,4 @@ fig.text(0.51, 0.04, 'Network size', ha='center', va='center')
 fig.text(0.04, 0.49, 'Nb stored pattern', ha='left', va='center',rotation=90)
 plt.savefig("./plots/Fig_load_SR_many_query_test.png",dpi=300)
 plt.show()
-
-
-
-#%%
-beta_val = 0.1          # ← pick the β you want to inspect
-sub = df_last.loc[df_last["beta"] == beta_val].copy()
-
-# pivot: count rows where is_error_before_all_fnd == False  (= success)
-pivot_success = sub.pivot_table(
-    values="is_error_before_all_fnd",
-    index="num_patterns",
-    columns="network_size",
-    aggfunc=lambda x: (~x).sum(),      # count successes in that bucket
-    fill_value=0                       # optional: show 0 instead of NaN
-)
-
-fig, ax = plt.subplots(figsize=(12, 12))
-sns.heatmap(
-    pivot_success,
-    annot=True, fmt="d",
-    ax=ax, annot_kws={"fontsize": 18},
-    cbar=False            # ← suppress the colour-bar
-)
-
-# cosmetics
-ax.set_xlabel("Network size", fontsize=22)
-ax.set_ylabel("Nb stored patterns", fontsize=22)
-ax.tick_params(axis='both', which='both', bottom=True, left=True, top=False, right=False)
-
-plt.xticks(rotation=45, ha="right", fontsize=18)
-plt.yticks(rotation=0, fontsize=18)
-ax.invert_yaxis()          # keep your preferred orientation
-plt.tight_layout()
-
-plt.savefig("./plots/Fig_detailed_recovery_data_diag_inh.png")
-plt.show()
-
 # %%
