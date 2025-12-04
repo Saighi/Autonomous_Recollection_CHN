@@ -38,7 +38,7 @@ def get_spaced_indices(a,n, num_ticks=4):
 # Fig_load_SR_average_new_inh_plas_many_betta_larger_networks
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_many_betta_larger_networks"
 # myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_average_new_inh_plas_big_simulations_many_beta"
-myDir = "../../data/all_data_splited/sleep_simulations/Fig_load_SR_many_beta_diag_inh_sleep"
+myDir = "/home/saighi/Desktop/data/all_data_splited/trained_networks_fast/Fig_load_SR_many_leak_parameter"
 data = pd.read_csv(myDir+'/all_simulation_data.csv')
 # data = data[data['delta'] == 0.1]
 #%%
