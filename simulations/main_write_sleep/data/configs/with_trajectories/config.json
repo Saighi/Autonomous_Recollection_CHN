@@ -1,0 +1,17 @@
+{
+  "type": "sleep",
+  "input_dir": "/home/saighi/Desktop/AR_final/Autonomous_Recollection_CHN/simulations/main_write_sleep/data/trained_networks/example_simple",
+  "output_dir": "/home/saighi/Desktop/AR_final/Autonomous_Recollection_CHN/simulations/main_write_sleep/data/sleep_results/with_trajectories",
+  "base_params": {
+    "beta": 0.1,
+    "delta": 0.01,
+    "noise_dynamics": 1,
+    "stddev_dynamics": 0.01,
+    "init_drive": 0.5,
+    "max_queries": 10,
+    "stop_on_spurious": 0,
+    "stop_on_all_found": 0,
+    "save_trajectories": 1
+  },
+  "varying_params": {}
+}

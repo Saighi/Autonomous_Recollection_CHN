@@ -1,0 +1,10 @@
+leak=0.25
+momentum_coef=0.9
+distance_noise_level=0
+learning_rate=0.0001
+drive_target=6
+training_iterations=297
+num_patterns=15
+nb_winners=50
+sparsity=0.5
+network_size=100
