@@ -250,3 +250,5 @@ if sims:
         plt.colorbar(label='Rate')
         plt.title('Network Trajectory During Retrieval')
         plt.show()
+
+# %%
