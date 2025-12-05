@@ -1,2 +1,0 @@
-distance_noise_level,drive_target,leak,learning_rate,momentum_coef,nb_winners,network_size,num_patterns,sparsity,training_iterations,
-0,6,1,0.0001,0.9,72,144,20,0.5,760,

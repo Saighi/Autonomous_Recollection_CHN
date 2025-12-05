@@ -1,6 +1,0 @@
-query_iter,nb_fnd_pat,nb_spurious,nb_iter_biased,nb_iter_free,
-0,1,0,4296,2,
-1,2,0,10001,6407,
-2,3,0,10001,2415,
-3,4,0,6139,6,
-4,4,1,10001,1,
