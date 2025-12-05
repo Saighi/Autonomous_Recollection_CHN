@@ -1,0 +1,4 @@
+# Ignore generated artifacts for this simulation workspace
+data/
+bin/
+obj/
