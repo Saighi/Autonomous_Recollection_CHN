@@ -22,55 +22,97 @@ DATA_DIR = PROJECT_DIR / "data"
 # Pattern Generation
 # =============================================================================
 
-def _generate_base_pattern(n: int, nb_winners: int) -> np.ndarray:
-    """Generate a base binary pattern with nb_winners ones at the start."""
-    pattern = np.zeros(n, dtype=bool)
-    pattern[:nb_winners] = True
-    return pattern
+def generate_patterns_old(k: int, n: int, sparsity: float = 0.5, rho: float = 0.5) -> np.ndarray:
+    """
+    OLD pattern generator (balanced flips).
+
+    Conventions:
+        - sparsity = fraction of ACTIVE units (P(x_i = 1))
+        - Typically used with sparsity = 0.5.
+
+    Algorithm:
+        1. Build a base pattern with nb_winners = sparsity * n ones at the start.
+        2. Set num_flips = floor((1 - rho) * nb_winners).
+        3. For each pattern:
+           - start from base
+           - for each flip:
+               * pick a random 1 -> set to 0
+               * pick a random 0 -> set to 1
+           - this keeps the number of ones exactly constant.
+    """
+    nb_winners = max(1, int(sparsity * n))
+    base = np.zeros(n, dtype=bool)
+    base[:nb_winners] = True
+
+    num_flips = int((1.0 - rho) * nb_winners)
+    patterns, seen = [], set()
+
+    while len(patterns) < k:
+        pattern = base.copy()
+        for _ in range(num_flips):
+            ones = np.where(pattern)[0]
+            zeros = np.where(~pattern)[0]
+            if ones.size > 0 and zeros.size > 0:
+                pattern[np.random.choice(ones)] = False
+                pattern[np.random.choice(zeros)] = True
+        key = tuple(pattern.tolist())
+        if key not in seen:
+            seen.add(key)
+            patterns.append(pattern)
+
+    return np.array(patterns, dtype=bool)
 
 
-def _generate_noisy_balanced_pattern(base_pattern: np.ndarray, num_flips: int) -> np.ndarray:
-    """Generate a noisy version by flipping pairs (one 1->0, one 0->1)."""
-    pattern = base_pattern.copy()
-    n = len(pattern)
+def generate_patterns_new(k: int, n: int, sparsity: float = 0.5, rho: float = 0.5) -> np.ndarray:
+    """
+    NEW pattern generator (parent + redraw).
 
-    for _ in range(num_flips):
-        ones = np.where(pattern)[0]
-        zeros = np.where(~pattern)[0]
-        if len(ones) > 0 and len(zeros) > 0:
-            pattern[np.random.choice(ones)] = False
-            pattern[np.random.choice(zeros)] = True
+    Conventions:
+        - sparsity s = P(x_i = 0) (fraction of inactive units)
+        - density = 1 - s = P(x_i = 1)
 
-    return pattern
+    Algorithm:
+        1. Generate a parent pattern x^parent with P(0)=s, P(1)=1-s.
+        2. Set k_flips = floor((1 - rho) * n).
+        3. For each pattern:
+           - start from parent
+           - choose k_flips distinct indices
+           - at each chosen index, redraw bit: 0 with prob s, 1 with prob 1-s.
+    """
+    s = float(np.clip(sparsity, 0.0, 1.0))
+    r = float(np.clip(rho, 0.0, 1.0))
+
+    parent = (np.random.rand(n) > s)  # True ≡ 1
+
+    k_flips = int((1.0 - r) * n)
+    k_flips = max(0, min(k_flips, n))
+
+    patterns = []
+    seen = set()
+
+    while len(patterns) < k:
+        pattern = parent.copy()
+
+        if k_flips > 0:
+            idx = np.random.choice(n, size=k_flips, replace=False)
+            pattern[idx] = (np.random.rand(k_flips) > s)
+
+        key = tuple(pattern.tolist())
+        if key not in seen:
+            seen.add(key)
+            patterns.append(pattern)
+
+    return np.array(patterns, dtype=bool)
 
 
 def generate_patterns(k: int, n: int, sparsity: float = 0.5, rho: float = 0.5) -> np.ndarray:
     """
-    Generate K unique sparse binary patterns.
+    Default pattern generator used by workflow scripts.
 
-    Args:
-        k: Number of patterns
-        n: Pattern size (network size)
-        sparsity: Fraction of active units per pattern (0 to 1)
-        rho: Pattern correlation (1=identical, 0=maximally different).
-             Flips (1-rho)*nb_winners bits between patterns.
-
-    Returns:
-        Array of shape (k, n) with boolean patterns
+    Currently this is the OLD balanced-flip generator, mainly used with
+    sparsity = 0.5 (fraction of active units).
     """
-    nb_winners = max(1, int(sparsity * n))
-    base = _generate_base_pattern(n, nb_winners)
-    num_flips = int((1 - rho) * nb_winners)
-    patterns, seen = [], set()
-
-    while len(patterns) < k:
-        new_pattern = _generate_noisy_balanced_pattern(base, num_flips)
-        key = tuple(new_pattern)
-        if key not in seen:
-            seen.add(key)
-            patterns.append(new_pattern)
-
-    return np.array(patterns)
+    return generate_patterns_old(k, n, sparsity=sparsity, rho=rho)
 
 
 # =============================================================================
@@ -381,3 +423,312 @@ def load_trajectories(sim_dir: Union[str, Path]) -> List[np.ndarray]:
         trajectories.append(read_matrix(sim_dir / f"results_{idx}.data"))
         idx += 1
     return trajectories
+
+
+def load_final_results(results_dir: Union[str, Path]) -> pd.DataFrame:
+    """
+    Load final_results.csv (one row per simulation, final iteration only).
+
+    Falls back to computing from all_simulation_data.csv if final_results.csv
+    doesn't exist yet (for backward compatibility with older results).
+
+    Args:
+        results_dir: Directory containing simulation results
+
+    Returns:
+        DataFrame with one row per simulation containing final state metrics
+    """
+    results_dir = Path(results_dir)
+
+    # Check for consolidated database first
+    db_path = results_dir / "experiment.db"
+    if db_path.exists():
+        data = load_consolidated_experiment(db_path)
+        return data['final_results']
+
+    # Check for final_results.csv (new format)
+    final_csv = results_dir / "final_results.csv"
+    if final_csv.exists():
+        return pd.read_csv(final_csv)
+
+    # Fallback: compute from all_simulation_data.csv (old format)
+    all_csv = results_dir / "all_simulation_data.csv"
+    if all_csv.exists():
+        df = pd.read_csv(all_csv)
+        if 'sim_ID' in df.columns and 'query_iter' in df.columns:
+            idx_last = df.groupby('sim_ID')['query_iter'].idxmax()
+            return df.loc[idx_last].copy().reset_index(drop=True)
+        else:
+            # For write simulations, return as-is (already one row per sim)
+            return df
+
+    raise FileNotFoundError(f"No results found in {results_dir}")
+
+
+# =============================================================================
+# Binary Blob Parsing (for SQLite storage)
+# =============================================================================
+
+import struct
+
+def read_binary_matrix(blob: bytes) -> np.ndarray:
+    """
+    Parse binary matrix blob (double values).
+
+    Format: [rows:uint32][cols:uint32][data:float64[rows*cols]]
+    """
+    rows, cols = struct.unpack('<II', blob[:8])
+    data = np.frombuffer(blob[8:], dtype=np.float64)
+    return data.reshape(rows, cols)
+
+
+def read_bitpacked_matrix(blob: bytes) -> np.ndarray:
+    """
+    Parse bitpacked boolean matrix blob.
+
+    Format: [rows:uint32][cols:uint32][packed_bits:uint8[...]]
+    """
+    rows, cols = struct.unpack('<II', blob[:8])
+    total_bits = rows * cols
+    packed = np.frombuffer(blob[8:], dtype=np.uint8)
+    unpacked = np.unpackbits(packed)[:total_bits]
+    return unpacked.reshape(rows, cols).astype(bool)
+
+
+def _matrix_to_blob(matrix: np.ndarray) -> bytes:
+    """Convert numpy matrix to binary blob (for SQLite storage)."""
+    rows, cols = matrix.shape
+    header = struct.pack('<II', rows, cols)
+    return header + matrix.astype(np.float64).tobytes()
+
+
+def _bool_matrix_to_blob(matrix: np.ndarray) -> bytes:
+    """Convert boolean numpy matrix to bitpacked blob."""
+    rows, cols = matrix.shape
+    header = struct.pack('<II', rows, cols)
+    packed = np.packbits(matrix.flatten().astype(np.uint8))
+    return header + packed.tobytes()
+
+
+# =============================================================================
+# SQLite Consolidation
+# =============================================================================
+
+import sqlite3
+
+
+def load_consolidated_experiment(db_path: Union[str, Path]) -> Dict[str, Any]:
+    """
+    Load experiment from consolidated SQLite database.
+
+    Args:
+        db_path: Path to experiment.db
+
+    Returns:
+        Dict with:
+        - 'simulations': DataFrame with sim_id and params
+        - 'results': DataFrame with all time series results
+        - 'final_results': DataFrame with one row per simulation (final state only)
+    """
+    db_path = Path(db_path)
+    if not db_path.exists():
+        raise FileNotFoundError(f"Database not found: {db_path}")
+
+    conn = sqlite3.connect(db_path)
+
+    # Load simulations
+    sim_df = pd.read_sql("SELECT sim_id, params FROM simulations", conn)
+    sim_df['params'] = sim_df['params'].apply(json.loads)
+
+    # Load results
+    results_df = pd.read_sql("SELECT * FROM results", conn)
+
+    # Compute final results (last row per simulation)
+    if len(results_df) > 0 and 'query_iter' in results_df.columns:
+        idx_last = results_df.groupby('sim_id')['query_iter'].idxmax()
+        final_df = results_df.loc[idx_last].copy().reset_index(drop=True)
+    else:
+        final_df = results_df.copy()
+
+    conn.close()
+
+    return {
+        'simulations': sim_df,
+        'results': results_df,
+        'final_results': final_df
+    }
+
+
+def load_simulation_matrices(db_path: Union[str, Path], sim_id: int) -> Dict[str, np.ndarray]:
+    """
+    Load weight/connectivity/pattern matrices for a specific simulation from SQLite.
+
+    Args:
+        db_path: Path to experiment.db
+        sim_id: Simulation ID to load
+
+    Returns:
+        Dict with 'weights', 'connectivity', 'patterns' numpy arrays
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.execute(
+        "SELECT weights, connectivity, patterns FROM simulations WHERE sim_id = ?",
+        (sim_id,)
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if row is None:
+        raise ValueError(f"Simulation {sim_id} not found")
+
+    return {
+        'weights': read_binary_matrix(row[0]) if row[0] else None,
+        'connectivity': read_bitpacked_matrix(row[1]) if row[1] else None,
+        'patterns': read_bitpacked_matrix(row[2]) if row[2] else None
+    }
+
+
+def consolidate_experiment(
+    results_dir: Union[str, Path],
+    output_db: Optional[Union[str, Path]] = None,
+    delete_folders: bool = False,
+    include_weights: bool = True
+) -> Path:
+    """
+    Consolidate sim_nb_X folders into single SQLite archive.
+
+    This provides easy archiving and moving of experiment data.
+
+    Args:
+        results_dir: Directory containing sim_nb_X folders
+        output_db: Output database path (default: results_dir/experiment.db)
+        delete_folders: If True, remove sim_nb_X folders after successful consolidation
+        include_weights: If True, include weight matrices in archive (larger file)
+
+    Returns:
+        Path to created database
+    """
+    import shutil
+
+    results_dir = Path(results_dir)
+    if output_db is None:
+        output_db = results_dir / "experiment.db"
+    output_db = Path(output_db)
+
+    # Try C++ consolidate binary first (faster)
+    consolidate_bin = BIN_DIR / "consolidate"
+    if consolidate_bin.exists():
+        result = subprocess.run(
+            [str(consolidate_bin), str(results_dir), str(output_db)],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            if delete_folders:
+                _cleanup_sim_folders(results_dir)
+            return output_db
+        # Fall through to Python implementation if C++ fails
+
+    # Pure Python consolidation
+    _consolidate_python(results_dir, output_db, include_weights)
+
+    if delete_folders:
+        _cleanup_sim_folders(results_dir)
+
+    return output_db
+
+
+def _consolidate_python(results_dir: Path, output_db: Path, include_weights: bool = True):
+    """Pure Python consolidation implementation."""
+    conn = sqlite3.connect(output_db)
+
+    # Create tables
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS simulations (
+            sim_id INTEGER PRIMARY KEY,
+            params TEXT,
+            weights BLOB,
+            connectivity BLOB,
+            patterns BLOB
+        );
+        CREATE TABLE IF NOT EXISTS results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sim_id INTEGER,
+            query_iter INTEGER,
+            nb_fnd_pat INTEGER,
+            nb_spurious INTEGER,
+            nb_iter_biased INTEGER,
+            nb_iter_free INTEGER,
+            all_recovered_before_spurious INTEGER,
+            FOREIGN KEY(sim_id) REFERENCES simulations(sim_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_results_sim ON results(sim_id);
+    """)
+
+    sim_dirs = [d for d in results_dir.iterdir()
+                if d.is_dir() and d.name.startswith("sim_nb_")]
+
+    for sim_dir in sim_dirs:
+        sim_id = int(sim_dir.name.split("_")[-1])
+
+        # Read parameters
+        params = {}
+        if (sim_dir / "parameters.data").exists():
+            params = read_parameters(sim_dir / "parameters.data")
+
+        # Read and convert matrices to blobs
+        weights_blob = None
+        conn_blob = None
+        patterns_blob = None
+
+        if include_weights and (sim_dir / "weights.data").exists():
+            weights = read_matrix(sim_dir / "weights.data")
+            weights_blob = _matrix_to_blob(weights)
+
+        if (sim_dir / "connectivity.data").exists():
+            connectivity = read_matrix(sim_dir / "connectivity.data").astype(bool)
+            conn_blob = _bool_matrix_to_blob(connectivity)
+
+        if (sim_dir / "patterns.data").exists():
+            patterns = read_patterns(sim_dir / "patterns.data")
+            patterns_blob = _bool_matrix_to_blob(patterns)
+
+        # Insert simulation
+        conn.execute(
+            "INSERT OR REPLACE INTO simulations VALUES (?, ?, ?, ?, ?)",
+            (sim_id, json.dumps(params), weights_blob, conn_blob, patterns_blob)
+        )
+
+        # Insert results
+        if (sim_dir / "results.data").exists():
+            results = pd.read_csv(sim_dir / "results.data")
+            for _, row in results.iterrows():
+                conn.execute(
+                    """INSERT INTO results
+                       (sim_id, query_iter, nb_fnd_pat, nb_spurious,
+                        nb_iter_biased, nb_iter_free, all_recovered_before_spurious)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (sim_id,
+                     int(row.get('query_iter', 0)),
+                     int(row.get('nb_fnd_pat', 0)),
+                     int(row.get('nb_spurious', 0)),
+                     int(row.get('nb_iter_biased', 0)),
+                     int(row.get('nb_iter_free', 0)),
+                     int(row.get('all_recovered_before_spurious', 0)))
+                )
+
+    conn.commit()
+    conn.close()
+    print(f"Consolidated {len(sim_dirs)} simulations to {output_db}")
+
+
+def _cleanup_sim_folders(results_dir: Path):
+    """Remove sim_nb_X folders after consolidation."""
+    import shutil
+
+    sim_dirs = [d for d in results_dir.iterdir()
+                if d.is_dir() and d.name.startswith("sim_nb_")]
+
+    for sim_dir in sim_dirs:
+        shutil.rmtree(sim_dir)
+
+    print(f"Removed {len(sim_dirs)} simulation folders")

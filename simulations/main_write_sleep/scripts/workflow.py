@@ -13,9 +13,13 @@ from utils import (
     run_cpp,
     build,
     load_results,
+    load_final_results,
     load_simulation,
     list_simulations,
     load_trajectories,
+    consolidate_experiment,
+    load_consolidated_experiment,
+    load_simulation_matrices,
     DATA_DIR
 )
 
@@ -67,7 +71,6 @@ sleep_config = setup_sleep_experiment(
         "delta": 0.01,            # Integration timestep
         "noise_dynamics": 1,      # Enable noise in dynamics
         "stddev_dynamics": 0.01,  # Noise standard deviation
-        "init_drive": 0.5,        # Initial state
         "max_queries": 200,       # Max retrieval attempts
         "stop_on_spurious": 1,    # Stop when spurious pattern encountered
         "stop_on_all_found": 0,   # Don't stop when all patterns found
@@ -115,7 +118,6 @@ sleep_config = setup_sleep_experiment(
         "delta": 0.01,
         "noise_dynamics": 1,
         "stddev_dynamics": 0.01,
-        "init_drive": 0.5,
         "max_queries": 200,
         "stop_on_spurious": 1,
         "stop_on_all_found": 0,
@@ -169,6 +171,7 @@ write_config = setup_write_experiment(
         "learning_rate": 0.0001,
         "distance_noise_level": 0.0,
         "momentum_coef": 0.9,
+        "use_old_patterns": 0.0,  # explicit: use new generator in native sweep
     },
     varying_params={
         "network_size": [50, 100, 200],
@@ -254,6 +257,7 @@ write_config = setup_write_experiment(
         "learning_rate": 0.0001,
         "distance_noise_level": 0.0,
         "momentum_coef": 0.9,
+        "use_old_patterns": 0.0,  # explicit new generator in native grid
     },
     varying_params={
         "network_size": [64, 100, 144],
@@ -315,7 +319,6 @@ sleep_config = setup_sleep_experiment(
         "delta": 0.01,
         "noise_dynamics": 1,
         "stddev_dynamics": 0.01,
-        "init_drive": 0.5,
         "max_queries": 10,        # Few queries for demo
         "stop_on_spurious": 0,    # Continue even after spurious
         "stop_on_all_found": 0,   # Continue even after all found
@@ -341,5 +344,49 @@ if sims:
         plt.colorbar(label='Rate')
         plt.title('Network Trajectory During Retrieval')
         plt.show()
+
+# %% ==========================================================================
+# EXAMPLE 8: Using final_results.csv (NEW - no more groupby needed!)
+# =============================================================================
+
+# %% Load final results directly (one row per simulation)
+# This is much faster than loading all_simulation_data.csv and doing groupby
+results_dir = DATA_DIR / "sleep_results" / "example_simple_sleep"
+
+# OLD way (still works, but slower):
+# df = load_results(results_dir)
+# df_final = df.loc[df.groupby('sim_ID')['query_iter'].idxmax()]
+
+# NEW way (automatically uses final_results.csv if available):
+df_final = load_final_results(results_dir)
+print(f"Loaded {len(df_final)} simulations with final state metrics")
+print(df_final[['sim_ID', 'nb_fnd_pat', 'nb_spurious', 'all_recovered_before_spurious']])
+
+# %% ==========================================================================
+# EXAMPLE 9: Consolidating experiments for archiving (NEW)
+# =============================================================================
+# Consolidate 50,000 sim_nb_X folders into a single experiment.db file
+
+# %% Consolidate an experiment (creates experiment.db)
+results_dir = DATA_DIR / "sleep_results" / "example_simple_sleep"
+db_path = consolidate_experiment(
+    results_dir,
+    delete_folders=False  # Set True to remove sim_nb_X folders after
+)
+print(f"Consolidated to: {db_path}")
+
+# %% Load from consolidated database
+data = load_consolidated_experiment(db_path)
+print(f"Simulations: {len(data['simulations'])}")
+print(f"Results rows: {len(data['results'])}")
+print(f"Final results: {len(data['final_results'])}")
+
+# %% Load specific simulation matrices from database
+# Useful when you archived the experiment but need to inspect a specific network
+matrices = load_simulation_matrices(db_path, sim_id=0)
+if matrices['weights'] is not None:
+    print(f"Weights shape: {matrices['weights'].shape}")
+    print(f"Connectivity shape: {matrices['connectivity'].shape}")
+print(f"Patterns shape: {matrices['patterns'].shape}")
 
 # %%

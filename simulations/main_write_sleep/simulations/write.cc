@@ -45,7 +45,8 @@ void run_training(
         double sparsity = params.at("sparsity");
         double rho = params.at("rho");
 
-        patterns = generatePatterns(num_patterns, network_size, sparsity, rho);
+        bool use_old_patterns = params.count("use_old_patterns") ? params.at("use_old_patterns") > 0.5 : false;
+        patterns = generatePatterns(num_patterns, network_size, sparsity, rho, use_old_patterns);
         std::cout << "Sim " << sim_number << ": Generated " << patterns.size()
                   << " patterns (N=" << network_size << ", sparsity=" << sparsity
                   << ", rho=" << rho << ")" << std::endl;
@@ -76,7 +77,9 @@ void run_training(
         }
     }
 
-    Network net(connectivity, network_size, leak);
+    bool symmetric_transfer = params.count("symmetric_transfer") ? params.at("symmetric_transfer") > 0.5 : false;
+
+    Network net(connectivity, network_size, leak, symmetric_transfer);
 
     // Convert patterns to target drives
     std::vector<std::vector<double>> target_drives = patterns_as_states_with_distance_noise(
@@ -124,6 +127,7 @@ void run_training(
     std::unordered_map<std::string, double> saved_params = params;
     saved_params["num_patterns"] = static_cast<double>(patterns.size());
     saved_params["nb_winners"] = static_cast<double>(nb_winners);
+    saved_params["symmetric_transfer"] = symmetric_transfer ? 1.0 : 0.0;
     saved_params["training_iterations"] = static_cast<double>(iter);
     createParameterFile(sim_dir, saved_params);
 }

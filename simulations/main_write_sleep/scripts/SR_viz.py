@@ -19,7 +19,7 @@ import sys
 # Add scripts directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from utils import load_results, DATA_DIR
+from utils import load_results, load_final_results, DATA_DIR
 
 # %%=========================================================================
 # CONFIGURATION SECTION
@@ -27,10 +27,14 @@ from utils import load_results, DATA_DIR
 
 # Experiment name (must match SR_leak_sim.py)
 SLEEP_NAME = "SR_leak_sleep"
+# SLEEP_NAME = "SR_sparsity_sleep"
+
 
 # Visualization parameters
 PARAM_NAME = "leak"  # Parameter that varies
 PARAM_LATEX_SYMBOL = r"\lambda"  # LaTeX symbol for the parameter
+# PARAM_NAME = "sparsity"  # Parameter that varies
+# PARAM_LATEX_SYMBOL = "s"  # LaTeX symbol for the parameter
 VALUES_TO_PLOT = None  # None = plot all values, or specify list like [0.25, 0.5, 1.0]
 
 # Plot settings
@@ -72,29 +76,22 @@ print("LOADING DATA")
 print("="*70)
 
 results_path = DATA_DIR / "sleep_results" / SLEEP_NAME
-data = load_results(results_path)
 
-print(f"\nLoaded {len(data)} rows from:")
+# Use load_final_results() which automatically:
+# 1. Loads final_results.csv if available (one row per simulation)
+# 2. Falls back to computing from all_simulation_data.csv via groupby
+# 3. Also works with consolidated experiment.db files
+df_last = load_final_results(results_path)
+
+print(f"\nLoaded {len(df_last)} simulations from:")
 print(f"  {results_path}")
 
 # Verify parameter exists
-if PARAM_NAME not in data.columns:
-    available = [col for col in data.columns if col not in
+if PARAM_NAME not in df_last.columns:
+    available = [col for col in df_last.columns if col not in
                 ['sim_ID', 'query_iter', 'nb_fnd_pat', 'nb_spurious',
                  'nb_iter_biased', 'nb_iter_free']]
     raise ValueError(f"Parameter '{PARAM_NAME}' not found. Available: {available}")
-
-# %% Preprocess: Get one row per simulation (last iteration)
-# This is critical - the CSV has multiple rows per simulation (one per query iteration)
-# We need to reduce to one row per sim_ID to get binary success values
-
-df = data.copy()
-
-# Keep only the last iteration of each simulation
-idx_last = df.groupby("sim_ID")["query_iter"].idxmax()
-df_last = df.loc[idx_last].copy()
-
-print(f"\nReduced to {len(df_last)} simulations (one row per sim_ID)")
 
 # %% Determine values to plot
 all_param_values = np.sort(df_last[PARAM_NAME].unique())

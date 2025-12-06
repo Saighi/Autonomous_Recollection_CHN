@@ -9,6 +9,7 @@
 class Network {
 public:
     Network(std::vector<std::vector<bool>>, int, double);
+    Network(std::vector<std::vector<bool>>, int, double, bool);
 
     // Network attributes
     int size;
@@ -29,7 +30,6 @@ public:
 
     // Core iteration methods
     void iterate(double delta);
-    void iterate_query_drive(double delta, double strength_drive, std::vector<double>& query_drives);
     void noisy_iterate(double delta, double mean, double stddev);
     void depressed_iterate(double delta);
     void noisy_depressed_iterate(double delta, double mean, double stddev);
@@ -86,6 +86,7 @@ public:
 private:
     // Member RNG for noisy iterations (avoid re-initializing each call)
     std::default_random_engine generator;
+    bool symmetric_transfer = false;
 };
 
 #endif

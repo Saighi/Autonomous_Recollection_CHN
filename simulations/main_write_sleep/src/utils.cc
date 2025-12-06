@@ -15,8 +15,10 @@
 #include <random>
 #include <sstream>
 #include <unordered_map>
+#include <map>
 #include <cerrno>
 #include <cstring>
+#include <cstdint>
 #include <regex>
 #include <thread>
 #include <mutex>
@@ -168,22 +170,6 @@ void show_vector_bool_grid(std::vector<bool> vec, int rows)
 // ============================================================================
 // Simulation Runner Functions
 // ============================================================================
-
-void run_net_sim(Network& net, int nb_iter, double delta)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.iterate(delta);
-    }
-}
-
-void run_net_sim_query_drive(Network& net, std::vector<double>& query_drives, double strength_drive, int nb_iter, double delta)
-{
-    for (int i = 0; i < nb_iter; i++)
-    {
-        net.iterate_query_drive(delta, strength_drive, query_drives);
-    }
-}
 
 void run_net_sim_noisy(Network& net, int nb_iter, double delta, double mean, double stddev)
 {
@@ -360,40 +346,6 @@ std::vector<double> generateEvenlySpacedIntegers(int a, int b, int n)
 // Pattern Generation and Loading
 // ============================================================================
 
-std::vector<bool> generateBasePattern(int N, int nb_winning_units)
-{
-    std::vector<bool> basePattern(N, false);
-    for (int i = 0; i < nb_winning_units; ++i)
-    {
-        basePattern[i] = true;
-    }
-    return basePattern;
-}
-
-std::vector<bool> generateNoisyBalancedPattern(const std::vector<bool>& basePattern, int numFlips)
-{
-    std::vector<bool> noisyPattern = basePattern;
-    int N = basePattern.size();
-    int index;
-    int cpt = 0;
-    while (cpt < numFlips)
-    {
-        index = rand() % N;
-        if (noisyPattern[index] == true)
-        {
-            noisyPattern[index] = !noisyPattern[index];
-            index = rand() % N;
-            while (noisyPattern[index] != false)
-            {
-                index = rand() % N;
-            }
-            noisyPattern[index] = !noisyPattern[index];
-            cpt += 1;
-        }
-    }
-    return noisyPattern;
-}
-
 bool patternExists(const std::vector<std::vector<bool>>& patterns, const std::vector<bool>& pattern)
 {
     for (const auto& p : patterns)
@@ -406,21 +358,139 @@ bool patternExists(const std::vector<std::vector<bool>>& patterns, const std::ve
     return false;
 }
 
-std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho)
+std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho, bool use_old_patterns)
 {
-    // sparsity = fraction of active units (0 to 1)
-    // rho = pattern correlation: 1 = identical patterns, 0 = maximally different
-    std::vector<std::vector<bool>> patterns;
-    int nb_winning_units = std::max(1, static_cast<int>(sparsity * N));
-    std::vector<bool> basePattern = generateBasePattern(N, nb_winning_units);
-    int numFlips = static_cast<int>((1.0 - rho) * nb_winning_units);
-
-    while (patterns.size() < static_cast<size_t>(K))
+    // Clamp rho
+    if (rho < 0.0)
     {
-        std::vector<bool> newPattern = generateNoisyBalancedPattern(basePattern, numFlips);
-        if (!patternExists(patterns, newPattern))
+        rho = 0.0;
+    }
+    else if (rho > 1.0)
+    {
+        rho = 1.0;
+    }
+
+    std::vector<std::vector<bool>> patterns;
+    patterns.reserve(static_cast<size_t>(K));
+
+    if (use_old_patterns)
+    {
+        // ---------------- OLD MODE ----------------
+        // Interpret sparsity as fraction of ACTIVE units; only supported for sparsity ~= 0.5.
+        const double tol = 1e-6;
+        if (std::abs(sparsity - 0.5) > tol)
         {
-            patterns.push_back(newPattern);
+            // Force to 0.5 to avoid inconsistent behavior
+            sparsity = 0.5;
+        }
+
+        int nb_winners = std::max(1, static_cast<int>(sparsity * N));
+        int numFlips = static_cast<int>((1.0 - rho) * nb_winners);
+
+        // Base pattern: first nb_winners ones, rest zeros
+        std::vector<bool> base(N, false);
+        for (int i = 0; i < nb_winners; ++i)
+        {
+            base[i] = true;
+        }
+
+        while (patterns.size() < static_cast<size_t>(K))
+        {
+            std::vector<bool> pattern = base;
+
+            for (int f = 0; f < numFlips; ++f)
+            {
+                // pick a 1 -> 0
+                std::vector<int> ones;
+                std::vector<int> zeros;
+                ones.reserve(N);
+                zeros.reserve(N);
+                for (int i = 0; i < N; ++i)
+                {
+                    if (pattern[i])
+                    {
+                        ones.push_back(i);
+                    }
+                    else
+                    {
+                        zeros.push_back(i);
+                    }
+                }
+                if (!ones.empty() && !zeros.empty())
+                {
+                    int idx_one = ones[std::rand() % static_cast<int>(ones.size())];
+                    int idx_zero = zeros[std::rand() % static_cast<int>(zeros.size())];
+                    pattern[idx_one] = false;
+                    pattern[idx_zero] = true;
+                }
+            }
+
+            if (!patternExists(patterns, pattern))
+            {
+                patterns.push_back(std::move(pattern));
+            }
+        }
+    }
+    else
+    {
+        // ---------------- NEW MODE ----------------
+        // sparsity = fraction of inactive units (P(0))
+        if (sparsity < 0.0)
+        {
+            sparsity = 0.0;
+        }
+        else if (sparsity > 1.0)
+        {
+            sparsity = 1.0;
+        }
+
+        // Step 1: generate parent pattern with P(x_i = 0) = sparsity
+        std::vector<bool> parent(N, false);
+        for (int i = 0; i < N; ++i)
+        {
+            double u = static_cast<double>(rand()) / (static_cast<double>(RAND_MAX) + 1.0);
+            // P(1) = 1 - sparsity, P(0) = sparsity
+            parent[i] = (u >= sparsity);
+        }
+
+        // Number of positions to redraw per pattern
+        int k = static_cast<int>((1.0 - rho) * N);
+        if (k < 0)
+        {
+            k = 0;
+        }
+        else if (k > N)
+        {
+            k = N;
+        }
+
+        while (patterns.size() < static_cast<size_t>(K))
+        {
+            // Step 2: start from parent
+            std::vector<bool> pattern = parent;
+
+            // Step 3: choose k distinct indices
+            if (k > 0)
+            {
+                std::unordered_set<int> indices;
+                while (static_cast<int>(indices.size()) < k)
+                {
+                    int idx = rand() % N;
+                    indices.insert(idx);
+                }
+
+                // Step 4: redraw bits at those indices with P(0) = sparsity, P(1) = 1 - sparsity
+                for (int idx : indices)
+                {
+                    double u = static_cast<double>(rand()) / (static_cast<double>(RAND_MAX) + 1.0);
+                    pattern[idx] = (u >= sparsity);
+                }
+            }
+
+            if (!patternExists(patterns, pattern))
+            {
+                patterns.push_back(std::move(pattern));
+            }
         }
     }
 
@@ -782,6 +852,167 @@ std::vector<std::vector<bool>> readBoolMatrixFromFile(const std::string& filePat
 }
 
 // ============================================================================
+// Binary Matrix I/O Functions
+// ============================================================================
+
+void writeBinaryMatrix(const std::vector<std::vector<double>>& matrix, std::ostream& out)
+{
+    uint32_t rows = static_cast<uint32_t>(matrix.size());
+    uint32_t cols = rows > 0 ? static_cast<uint32_t>(matrix[0].size()) : 0;
+    out.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
+    out.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
+    for (const auto& row : matrix)
+    {
+        out.write(reinterpret_cast<const char*>(row.data()), cols * sizeof(double));
+    }
+}
+
+void writeBinaryMatrix(const std::vector<std::vector<double>>& matrix, const std::string& filePath)
+{
+    std::ofstream out(filePath, std::ios::binary);
+    if (!out.is_open())
+    {
+        std::cerr << "Error opening file for binary writing: " << filePath << std::endl;
+        return;
+    }
+    writeBinaryMatrix(matrix, out);
+    out.close();
+}
+
+std::vector<std::vector<double>> readBinaryMatrix(std::istream& in)
+{
+    uint32_t rows, cols;
+    in.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+    in.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+
+    std::vector<std::vector<double>> matrix(rows, std::vector<double>(cols));
+    for (auto& row : matrix)
+    {
+        in.read(reinterpret_cast<char*>(row.data()), cols * sizeof(double));
+    }
+    return matrix;
+}
+
+std::vector<std::vector<double>> readBinaryMatrix(const std::string& filePath)
+{
+    std::ifstream in(filePath, std::ios::binary);
+    if (!in.is_open())
+    {
+        std::cerr << "Error opening file for binary reading: " << filePath << std::endl;
+        return {};
+    }
+    auto matrix = readBinaryMatrix(in);
+    in.close();
+    return matrix;
+}
+
+void writeBitpackedBoolMatrix(const std::vector<std::vector<bool>>& matrix, std::ostream& out)
+{
+    uint32_t rows = static_cast<uint32_t>(matrix.size());
+    uint32_t cols = rows > 0 ? static_cast<uint32_t>(matrix[0].size()) : 0;
+    out.write(reinterpret_cast<const char*>(&rows), sizeof(rows));
+    out.write(reinterpret_cast<const char*>(&cols), sizeof(cols));
+
+    uint8_t byte = 0;
+    int bit_pos = 0;
+    for (const auto& row : matrix)
+    {
+        for (bool val : row)
+        {
+            if (val) byte |= (1 << bit_pos);
+            if (++bit_pos == 8)
+            {
+                out.write(reinterpret_cast<const char*>(&byte), 1);
+                byte = 0;
+                bit_pos = 0;
+            }
+        }
+    }
+    // Write remaining bits if any
+    if (bit_pos > 0)
+    {
+        out.write(reinterpret_cast<const char*>(&byte), 1);
+    }
+}
+
+void writeBitpackedBoolMatrix(const std::vector<std::vector<bool>>& matrix, const std::string& filePath)
+{
+    std::ofstream out(filePath, std::ios::binary);
+    if (!out.is_open())
+    {
+        std::cerr << "Error opening file for binary writing: " << filePath << std::endl;
+        return;
+    }
+    writeBitpackedBoolMatrix(matrix, out);
+    out.close();
+}
+
+std::vector<std::vector<bool>> readBitpackedBoolMatrix(std::istream& in)
+{
+    uint32_t rows, cols;
+    in.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+    in.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+
+    size_t total_bits = static_cast<size_t>(rows) * cols;
+    size_t num_bytes = (total_bits + 7) / 8;
+    std::vector<uint8_t> packed(num_bytes);
+    in.read(reinterpret_cast<char*>(packed.data()), num_bytes);
+
+    std::vector<std::vector<bool>> matrix(rows, std::vector<bool>(cols));
+    size_t bit_idx = 0;
+    for (auto& row : matrix)
+    {
+        for (size_t j = 0; j < cols; j++)
+        {
+            row[j] = (packed[bit_idx / 8] >> (bit_idx % 8)) & 1;
+            bit_idx++;
+        }
+    }
+    return matrix;
+}
+
+std::vector<std::vector<bool>> readBitpackedBoolMatrix(const std::string& filePath)
+{
+    std::ifstream in(filePath, std::ios::binary);
+    if (!in.is_open())
+    {
+        std::cerr << "Error opening file for binary reading: " << filePath << std::endl;
+        return {};
+    }
+    auto matrix = readBitpackedBoolMatrix(in);
+    in.close();
+    return matrix;
+}
+
+std::vector<uint8_t> matrixToBlob(const std::vector<std::vector<double>>& matrix)
+{
+    std::ostringstream oss(std::ios::binary);
+    writeBinaryMatrix(matrix, oss);
+    std::string str = oss.str();
+    return std::vector<uint8_t>(str.begin(), str.end());
+}
+
+std::vector<uint8_t> boolMatrixToBlob(const std::vector<std::vector<bool>>& matrix)
+{
+    std::ostringstream oss(std::ios::binary);
+    writeBitpackedBoolMatrix(matrix, oss);
+    std::string str = oss.str();
+    return std::vector<uint8_t>(str.begin(), str.end());
+}
+
+std::vector<std::vector<double>> blobToMatrix(const std::vector<uint8_t>& blob)
+{
+    std::istringstream iss(std::string(blob.begin(), blob.end()), std::ios::binary);
+    return readBinaryMatrix(iss);
+}
+
+std::vector<std::vector<bool>> blobToBoolMatrix(const std::vector<uint8_t>& blob)
+{
+    std::istringstream iss(std::string(blob.begin(), blob.end()), std::ios::binary);
+    return readBitpackedBoolMatrix(iss);
+}
+
+// ============================================================================
 // Parallel Simulation Launcher
 // ============================================================================
 
@@ -889,6 +1120,7 @@ void collectSimulationData(const std::string& folderResultsPath)
 void collectSimulationDataSeries(const std::string& folderResultsPath)
 {
     std::vector<std::unordered_map<std::string, std::string>> allSimData;
+    std::map<int, std::unordered_map<std::string, std::string>> finalStates; // Track final state per sim
     std::vector<std::string> allKeys;
     std::vector<std::string> resultKeys;
     std::string path_name;
@@ -904,9 +1136,11 @@ void collectSimulationDataSeries(const std::string& folderResultsPath)
             std::regex regex_pattern(R"(\d+$)");
             std::smatch match;
             std::string sim_id;
+            int sim_id_int = -1;
             if (std::regex_search(path_name, match, regex_pattern))
             {
                 sim_id = match.str();
+                sim_id_int = std::stoi(sim_id);
                 std::cout << "Extracted Sim ID " << sim_id << std::endl;
             }
             else
@@ -964,10 +1198,17 @@ void collectSimulationDataSeries(const std::string& folderResultsPath)
                     allSimData.push_back(simData);
                 }
                 resultFile.close();
+
+                // Store final state (simData now contains last iteration's values)
+                if (sim_id_int >= 0)
+                {
+                    finalStates[sim_id_int] = simData;
+                }
             }
         }
     }
 
+    // Write all_simulation_data.csv (full time series)
     std::ofstream csvFile(folderResultsPath + "/all_simulation_data.csv");
     if (csvFile.is_open())
     {
@@ -996,5 +1237,39 @@ void collectSimulationDataSeries(const std::string& folderResultsPath)
     else
     {
         std::cerr << "Unable to open file for writing CSV data." << std::endl;
+    }
+
+    // Write final_results.csv (one row per simulation, final iteration only)
+    std::ofstream finalFile(folderResultsPath + "/final_results.csv");
+    if (finalFile.is_open())
+    {
+        // Write header
+        for (const auto& key : allKeys)
+        {
+            finalFile << key << ",";
+        }
+        finalFile << "\n";
+
+        // Write one row per simulation (sorted by sim_id)
+        for (const auto& [sim_id, simData] : finalStates)
+        {
+            for (const auto& key : allKeys)
+            {
+                auto it = simData.find(key);
+                if (it != simData.end())
+                {
+                    finalFile << it->second;
+                }
+                finalFile << ",";
+            }
+            finalFile << "\n";
+        }
+        finalFile.close();
+        std::cout << "Final results have been written to final_results.csv ("
+                  << finalStates.size() << " simulations)" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Unable to open file for writing final_results.csv" << std::endl;
     }
 }

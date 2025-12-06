@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <unordered_map>
 #include <iostream>
+#include <cstdint>
 
 // Configuration struct for simulation runs (from sleep version)
 struct SimulationConfig {
@@ -30,8 +31,6 @@ void show_vector(std::vector<double> vector);
 void show_vector_bool_grid(std::vector<bool> vec, int rows);
 
 // Simulation runners
-void run_net_sim(Network& net, int nb_iter, double delta);
-void run_net_sim_query_drive(Network& net, std::vector<double>& query_drives, double strength_drive, int nb_iter, double delta);
 void run_net_sim_noisy(Network& net, int nb_iter, double delta, double mean, double stddev);
 void run_net_sim_noisy_depressed(Network& net, int nb_iter, double delta, double mean, double stddev);
 void run_net_sim_noisy_depressed_save(Network& net, int nb_iter, double delta, double mean, double stddev, std::ofstream& file);
@@ -47,20 +46,37 @@ void writeToCSV(std::ostream* file, const std::vector<double>& data);
 void writeBoolToCSV(std::ofstream& file, const std::vector<bool>& data);
 void writeBoolToCSV(std::ostream& file, const std::vector<bool>& data);
 
-// Matrix I/O
+// Matrix I/O (text format)
 void writeMatrixToFile(const std::vector<std::vector<double>>& matrix, const std::string& filePath);
 void writeBoolMatrixToFile(const std::vector<std::vector<bool>>& matrix, const std::string& filePath);
 std::vector<std::vector<double>> readMatrixFromFile(const std::string& filePath);
 std::vector<std::vector<bool>> readBoolMatrixFromFile(const std::string& filePath);
+
+// Binary Matrix I/O (compact format for archiving)
+void writeBinaryMatrix(const std::vector<std::vector<double>>& matrix, std::ostream& out);
+void writeBinaryMatrix(const std::vector<std::vector<double>>& matrix, const std::string& filePath);
+std::vector<std::vector<double>> readBinaryMatrix(std::istream& in);
+std::vector<std::vector<double>> readBinaryMatrix(const std::string& filePath);
+
+void writeBitpackedBoolMatrix(const std::vector<std::vector<bool>>& matrix, std::ostream& out);
+void writeBitpackedBoolMatrix(const std::vector<std::vector<bool>>& matrix, const std::string& filePath);
+std::vector<std::vector<bool>> readBitpackedBoolMatrix(std::istream& in);
+std::vector<std::vector<bool>> readBitpackedBoolMatrix(const std::string& filePath);
+
+// Binary blob conversion (for SQLite storage)
+std::vector<uint8_t> matrixToBlob(const std::vector<std::vector<double>>& matrix);
+std::vector<uint8_t> boolMatrixToBlob(const std::vector<std::vector<bool>>& matrix);
+std::vector<std::vector<double>> blobToMatrix(const std::vector<uint8_t>& blob);
+std::vector<std::vector<bool>> blobToBoolMatrix(const std::vector<uint8_t>& blob);
 
 // Math utilities
 std::vector<double> linspace(double start, double end, int num);
 std::vector<double> generateEvenlySpacedIntegers(int a, int b, int n);
 
 // Pattern generation and loading
-std::vector<bool> generateBasePattern(int N, int nb_winning_units);
-std::vector<bool> generateNoisyBalancedPattern(const std::vector<bool>& basePattern, int numFlips);
-std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho);
+// use_old_patterns: if true, use legacy balanced-flip generator (expects sparsity ~= 0.5)
+//                   if false, use parent+redraw generator with sparsity = P(x_i = 0)
+std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho, bool use_old_patterns);
 std::vector<std::vector<bool>> loadPatterns(const std::string& filename);
 bool patternExists(const std::vector<std::vector<bool>>& patterns, const std::vector<bool>& pattern);
 bool areVectorsEqual(const std::vector<bool>& v1, const std::vector<bool>& v2);

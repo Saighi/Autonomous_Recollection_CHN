@@ -32,7 +32,13 @@ $(OBJ_DIR)/utils.o: $(SRC_DIR)/utils.cc $(INCLUDE_DIR)/utils.hpp $(INCLUDE_DIR)/
 $(BIN_DIR)/%: $(SIM_DIR)/%.cc $(CORE_OBJS)
 	$(CC) $(CFLAGS) $< -o $@ -I$(INCLUDE_DIR) $(CORE_OBJS)
 
+# Special rule for consolidate (requires SQLite)
+$(BIN_DIR)/consolidate: $(SIM_DIR)/consolidate.cc $(CORE_OBJS)
+	$(CC) $(CFLAGS) $< -o $@ -I$(INCLUDE_DIR) $(CORE_OBJS) -lsqlite3
+
 # Individual targets for convenience
+consolidate: $(BIN_DIR)/consolidate
+
 write: $(BIN_DIR)/write
 
 sleep: $(BIN_DIR)/sleep
@@ -60,18 +66,23 @@ list:
 # Help
 help:
 	@echo "Usage:"
-	@echo "  make          - Build all simulations"
-	@echo "  make write    - Build only write simulation"
-	@echo "  make sleep    - Build only sleep simulation"
-	@echo "  make bin/X    - Build specific simulation X"
-	@echo "  make run_write - Build and run write simulation"
-	@echo "  make run_sleep - Build and run sleep simulation"
-	@echo "  make list     - List available simulations"
-	@echo "  make clean    - Remove object files and executables"
-	@echo "  make distclean- Remove obj and bin directories"
+	@echo "  make            - Build all simulations"
+	@echo "  make write      - Build only write simulation"
+	@echo "  make sleep      - Build only sleep simulation"
+	@echo "  make consolidate- Build consolidation tool (requires libsqlite3-dev)"
+	@echo "  make bin/X      - Build specific simulation X"
+	@echo "  make run_write  - Build and run write simulation"
+	@echo "  make run_sleep  - Build and run sleep simulation"
+	@echo "  make list       - List available simulations"
+	@echo "  make clean      - Remove object files and executables"
+	@echo "  make distclean  - Remove obj and bin directories"
 	@echo ""
 	@echo "To add a new simulation:"
 	@echo "  1. Create simulations/your_sim.cc"
 	@echo "  2. Run 'make' or 'make bin/your_sim'"
+	@echo ""
+	@echo "Consolidation tool:"
+	@echo "  ./bin/consolidate <results_dir> [output.db]"
+	@echo "  Merges all sim_nb_X folders into a single SQLite database."
 
-.PHONY: all dirs write sleep run_write run_sleep clean distclean list help
+.PHONY: all dirs write sleep consolidate run_write run_sleep clean distclean list help

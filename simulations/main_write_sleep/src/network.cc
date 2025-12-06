@@ -31,11 +31,17 @@ static inline double avx_dot_product(const double* wRow, const double* rate, int
 }
 
 Network::Network(std::vector<std::vector<bool>> connect_mat, int size_network, double lk)
+    : Network(connect_mat, size_network, lk, false)
+{
+}
+
+Network::Network(std::vector<std::vector<bool>> connect_mat, int size_network, double lk, bool sym)
 {
     leak = lk;
     connectivity_matrix = connect_mat;
     size = size_network;
     inhib_strenght = 10;
+    symmetric_transfer = sym;
 
     // Initialize the random engine once (avoid re-init each call)
     std::random_device rd;
@@ -63,24 +69,6 @@ void Network::iterate(double delta)
     std::fill(derivative_activity_list.begin(), derivative_activity_list.end(), 0);
 }
 
-void Network::iterate_query_drive(double delta, double strength_drive, std::vector<double>& query_drives)
-{
-    for (int i = 0; i < size; i++)
-    {
-        for (int j = 0; j < size; j++)
-        {
-            derivative_activity_list[i] += weight_matrix[i][j] * rate_list[j];
-        }
-    }
-
-    for (int i = 0; i < size; i++)
-    {
-        activity_list[i] += delta*(derivative_activity_list[i]-(leak * activity_list[i])+strength_drive*(query_drives[i]-activity_list[i]));
-        rate_list[i] = transfer(activity_list[i]);
-    };
-
-    std::fill(derivative_activity_list.begin(), derivative_activity_list.end(), 0);
-}
 
 // Noisy iteration: add Gaussian noise to derivative (AVX optimized)
 void Network::noisy_iterate(double delta, double mean, double stddev)
@@ -130,11 +118,22 @@ void Network::noisy_depressed_iterate(double delta, double mean, double stddev)
 
 double Network::transfer(double activation)
 {
-    return 1.0 / (1.0 + std::exp(-activation));
+    double y = 1.0 / (1.0 + std::exp(-activation));
+    if (symmetric_transfer)
+    {
+        return y - 0.5;
+    }
+    return y;
 }
 
 double Network::transfer_inverse(double activation)
 {
+    if (symmetric_transfer)
+    {
+        // activation is in [-0.5, 0.5]; shift back to [0,1] before inversion
+        double shifted = activation + 0.5;
+        return -std::log(-1.0 + 1.0 / shifted);
+    }
     return -std::log(-1.0 + 1.0 / activation);
 }
 
@@ -474,8 +473,9 @@ void Network::pot_inhib_symmetric(double pot_rate)
         {
             if (i == j)
             {
-                inhib_matrix[i][j] += pot_rate * (rate_list[j] * (rate_list[i] - 0.5));
-                inhib_matrix[j][i] += pot_rate * (rate_list[j] * (rate_list[i] - 0.5));
+                double centered = symmetric_transfer ? rate_list[i] : (rate_list[i] - 0.5);
+                inhib_matrix[i][j] += pot_rate * (rate_list[j] * centered);
+                inhib_matrix[j][i] += pot_rate * (rate_list[j] * centered);
             }
         }
     }

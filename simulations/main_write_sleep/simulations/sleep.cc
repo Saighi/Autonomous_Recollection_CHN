@@ -47,7 +47,6 @@ void run_sleep(
     double leak = params.at("leak");
     double delta = params.count("delta") ? params.at("delta") : 0.01;
     double beta = params.count("beta") ? params.at("beta") : 0.1;
-    double init_drive = params.count("init_drive") ? params.at("init_drive") : 0.5;
     double stddev_dynamics = params.count("stddev_dynamics") ? params.at("stddev_dynamics") : 0.01;
     bool noise_dynamics = params.count("noise_dynamics") ? params.at("noise_dynamics") > 0 : true;
     int max_queries = params.count("max_queries") ? static_cast<int>(params.at("max_queries")) : 200;
@@ -55,12 +54,14 @@ void run_sleep(
     bool stop_on_spurious = params.count("stop_on_spurious") ? params.at("stop_on_spurious") > 0 : true;
     bool stop_on_all_found = params.count("stop_on_all_found") ? params.at("stop_on_all_found") > 0 : false;
 
+    bool symmetric_transfer = params.count("symmetric_transfer") ? params.at("symmetric_transfer") > 0.5 : false;
+
     // Create simulation output directory
     std::string sim_dir = output_dir + "/sim_nb_" + std::to_string(sim_number);
     fs::create_directories(sim_dir);
 
     // Create network and load weights
-    Network net(connectivity, network_size, leak);
+    Network net(connectivity, network_size, leak, symmetric_transfer);
     net.weight_matrix = weights;
 
     // Save patterns for reference
@@ -104,8 +105,9 @@ void run_sleep(
         // Check stop conditions
         if (stop_on_spurious && nb_spurious > 0) break;
         if (stop_on_all_found && all_found) break;
-        // Reset to neutral state
-        net.set_state(std::vector<double>(network_size, init_drive));
+        // Reset to neutral state (depends on transfer type)
+        double init_rate = symmetric_transfer ? 0.0 : 0.5;
+        net.set_state(std::vector<double>(network_size, init_rate));
 
         // Optional trajectory saving
         std::string traj_path = save_trajectories ?
@@ -124,8 +126,12 @@ void run_sleep(
 
         traj_file.close();
 
-        // Determine winning pattern
-        std::vector<bool> winners = assignBoolToTopNValues(net.activity_list, nb_winners);
+        // Determine retrieved pattern by thresholding final rates
+        std::vector<bool> winners(network_size, false);
+        double threshold = symmetric_transfer ? 0.0 : 0.5;
+        for (int i = 0; i < network_size; ++i) {
+            winners[i] = net.rate_list[i] > threshold;
+        }
 
         // Apply inhibitory plasticity
         net.pot_inhib_symmetric(beta);

@@ -36,7 +36,6 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     double noise_level = parameters.at("noise_level");
     double distance_noise_level = parameters.at("distance_noise_level");
     double delta = parameters.at("delta");
-    double init_drive = parameters.at("init_drive");
     double ratio_flip_writing = parameters.at("ratio_flip_writing");
     int num_patterns = parameters.at("num_patterns");
 
@@ -128,26 +127,6 @@ void run_simulation(int sim_number, unordered_map<string, double> parameters, co
     std::cout << "Querying initial memories" << std::endl;
     vector<double> query_pattern;
     int succes= 0 ;
-    // // double strength_drive = 0.1;
-    // for (int i = 0; i < num_patterns; i++)
-    // {
-    //     //TODO - change the pattern_as_states and link the target drive not magic number
-    //     query_pattern=pattern_as_states(net.transfer(drive_target),net.transfer(-drive_target),initial_patterns[i]);
-    //     query_pattern=setToValueRandomElements(query_pattern, int(network_size*ratio_flip_writing), init_drive);
-    //     // noisy_pattern = std::vector<double>(network_size,0.5);
-    //     net.set_state(query_pattern);
-    //     run_net_sim(net,1/delta, delta);
-    //     winning_units = assignBoolToTopNValues(net.activity_list, nb_winners);
-    //     if (comparestates(winning_units,initial_patterns[i])){
-    //         succes+=1;
-    //     }
-    // }
-    // // The number of unique vectors found
-    // std::cout << "Number of vectors found: " << succes << " nb_patterns : " << num_patterns << "nb_winners : " << nb_winners << " nb_flip : " <<int(network_size*ratio_flip_writing)<<" Network size: "<<network_size<<std::endl;
-    // result_file_name = sim_data_foldername + "/results.data";
-    // std::ofstream result_file(result_file_name, std::ios::trunc);
-    // result_file << "nb_found_patterns="<<succes;
-    // result_file.close();
 
     weights_file_name = sim_data_foldername + "/weights.data";
     writeMatrixToFile(net.weight_matrix, weights_file_name);
