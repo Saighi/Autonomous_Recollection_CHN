@@ -149,12 +149,82 @@ plt.tight_layout()
 plt.show()
 
 # %% ==========================================================================
-# EXAMPLE 3: Full parameter grid
+# EXAMPLE 3: Native Pattern Generation (C++ parallelized)
+# =============================================================================
+# NEW FEATURE: Instead of Python generating patterns, C++ can now generate them
+# internally. This enables parallelizing across network_size, num_patterns,
+# sparsity, and rho - not just training parameters like leak.
+#
+# Benefits:
+# - Single C++ call instead of Python loops
+# - Full parallelization (up to 20 threads)
+# - Each parameter combination gets unique patterns
+
+# %% Native mode: C++ generates patterns for each parameter combination
+write_config = setup_write_experiment(
+    name="native_pattern_sweep",
+    params={
+        "leak": 1.0,
+        "drive_target": 6.0,
+        "learning_rate": 0.0001,
+        "distance_noise_level": 0.0,
+        "momentum_coef": 0.9,
+    },
+    varying_params={
+        "network_size": [50, 100, 200],
+        "num_patterns": [5, 10],
+        "sparsity": [0.3, 0.5],
+        "rho": [0.3, 0.7],
+    },
+    native_pattern_generation=True  # Enable C++ pattern generation
+)
+
+# %% Run training (3 x 2 x 2 x 2 = 24 combinations, all parallelized by C++)
+run_cpp("write", write_config)
+
+# %% Load results to see different network configurations
+results = load_results(DATA_DIR / "trained_networks" / "native_pattern_sweep")
+print(f"Trained {len(results)} different network configurations")
+print(results[['network_size', 'num_patterns', 'sparsity', 'rho']].drop_duplicates())
+
+# %% ==========================================================================
+# EXAMPLE 4: Comparing File Mode vs Native Mode
 # =============================================================================
 
-# %% Varying patterns AND network parameters
+# %% FILE MODE (old approach): Python generates patterns, all sims share them
+patterns = generate_patterns(k=10, n=100, sparsity=0.5, rho=0.5)
+
+write_config_file = setup_write_experiment(
+    name="file_mode_example",
+    patterns=patterns,  # Patterns provided by Python
+    params={"leak": 1.0, "drive_target": 6.0, "learning_rate": 0.0001},
+    varying_params={"leak": [0.5, 1.0, 2.0]},
+    native_pattern_generation=False  # Explicit (default)
+)
+print("File mode: All 3 leak values will use the SAME patterns")
+
+# %% NATIVE MODE (new approach): C++ generates unique patterns per combination
+write_config_native = setup_write_experiment(
+    name="native_mode_example",
+    params={"leak": 1.0, "drive_target": 6.0, "learning_rate": 0.0001},
+    varying_params={
+        "network_size": [100],
+        "num_patterns": [10],
+        "sparsity": [0.5],
+        "rho": [0.5],
+        "leak": [0.5, 1.0, 2.0],
+    },
+    native_pattern_generation=True
+)
+print("Native mode: Each of the 3 leak values gets UNIQUE patterns")
+
+# %% ==========================================================================
+# EXAMPLE 5: Full parameter grid (OLD approach with Python loop)
+# =============================================================================
+
+# %% Varying patterns AND network parameters using Python loops
 # Use a single experiment name and per-run subfolders via run_name
-grid_experiment = "grid_sweep"
+grid_experiment = "grid_sweep_python"
 for num_pat in [5, 10, 15, 20]:
     for net_size in [64, 100, 144]:
         patterns = generate_patterns(k=num_pat, n=net_size, sparsity=0.5, rho=0.5)
@@ -175,8 +245,29 @@ for num_pat in [5, 10, 15, 20]:
         run_cpp("write", config, verbose=False)
         print(f"Trained: n={net_size}, patterns={num_pat}")
 
+# %% ALTERNATIVE: Same grid with native mode (single C++ call, fully parallelized)
+write_config = setup_write_experiment(
+    name="grid_sweep_native",
+    params={
+        "leak": 1.0,
+        "drive_target": 6.0,
+        "learning_rate": 0.0001,
+        "distance_noise_level": 0.0,
+        "momentum_coef": 0.9,
+    },
+    varying_params={
+        "network_size": [64, 100, 144],
+        "num_patterns": [5, 10, 15, 20],
+        "sparsity": [0.5],
+        "rho": [0.5],
+    },
+    native_pattern_generation=True
+)
+# One call creates 3 x 4 = 12 simulations in parallel (vs 12 serial Python loops above)
+run_cpp("write", write_config)
+
 # %% ==========================================================================
-# EXAMPLE 4: Inspecting individual simulations
+# EXAMPLE 6: Inspecting individual simulations
 # =============================================================================
 
 # %% List all simulations in a results folder
@@ -212,7 +303,7 @@ plt.tight_layout()
 plt.show()
 
 # %% ==========================================================================
-# EXAMPLE 5: Load trajectories (if saved)
+# EXAMPLE 7: Load trajectories (if saved)
 # =============================================================================
 
 # %% Setup sleep with trajectory saving

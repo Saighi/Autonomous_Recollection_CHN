@@ -132,27 +132,58 @@ def read_parameters(filepath: Union[str, Path]) -> Dict[str, float]:
 
 def setup_write_experiment(
     name: str,
-    patterns: np.ndarray,
-    params: Dict[str, Any],
+    patterns: Optional[np.ndarray] = None,
+    params: Optional[Dict[str, Any]] = None,
     varying_params: Optional[Dict[str, List]] = None,
     output_dir: Optional[Path] = None,
-    run_name: Optional[str] = None
+    run_name: Optional[str] = None,
+    native_pattern_generation: bool = False
 ) -> Path:
     """
     Setup a write/training experiment.
 
     Args:
         name: Experiment name
-        patterns: Binary patterns to store (n_patterns x network_size)
-        params: Base simulation parameters (network_size inferred from patterns)
+        patterns: Binary patterns to store (n_patterns x network_size).
+                  Required if native_pattern_generation=False.
+        params: Base simulation parameters
         varying_params: Parameters to sweep {param_name: [values]}
         output_dir: Where to save (default: data/trained_networks/name)
         run_name: Optional subfolder to group multiple runs under the same
             experiment name without clobbering previous outputs.
+        native_pattern_generation: If True, C++ generates patterns internally.
+                                   Requires network_size, num_patterns, sparsity, rho
+                                   in params or varying_params.
 
     Returns:
         Path to config file
     """
+    import warnings
+
+    if params is None:
+        params = {}
+    if varying_params is None:
+        varying_params = {}
+
+    # Validation based on mode
+    if native_pattern_generation:
+        # Check required parameters exist
+        required = ["network_size", "num_patterns", "sparsity", "rho"]
+        all_params = set(params.keys()) | set(varying_params.keys())
+        missing = [p for p in required if p not in all_params]
+        if missing:
+            raise ValueError(
+                f"native_pattern_generation=True requires: {missing}. "
+                f"Provide in params or varying_params."
+            )
+        if patterns is not None:
+            warnings.warn("patterns argument ignored when native_pattern_generation=True")
+    else:
+        # File mode: patterns required
+        if patterns is None:
+            raise ValueError("patterns required when native_pattern_generation=False")
+
+    # Directory setup
     if output_dir is None:
         output_dir = DATA_DIR / "trained_networks" / name
     if run_name:
@@ -163,30 +194,51 @@ def setup_write_experiment(
         config_dir = config_dir / run_name
     config_dir.mkdir(parents=True, exist_ok=True)
 
-    # Infer network size and sparsity from patterns
-    network_size = patterns.shape[1]
-    nb_winners = int(patterns[0].sum())
-    sparsity = nb_winners / network_size
+    # Build config based on mode
+    if native_pattern_generation:
+        # Native mode: no patterns_file needed
+        full_params = dict(params)
 
-    # Build full params
-    full_params = {
-        "network_size": network_size,
-        "sparsity": sparsity,
-        "nb_winners": nb_winners,  # Computed from sparsity, kept for C++ compatibility
-        "num_patterns": len(patterns),
-        **params
-    }
+        # Compute nb_winners if sparsity and network_size are fixed (not varying)
+        if "sparsity" in full_params and "network_size" in full_params:
+            sparsity = full_params["sparsity"]
+            network_size = full_params["network_size"]
+            full_params["nb_winners"] = max(1, int(sparsity * network_size))
 
-    config = {
-        "type": "write",
-        "patterns_file": str(config_dir / "patterns.data"),
-        "output_dir": str(output_dir),
-        "base_params": full_params,
-        "varying_params": varying_params or {}
-    }
+        config = {
+            "type": "write",
+            "native_pattern_generation": True,
+            "output_dir": str(output_dir),
+            "base_params": full_params,
+            "varying_params": varying_params
+        }
+    else:
+        # File mode: existing behavior
+        network_size = patterns.shape[1]
+        nb_winners = int(patterns[0].sum())
+        sparsity = nb_winners / network_size
 
-    # Save patterns and config
-    write_patterns(patterns, config_dir / "patterns.data")
+        full_params = {
+            "network_size": network_size,
+            "sparsity": sparsity,
+            "nb_winners": nb_winners,
+            "num_patterns": len(patterns),
+            **params
+        }
+
+        config = {
+            "type": "write",
+            "native_pattern_generation": False,
+            "patterns_file": str(config_dir / "patterns.data"),
+            "output_dir": str(output_dir),
+            "base_params": full_params,
+            "varying_params": varying_params
+        }
+
+        # Save patterns
+        write_patterns(patterns, config_dir / "patterns.data")
+
+    # Save config
     config_path = config_dir / "config.json"
     with open(config_path, 'w') as f:
         json.dump(config, f, indent=2)

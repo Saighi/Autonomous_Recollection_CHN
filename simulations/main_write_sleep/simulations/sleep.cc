@@ -70,8 +70,10 @@ void run_sleep(
     }
     patterns_file.close();
 
-    // Save parameters
+    // Save parameters (note: all_recovered_before_spurious will be updated later)
     params["num_patterns"] = static_cast<double>(patterns.size());
+    params["all_recovered_before_spurious"] = 0.0;  // Will be updated after retrieval loop
+    params["first_iter_all_found"] = -1.0;  // Will be updated after retrieval loop
     createParameterFile(sim_dir, params);
 
     // Setup simulation config
@@ -85,12 +87,14 @@ void run_sleep(
     // Results tracking
     std::string results_path = sim_dir + "/results.data";
     std::ofstream results_file(results_path, std::ios::trunc);
-    results_file << "query_iter,nb_fnd_pat,nb_spurious,nb_iter_biased,nb_iter_free," << std::endl;
+    results_file << "query_iter,nb_fnd_pat,nb_spurious,nb_iter_biased,nb_iter_free,all_recovered_before_spurious" << std::endl;
 
     std::set<std::vector<bool>> found_patterns;
     int nb_spurious = 0;
     int query_iter = 0;
     bool all_found = false;
+    bool all_recovered_before_spurious = false;  // Track if all found before any spurious
+    int first_iter_all_found = -1;  // Track when all patterns first found
 
     // Main retrieval loop
     // Continues until max_queries, unless stopped by:
@@ -130,8 +134,12 @@ void run_sleep(
         auto it = std::find(patterns.begin(), patterns.end(), winners);
         if (it != patterns.end()) {
             found_patterns.insert(winners);
-            if (found_patterns.size() == patterns.size()) {
+            if (found_patterns.size() == patterns.size() && !all_found) {
                 all_found = true;
+                first_iter_all_found = query_iter;  // Record first time all found
+                if (nb_spurious == 0) {
+                    all_recovered_before_spurious = true;  // Success!
+                }
             }
         } else {
             nb_spurious++;
@@ -142,16 +150,26 @@ void run_sleep(
                      << found_patterns.size() << ","
                      << nb_spurious << ","
                      << nb_iter_biased << ","
-                     << nb_iter_free << "," << std::endl;
+                     << nb_iter_free << ","
+                     << (all_recovered_before_spurious ? 1 : 0) << std::endl;
 
         query_iter++;
     }
 
     results_file.close();
 
+    // Update parameters file with final metrics
+    params["all_recovered_before_spurious"] = all_recovered_before_spurious ? 1.0 : 0.0;
+    params["first_iter_all_found"] = static_cast<double>(first_iter_all_found);
+    createParameterFile(sim_dir, params);
+
     std::cout << "Sim " << sim_number << ": found " << found_patterns.size()
               << "/" << patterns.size() << " patterns, "
-              << nb_spurious << " spurious" << std::endl;
+              << nb_spurious << " spurious";
+    if (all_recovered_before_spurious) {
+        std::cout << " (all recovered before spurious at iter " << first_iter_all_found << ")";
+    }
+    std::cout << std::endl;
 }
 
 

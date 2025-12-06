@@ -29,6 +29,7 @@ public:
     std::string patterns_file;
     std::string input_dir;
     std::string output_dir;
+    bool native_pattern_generation = false;  // If true, C++ generates patterns internally
     std::unordered_map<std::string, double> base_params;
     std::unordered_map<std::string, std::vector<double>> varying_params;
 
@@ -117,6 +118,8 @@ private:
                 input_dir = parseString(content, pos);
             } else if (key == "output_dir") {
                 output_dir = parseString(content, pos);
+            } else if (key == "native_pattern_generation") {
+                native_pattern_generation = parseBool(content, pos);
             } else if (key == "base_params") {
                 base_params = parseParamObject(content, pos);
             } else if (key == "varying_params") {
@@ -160,6 +163,19 @@ private:
         }
 
         return std::stod(s.substr(start, pos - start));
+    }
+
+    bool parseBool(const std::string& s, size_t& pos) {
+        skipWhitespace(s, pos);
+        if (pos + 4 <= s.size() && s.substr(pos, 4) == "true") {
+            pos += 4;
+            return true;
+        }
+        if (pos + 5 <= s.size() && s.substr(pos, 5) == "false") {
+            pos += 5;
+            return false;
+        }
+        throw std::runtime_error("Expected 'true' or 'false'");
     }
 
     std::vector<double> parseNumberArray(const std::string& s, size_t& pos) {
