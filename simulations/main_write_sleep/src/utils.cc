@@ -211,7 +211,14 @@ int run_net_sim_choice(Network& net, SimulationConfig& conf)
         }
         if (conf.depressed)
         {
-            net.noisy_depressed_iterate(conf.delta, conf.mean, conf.stddev);
+            if (conf.use_full_inhibition)
+            {
+                net.noisy_full_depressed_iterate(conf.delta, conf.mean, conf.stddev);
+            }
+            else
+            {
+                net.noisy_depressed_iterate(conf.delta, conf.mean, conf.stddev);
+            }
         }
         else
         {
@@ -549,6 +556,25 @@ bool comparestates(const std::vector<bool>& state1, const std::vector<bool>& sta
     }
 
     return direct_match || inverse_match;
+}
+
+bool matchesPatternOrConverse(const std::vector<bool>& pattern1, const std::vector<bool>& pattern2)
+{
+    if (pattern1.size() != pattern2.size())
+        return false;
+
+    bool direct_match = true;
+    bool converse_match = true;
+
+    for (size_t i = 0; i < pattern1.size(); ++i)
+    {
+        if (pattern1[i] != pattern2[i])
+            direct_match = false;
+        if (pattern1[i] == pattern2[i])  // For converse, all bits must be flipped
+            converse_match = false;
+    }
+
+    return direct_match || converse_match;
 }
 
 // ============================================================================

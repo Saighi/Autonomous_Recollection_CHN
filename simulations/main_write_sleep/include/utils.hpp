@@ -21,6 +21,7 @@ struct SimulationConfig {
     double stddev = 0.005;
     std::ostream *output = &std::cout;
     int max_iter = 10000;
+    bool use_full_inhibition = false;  // false = diagonal only, true = full matrix
 };
 
 // Visualization functions
@@ -81,6 +82,7 @@ std::vector<std::vector<bool>> loadPatterns(const std::string& filename);
 bool patternExists(const std::vector<std::vector<bool>>& patterns, const std::vector<bool>& pattern);
 bool areVectorsEqual(const std::vector<bool>& v1, const std::vector<bool>& v2);
 bool comparestates(const std::vector<bool>& state1, const std::vector<bool>& state2);
+bool matchesPatternOrConverse(const std::vector<bool>& pattern1, const std::vector<bool>& pattern2);
 
 // Pattern to state conversion
 std::vector<double> pattern_as_states(double up_rate, double down_rate, std::vector<bool> bin_pattern);

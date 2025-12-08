@@ -33,6 +33,8 @@ public:
     void noisy_iterate(double delta, double mean, double stddev);
     void depressed_iterate(double delta);
     void noisy_depressed_iterate(double delta, double mean, double stddev);
+    void full_depressed_iterate(double delta);
+    void noisy_full_depressed_iterate(double delta, double mean, double stddev);
 
     // Transfer functions (public for external use)
     double transfer(double activation);
@@ -44,10 +46,8 @@ public:
     void reinforce_attractor(std::vector<double> target_state, double learning_rate);
 
     // Inhibitory plasticity
-    void pot_inhib(double pot_rate);
-    void pot_inhib_symmetric(double pot_rate);
-    void pot_inhib_bin(double pot_rate, std::vector<bool> winners);
-    void pot_inhib_bin_scale(double pot_rate, std::vector<bool> winners);
+    void pot_inhib_diag(double pot_rate);
+    void pot_inhib_full_matrix(double pot_rate);
     void iterative_normalize(int nb_iter_normalize, double rate_normalize);
     void reset_inhib();
 

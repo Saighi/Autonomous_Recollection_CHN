@@ -21,6 +21,7 @@ from utils import (
     list_simulations,
     load_trajectories,
     read_patterns,
+    compute_correlations,
     DATA_DIR,
 )
 
@@ -192,51 +193,14 @@ print("Loaded NEW sleep simulation from:", sim_dir_new)
 
 # %% Compute correlations between patterns and trajectories (OLD)
 
-all_corr_old = []
-lengths_old = []
-for traj in traj_old:
-    # traj: T x N
-    corr_this_query = []
-    for t in range(traj.shape[0]):
-        state = traj[t]
-        pattern_corrs = []
-        for p in range(cpp_old_patterns.shape[0]):
-            a = state.astype(float)
-            b = cpp_old_patterns[p]
-            if np.allclose(a, 0) or np.allclose(b, 0):
-                corr = 0.0
-            else:
-                corr = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-            pattern_corrs.append(corr)
-        corr_this_query.append(pattern_corrs)
-    all_corr_old.extend(corr_this_query)
-    lengths_old.append(len(corr_this_query))
-
-all_corr_old = np.array(all_corr_old)
+# Use centralized compute_correlations from utils (standard transfer)
+all_corr_old, lengths_old = compute_correlations(traj_old, cpp_old_patterns, symmetric_transfer=False)
 
 
 # %% Compute correlations between patterns and trajectories (NEW)
 
-all_corr_new = []
-lengths_new = []
-for traj in traj_new:
-    corr_this_query = []
-    for t in range(traj.shape[0]):
-        state = traj[t]
-        pattern_corrs = []
-        for p in range(cpp_new_patterns.shape[0]):
-            a = state.astype(float)
-            b = cpp_new_patterns[p]
-            if np.allclose(a, 0) or np.allclose(b, 0):
-                corr = 0.0
-            else:
-                corr = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-            pattern_corrs.append(corr)
-        corr_this_query.append(pattern_corrs)
-    all_corr_new.extend(corr_this_query)
-    lengths_new.append(len(corr_this_query))
-
-all_corr_new = np.array(all_corr_new)
+# Use centralized compute_correlations from utils (standard transfer)
+all_corr_new, lengths_new = compute_correlations(traj_new, cpp_new_patterns, symmetric_transfer=False)
 
 
 # %% Plot correlation trajectories for OLD vs NEW
@@ -348,26 +312,10 @@ for s in SPARSITY_LEVELS:
     print(f"Loaded sleep simulation for s={s} from:", sim_dir_s)
 
     # Correlations for all queries at this sparsity
-    all_corr_s = []
-    lengths_s = []
-    for traj in traj_s:
-        corr_this_query = []
-        for t in range(traj.shape[0]):
-            state = traj[t].astype(float)
-            pattern_corrs = []
-            for p in range(cpp_patterns_s.shape[0]):
-                a = state
-                b = cpp_patterns_s[p]
-                if np.allclose(a, 0) or np.allclose(b, 0):
-                    c = 0.0
-                else:
-                    c = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-                pattern_corrs.append(c)
-            corr_this_query.append(pattern_corrs)
-        all_corr_s.extend(corr_this_query)
-        lengths_s.append(len(corr_this_query))
+    # Use centralized compute_correlations from utils (standard transfer)
+    all_corr_s, lengths_s = compute_correlations(traj_s, cpp_patterns_s, symmetric_transfer=False)
 
-    multi_corr[s] = np.array(all_corr_s)
+    multi_corr[s] = all_corr_s
     multi_lengths[s] = lengths_s
 
 

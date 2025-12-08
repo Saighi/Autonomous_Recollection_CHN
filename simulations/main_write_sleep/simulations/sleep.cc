@@ -43,7 +43,6 @@ void run_sleep(
 
     // Extract parameters
     int network_size = static_cast<int>(params.at("network_size"));
-    int nb_winners = static_cast<int>(params.at("nb_winners"));
     double leak = params.at("leak");
     double delta = params.count("delta") ? params.at("delta") : 0.01;
     double beta = params.count("beta") ? params.at("beta") : 0.1;
@@ -55,6 +54,8 @@ void run_sleep(
     bool stop_on_all_found = params.count("stop_on_all_found") ? params.at("stop_on_all_found") > 0 : false;
 
     bool symmetric_transfer = params.count("symmetric_transfer") ? params.at("symmetric_transfer") > 0.5 : false;
+    bool use_inhibition_plasticity = params.count("use_inhibition_plasticity") ? params.at("use_inhibition_plasticity") > 0.5 : true;
+    bool use_full_inhibition = params.count("use_full_inhibition") ? params.at("use_full_inhibition") > 0.5 : false;
 
     // Create simulation output directory
     std::string sim_dir = output_dir + "/sim_nb_" + std::to_string(sim_number);
@@ -83,7 +84,8 @@ void run_sleep(
     config.epsilon = delta / 1000;
     config.noise = noise_dynamics;
     config.stddev = stddev_dynamics;
-    config.max_iter = static_cast<int>(100 / delta);
+    config.max_iter = static_cast<int>(50 / delta);
+    config.use_full_inhibition = use_full_inhibition;
 
     // Results tracking
     std::string results_path = sim_dir + "/results.data";
@@ -133,13 +135,37 @@ void run_sleep(
             winners[i] = net.rate_list[i] > threshold;
         }
 
-        // Apply inhibitory plasticity
-        net.pot_inhib_symmetric(beta);
+        // Apply inhibitory plasticity (if enabled)
+        if (use_inhibition_plasticity) {
+            if (use_full_inhibition) {
+                net.pot_inhib_full_matrix(beta);
+            } else {
+                net.pot_inhib_diag(beta);
+            }
+        }
 
         // Check if retrieved pattern is in target set
-        auto it = std::find(patterns.begin(), patterns.end(), winners);
-        if (it != patterns.end()) {
-            found_patterns.insert(winners);
+        // For symmetric transfer, also accept the converse pattern (all bits flipped)
+        bool pattern_found = false;
+        if (symmetric_transfer) {
+            // Check for exact match or converse match
+            for (const auto& pattern : patterns) {
+                if (matchesPatternOrConverse(winners, pattern)) {
+                    pattern_found = true;
+                    found_patterns.insert(winners);
+                    break;
+                }
+            }
+        } else {
+            // Standard matching: exact match only
+            auto it = std::find(patterns.begin(), patterns.end(), winners);
+            if (it != patterns.end()) {
+                pattern_found = true;
+                found_patterns.insert(winners);
+            }
+        }
+
+        if (pattern_found) {
             if (found_patterns.size() == patterns.size() && !all_found) {
                 all_found = true;
                 first_iter_all_found = query_iter;  // Record first time all found

@@ -116,6 +116,37 @@ void Network::noisy_depressed_iterate(double delta, double mean, double stddev)
     }
 }
 
+// Full depressed iteration with full inhibitory matrix (AVX optimized)
+void Network::full_depressed_iterate(double delta)
+{
+    for (int i = 0; i < size; i++)
+    {
+        double sum_weight = avx_dot_product(weight_matrix[i].data(), rate_list.data(), size);
+        double sum_inhib = avx_dot_product(inhib_matrix[i].data(), rate_list.data(), size);
+
+        double d = sum_weight - sum_inhib - (leak * activity_list[i]);
+        activity_list[i] += delta * d;
+        rate_list[i] = transfer(activity_list[i]);
+    }
+}
+
+// Noisy full depressed iteration with full inhibitory matrix (AVX optimized)
+void Network::noisy_full_depressed_iterate(double delta, double mean, double stddev)
+{
+    std::normal_distribution<double> distribution(mean, stddev);
+
+    for (int i = 0; i < size; i++)
+    {
+        double noise = distribution(generator);
+        double sum_weight = avx_dot_product(weight_matrix[i].data(), rate_list.data(), size);
+        double sum_inhib = avx_dot_product(inhib_matrix[i].data(), rate_list.data(), size);
+
+        double d = sum_weight - sum_inhib - (leak * activity_list[i]) + noise;
+        activity_list[i] += delta * d;
+        rate_list[i] = transfer(activity_list[i]);
+    }
+}
+
 double Network::transfer(double activation)
 {
     double y = 1.0 / (1.0 + std::exp(-activation));
@@ -439,18 +470,46 @@ void Network::rate_derivative_gradient_descent(std::vector<double> target_rate, 
     }
 }
 
-// No normalization, doesn't keep the sum of weight of synapses stable.
-void Network::pot_inhib(double pot_rate)
+
+
+// Diagonal inhibition potentiation (used in sleep simulations)
+// void Network::pot_inhib_symmetric(double pot_rate)
+// {
+//     actual_sum_each_inhib = std::vector<double>(size, 0);
+//     for (int i = 0; i < size; ++i)
+//     {
+//         for (int j = 0; j < size; ++j)
+//         {
+//             if (i == j)
+//             {
+//                 double centered = symmetric_transfer ? rate_list[i] : (rate_list[i] - 0.5);
+//                 inhib_matrix[i][j] += pot_rate * (rate_list[j] * centered);
+//                 inhib_matrix[j][i] += pot_rate * (rate_list[j] * centered);
+//             }
+//         }
+//     }
+//     for (int i = 0; i < size; ++i)
+//     {
+//         for (int j = 0; j < size; ++j)
+//         {
+//             actual_sum_each_inhib[j] += inhib_matrix[i][j];
+//         }
+//     }
+// }
+
+
+
+void Network::pot_inhib_diag(double pot_rate)
 {
     actual_sum_each_inhib = std::vector<double>(size, 0);
     for (int i = 0; i < size; ++i)
     {
         for (int j = 0; j < size; ++j)
         {
-            if (connectivity_matrix[i][j] == 1)
+            if (i == j)
             {
-                inhib_matrix[i][j] += pot_rate * (rate_list[j] * rate_list[i]);
-                inhib_matrix[j][i] += pot_rate * (rate_list[j] * rate_list[i]);
+                inhib_matrix[i][j] += pot_rate * rate_list[j];
+                inhib_matrix[j][i] += pot_rate * rate_list[j];
             }
         }
     }
@@ -463,20 +522,15 @@ void Network::pot_inhib(double pot_rate)
     }
 }
 
-// Diagonal inhibition potentiation (used in sleep simulations)
-void Network::pot_inhib_symmetric(double pot_rate)
+void Network::pot_inhib_full_matrix(double pot_rate)
 {
     actual_sum_each_inhib = std::vector<double>(size, 0);
     for (int i = 0; i < size; ++i)
     {
         for (int j = 0; j < size; ++j)
         {
-            if (i == j)
-            {
-                double centered = symmetric_transfer ? rate_list[i] : (rate_list[i] - 0.5);
-                inhib_matrix[i][j] += pot_rate * (rate_list[j] * centered);
-                inhib_matrix[j][i] += pot_rate * (rate_list[j] * centered);
-            }
+            inhib_matrix[i][j] += pot_rate * rate_list[j] * rate_list[i];
+            inhib_matrix[j][i] += pot_rate * rate_list[j] * rate_list[i];
         }
     }
     for (int i = 0; i < size; ++i)
@@ -535,56 +589,6 @@ void Network::reset_inhib()
                 target_sum_each_inhib[j] += inhib_strenght;
                 actual_sum_each_inhib[j] += inhib_strenght;
             }
-        }
-    }
-}
-
-void Network::pot_inhib_bin(double pot_rate, std::vector<bool> winners)
-{
-    actual_sum_each_inhib = std::vector<double>(size, 0);
-    for (int i = 0; i < size; ++i)
-    {
-        for (int j = 0; j < size; ++j)
-        {
-            if (connectivity_matrix[i][j] == 1)
-            {
-                inhib_matrix[i][j] += pot_rate * (winners[j] * winners[i]);
-                inhib_matrix[j][i] += pot_rate * (winners[j] * winners[i]);
-            }
-        }
-    }
-    for (int i = 0; i < size; ++i)
-    {
-        for (int j = 0; j < size; ++j)
-        {
-            actual_sum_each_inhib[j] += inhib_matrix[i][j];
-        }
-    }
-}
-
-void Network::pot_inhib_bin_scale(double pot_rate, std::vector<bool> winners)
-{
-    actual_sum_each_inhib = std::vector<double>(size, 0);
-    for (int i = 0; i < size; ++i)
-    {
-        for (int j = 0; j < size; ++j)
-        {
-            if (connectivity_matrix[i][j] == 1)
-            {
-                if (winners[i] && winners[j])
-                {
-                    inhib_matrix[i][j] += pot_rate * (winners[j] * winners[i]) * scale_inhib[i][j];
-                    inhib_matrix[j][i] += pot_rate * (winners[j] * winners[i]) * scale_inhib[i][j];
-                    scale_inhib[i][j] += 1;
-                }
-            }
-        }
-    }
-    for (int i = 0; i < size; ++i)
-    {
-        for (int j = 0; j < size; ++j)
-        {
-            actual_sum_each_inhib[j] += inhib_matrix[i][j];
         }
     }
 }

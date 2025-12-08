@@ -466,6 +466,71 @@ def load_final_results(results_dir: Union[str, Path]) -> pd.DataFrame:
 
 
 # =============================================================================
+# Trajectory Analysis
+# =============================================================================
+
+def compute_correlations(
+    traj_list: List[np.ndarray],
+    patterns_arr: np.ndarray,
+    symmetric_transfer: bool = False
+) -> tuple[np.ndarray, List[int]]:
+    """
+    Compute correlations between network states and target patterns over time.
+
+    For symmetric transfer networks, patterns are transformed from {0,1} to {-0.5, 0.5}
+    to match the network's output range (sigmoid(x) - 0.5).
+
+    Args:
+        traj_list: List of trajectory arrays, each shape (timesteps, neurons)
+        patterns_arr: Target patterns array, shape (num_patterns, neurons), values in {0, 1}
+        symmetric_transfer: If True, transform patterns to {-0.5, 0.5} for symmetric networks
+
+    Returns:
+        correlations: Array of shape (total_timesteps, num_patterns) with correlation values
+        lengths: List of trajectory lengths (timesteps per query)
+
+    Example:
+        >>> trajectories = load_trajectories(sim_dir)
+        >>> patterns = read_patterns(sim_dir / "patterns.data")
+        >>> corr, lens = compute_correlations(trajectories, patterns, symmetric_transfer=True)
+    """
+    # Transform patterns for symmetric transfer
+    if symmetric_transfer:
+        patterns_transformed = patterns_arr - 0.5  # {0,1} -> {-0.5, 0.5}
+    else:
+        patterns_transformed = patterns_arr
+
+    all_corr = []
+    lengths = []
+
+    for traj in traj_list:
+        corr_this_query = []
+        for t in range(traj.shape[0]):
+            state = traj[t].astype(float)
+            pattern_corrs = []
+
+            for p in range(patterns_transformed.shape[0]):
+                a = state
+                b = patterns_transformed[p]
+
+                # Handle edge case: zero vectors
+                if np.allclose(a, 0) or np.allclose(b, 0):
+                    c = 0.0
+                else:
+                    # Pearson correlation: dot product / (norm_a * norm_b)
+                    c = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+                pattern_corrs.append(c)
+
+            corr_this_query.append(pattern_corrs)
+
+        all_corr.extend(corr_this_query)
+        lengths.append(len(corr_this_query))
+
+    return np.array(all_corr), lengths
+
+
+# =============================================================================
 # Binary Blob Parsing (for SQLite storage)
 # =============================================================================
 
