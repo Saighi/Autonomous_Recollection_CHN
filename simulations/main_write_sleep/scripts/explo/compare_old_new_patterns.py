@@ -10,6 +10,10 @@ Use this as a VS Code notebook (run cell by cell with #%%).
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+import sys
+
+# Add scripts directory to path (parent.parent = scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import (
     generate_patterns_old,
@@ -229,7 +233,7 @@ axes[-1].set_xlabel("Sleep time (across 3 queries)")
 axes[0].legend(loc="upper right")
 
 plt.tight_layout()
-plots_dir = Path("plots")
+plots_dir = Path(__file__).parent.parent / "plots"  # scripts/plots/
 plots_dir.mkdir(exist_ok=True)
 out_path = plots_dir / "compare_old_new_patterns.png"
 plt.savefig(out_path, dpi=300, bbox_inches="tight")

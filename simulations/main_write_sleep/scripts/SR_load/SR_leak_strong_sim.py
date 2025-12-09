@@ -11,8 +11,8 @@ import numpy as np
 from pathlib import Path
 import sys
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add scripts directory to path (parent.parent = scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import (
     setup_write_experiment,
@@ -27,12 +27,12 @@ from utils import (
 # ==========================================================================
 
 # Network and pattern parameters
-NB_REPETITION = 1 
+NB_REPETITION = 20 
 REPETITIONS = [i for i in range(1,NB_REPETITION+1)]
 NETWORK_SIZES = np.linspace(25, 250, 20, dtype=int)  # 20 values from 25 to 250
 NUM_PATTERNS = np.arange(1, 26)  # 1 to 25 patterns
-LEAK_VALUE = 1.0  # Leak parameter sweep
-SPARSITIES = np.array([0.7,0.6,0.5,0.4,0.2])  # 50% active units
+LEAK_VALUES = [2.0, 3.0, 4.0, 5.0, 6.0]  # Leak parameter sweep
+SPARSITY = 0.5  # 50% active units
 RHO = 0.5  # Pattern correlation
 
 # Training parameters
@@ -47,14 +47,14 @@ BETA = 0.1  # Inhibitory plasticity rate
 DELTA = 0.01  # Integration timestep
 NOISE_DYNAMICS = 1  # Enable stochastic noise
 STDDEV_DYNAMICS = 0.01  # Noise standard deviation
-INIT_DRIVE = 0.5  # Initial state (unused in C++ now; kept for backward compatibility)
+INIT_DRIVE = 0.5  # Initial state
 MAX_QUERIES = 200  # Maximum retrieval attempts
 STOP_ON_SPURIOUS = 1  # Stop when spurious pattern encountered
 STOP_ON_ALL_FOUND = 1  # Stop when all patterns found
 
 # Experiment names
-EXPERIMENT_NAME = "SR_sparsity_sweep"
-SLEEP_NAME = "SR_sparsity_sleep"
+EXPERIMENT_NAME = "SR_leak_strong_sweep"
+SLEEP_NAME = "SR_leak_strong_sleep"
 
 # %% [markdown]
 # ## Phase 1: Build C++ Executables
@@ -70,14 +70,14 @@ print("Build complete!\n")
 # ## Phase 2: Training Phase (Write)
 
 # %% Setup write experiment
-total_networks = len(NETWORK_SIZES) * len(NUM_PATTERNS) * len(SPARSITIES) * NB_REPETITION
+total_networks = len(NETWORK_SIZES) * len(NUM_PATTERNS) * len(LEAK_VALUES) * NB_REPETITION
 print("="*70)
 print("TRAINING PHASE")
 print("="*70)
 print(f"Number of repetitions: {NB_REPETITION}")
 print(f"Network sizes: {len(NETWORK_SIZES)} values from {NETWORK_SIZES[0]} to {NETWORK_SIZES[-1]}")
 print(f"Pattern counts: {len(NUM_PATTERNS)} values from {NUM_PATTERNS[0]} to {NUM_PATTERNS[-1]}")
-print(f"Tested sparsity: {len(SPARSITIES)} values from {SPARSITIES[0]} to {SPARSITIES[-1]}")
+print(f"Leak values: {LEAK_VALUES}")
 print(f"Total networks to train: {total_networks}")
 print("="*70 + "\n")
 
@@ -89,15 +89,15 @@ write_config = setup_write_experiment(
         "max_iter": MAX_ITER,
         "momentum_coef": MOMENTUM_COEF,
         "distance_noise_level": DISTANCE_NOISE_LEVEL,
-        "leak": LEAK_VALUE,
-        "use_old_patterns": 0.0,  # explicit new generator (parent+redraw) for sparsity sweep
+        "use_old_patterns": 1.0,  # explicit old generator (balanced flips), requires sparsity=0.5
     },
     varying_params={
         "nb_repetition" : REPETITIONS,
         "network_size": NETWORK_SIZES.tolist(),
         "num_patterns": NUM_PATTERNS.tolist(),
-        "sparsity": SPARSITIES.tolist(),
+        "sparsity": [SPARSITY],
         "rho": [RHO],
+        "leak": LEAK_VALUES,
     },
     native_pattern_generation=True
 )

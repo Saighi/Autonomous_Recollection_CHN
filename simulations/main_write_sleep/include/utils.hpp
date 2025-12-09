@@ -84,6 +84,37 @@ bool areVectorsEqual(const std::vector<bool>& v1, const std::vector<bool>& v2);
 bool comparestates(const std::vector<bool>& state1, const std::vector<bool>& state2);
 bool matchesPatternOrConverse(const std::vector<bool>& pattern1, const std::vector<bool>& pattern2);
 
+// Heterogeneous pattern generation (patterns with varying sparsities)
+// Per-pattern metadata
+struct PatternInfo {
+    int index;
+    double sparsity;   // P(0) = fraction inactive
+    int nb_active;
+};
+
+// Full metadata structure for heterogeneous patterns
+struct PatternMetadata {
+    int version = 1;
+    int num_patterns = 0;
+    int network_size = 0;
+    std::string generation_method;
+    double mean_sparsity = 0.5;
+    double sparsity_width = 0.2;
+    double rho = 0.5;
+    std::vector<PatternInfo> patterns;
+};
+
+// Generate patterns with heterogeneous sparsities (each pattern has different sparsity)
+// Uses C++-style parent/redraw algorithm:
+// 1. Generate parent pattern with P(0) = mean_sparsity
+// 2. For each pattern: sample sparsity_i ~ Uniform(mean - width/2, mean + width/2)
+// 3. Redraw k = (1-rho)*N positions using P(0) = sparsity_i
+std::pair<std::vector<std::vector<bool>>, PatternMetadata> generatePatternsHeterogeneous(
+    int K, int N, double mean_sparsity, double sparsity_width, double rho);
+
+// Write pattern metadata to JSON file
+void writePatternMetadata(const PatternMetadata& metadata, const std::string& filepath);
+
 // Pattern to state conversion
 std::vector<double> pattern_as_states(double up_rate, double down_rate, std::vector<bool> bin_pattern);
 std::vector<std::vector<double>> patterns_as_states(double up_rate, double down_rate, std::vector<std::vector<bool>> bin_patterns);

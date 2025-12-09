@@ -27,6 +27,7 @@ class JsonConfig {
 public:
     std::string type;
     std::string patterns_file;
+    std::string metadata_file;  // Optional: path to pattern_metadata.json
     std::string input_dir;
     std::string output_dir;
     bool native_pattern_generation = false;  // If true, C++ generates patterns internally
@@ -114,6 +115,8 @@ private:
                 type = parseString(content, pos);
             } else if (key == "patterns_file") {
                 patterns_file = parseString(content, pos);
+            } else if (key == "metadata_file") {
+                metadata_file = parseString(content, pos);
             } else if (key == "input_dir") {
                 input_dir = parseString(content, pos);
             } else if (key == "output_dir") {

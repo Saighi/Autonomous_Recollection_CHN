@@ -31,7 +31,8 @@ void run_sleep(
     const std::vector<std::vector<bool>>& patterns,
     const std::unordered_map<std::string, double>& inherited_params,
     const std::unordered_map<std::string, double>& sleep_params,
-    const std::string& output_dir
+    const std::string& output_dir,
+    const std::string& source_network_path  // Path to trained network (for metadata)
 ) {
     std::cout << "Sleep sim " << sim_number << std::endl;
 
@@ -72,6 +73,13 @@ void run_sleep(
     }
     patterns_file.close();
 
+    // Copy pattern metadata if it exists (for heterogeneous pattern support)
+    std::string metadata_src = source_network_path + "/pattern_metadata.json";
+    std::string metadata_dst = sim_dir + "/pattern_metadata.json";
+    if (fs::exists(metadata_src)) {
+        fs::copy_file(metadata_src, metadata_dst, fs::copy_options::overwrite_existing);
+    }
+
     // Save parameters (note: all_recovered_before_spurious will be updated later)
     params["num_patterns"] = static_cast<double>(patterns.size());
     params["all_recovered_before_spurious"] = 0.0;  // Will be updated after retrieval loop
@@ -90,9 +98,9 @@ void run_sleep(
     // Results tracking
     std::string results_path = sim_dir + "/results.data";
     std::ofstream results_file(results_path, std::ios::trunc);
-    results_file << "query_iter,nb_fnd_pat,nb_spurious,nb_iter_biased,nb_iter_free,all_recovered_before_spurious" << std::endl;
+    results_file << "query_iter,nb_fnd_pat,nb_spurious,nb_iter_biased,nb_iter_free,all_recovered_before_spurious,recovered_pattern_idx" << std::endl;
 
-    std::set<std::vector<bool>> found_patterns;
+    std::set<int> found_pattern_indices;  // Track which pattern indices were recovered
     int nb_spurious = 0;
     int query_iter = 0;
     bool all_found = false;
@@ -147,26 +155,32 @@ void run_sleep(
         // Check if retrieved pattern is in target set
         // For symmetric transfer, also accept the converse pattern (all bits flipped)
         bool pattern_found = false;
+        int recovered_pattern_idx = -1;  // -1 = spurious (not in stored set)
+
         if (symmetric_transfer) {
             // Check for exact match or converse match
-            for (const auto& pattern : patterns) {
-                if (matchesPatternOrConverse(winners, pattern)) {
+            for (size_t idx = 0; idx < patterns.size(); ++idx) {
+                if (matchesPatternOrConverse(winners, patterns[idx])) {
                     pattern_found = true;
-                    found_patterns.insert(winners);
+                    recovered_pattern_idx = static_cast<int>(idx);
+                    found_pattern_indices.insert(static_cast<int>(idx));
                     break;
                 }
             }
         } else {
             // Standard matching: exact match only
-            auto it = std::find(patterns.begin(), patterns.end(), winners);
-            if (it != patterns.end()) {
-                pattern_found = true;
-                found_patterns.insert(winners);
+            for (size_t idx = 0; idx < patterns.size(); ++idx) {
+                if (patterns[idx] == winners) {
+                    pattern_found = true;
+                    recovered_pattern_idx = static_cast<int>(idx);
+                    found_pattern_indices.insert(static_cast<int>(idx));
+                    break;
+                }
             }
         }
 
         if (pattern_found) {
-            if (found_patterns.size() == patterns.size() && !all_found) {
+            if (found_pattern_indices.size() == patterns.size() && !all_found) {
                 all_found = true;
                 first_iter_all_found = query_iter;  // Record first time all found
                 if (nb_spurious == 0) {
@@ -179,11 +193,12 @@ void run_sleep(
 
         // Log results
         results_file << query_iter << ","
-                     << found_patterns.size() << ","
+                     << found_pattern_indices.size() << ","
                      << nb_spurious << ","
                      << nb_iter_biased << ","
                      << nb_iter_free << ","
-                     << (all_recovered_before_spurious ? 1 : 0) << std::endl;
+                     << (all_recovered_before_spurious ? 1 : 0) << ","
+                     << recovered_pattern_idx << std::endl;
 
         query_iter++;
     }
@@ -195,7 +210,7 @@ void run_sleep(
     params["first_iter_all_found"] = static_cast<double>(first_iter_all_found);
     createParameterFile(sim_dir, params);
 
-    std::cout << "Sim " << sim_number << ": found " << found_patterns.size()
+    std::cout << "Sim " << sim_number << ": found " << found_pattern_indices.size()
               << "/" << patterns.size() << " patterns, "
               << nb_spurious << " spurious";
     if (all_recovered_before_spurious) {
@@ -273,7 +288,7 @@ int main(int argc, char** argv) {
 
             threads.emplace_back([=, &mtx, &cv, &active_threads] {
                 run_sleep(sim_number, weights, connectivity, patterns,
-                         inherited_params, sleep_params, config.output_dir);
+                         inherited_params, sleep_params, config.output_dir, net_path);
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     --active_threads;

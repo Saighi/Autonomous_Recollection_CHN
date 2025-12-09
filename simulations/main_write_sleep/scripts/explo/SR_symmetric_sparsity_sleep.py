@@ -15,8 +15,8 @@ import numpy as np
 from pathlib import Path
 import sys
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add scripts directory to path (parent.parent = scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import (
     setup_sleep_experiment,

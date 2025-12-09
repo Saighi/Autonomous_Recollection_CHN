@@ -578,6 +578,130 @@ bool matchesPatternOrConverse(const std::vector<bool>& pattern1, const std::vect
 }
 
 // ============================================================================
+// Heterogeneous Pattern Generation
+// ============================================================================
+
+std::pair<std::vector<std::vector<bool>>, PatternMetadata> generatePatternsHeterogeneous(
+    int K, int N, double mean_sparsity, double sparsity_width, double rho)
+{
+    // Clamp parameters to valid ranges
+    if (mean_sparsity < 0.0) mean_sparsity = 0.0;
+    else if (mean_sparsity > 1.0) mean_sparsity = 1.0;
+
+    if (rho < 0.0) rho = 0.0;
+    else if (rho > 1.0) rho = 1.0;
+
+    // Generate parent pattern with P(0) = mean_sparsity
+    std::vector<bool> parent(N, false);
+    for (int i = 0; i < N; ++i)
+    {
+        double u = static_cast<double>(rand()) / (static_cast<double>(RAND_MAX) + 1.0);
+        parent[i] = (u >= mean_sparsity);  // P(1) = 1 - mean_sparsity
+    }
+
+    // Number of positions to redraw per pattern
+    int k = static_cast<int>((1.0 - rho) * N);
+    if (k < 0) k = 0;
+    else if (k > N) k = N;
+
+    std::vector<std::vector<bool>> patterns;
+    PatternMetadata metadata;
+    metadata.num_patterns = K;
+    metadata.network_size = N;
+    metadata.generation_method = "heterogeneous";
+    metadata.mean_sparsity = mean_sparsity;
+    metadata.sparsity_width = sparsity_width;
+    metadata.rho = rho;
+
+    while (static_cast<int>(patterns.size()) < K)
+    {
+        // Sample sparsity for this pattern from Uniform(mean - width/2, mean + width/2)
+        double u_width = static_cast<double>(rand()) / (static_cast<double>(RAND_MAX) + 1.0);
+        double s_i = mean_sparsity + (u_width - 0.5) * sparsity_width;
+        // Clamp to valid range
+        if (s_i < 0.01) s_i = 0.01;
+        else if (s_i > 0.99) s_i = 0.99;
+
+        // Start from parent
+        std::vector<bool> pattern = parent;
+
+        // Choose k distinct indices to redraw
+        if (k > 0)
+        {
+            std::unordered_set<int> indices;
+            while (static_cast<int>(indices.size()) < k)
+            {
+                indices.insert(rand() % N);
+            }
+
+            // Redraw bits at those indices with P(0) = s_i
+            for (int idx : indices)
+            {
+                double u = static_cast<double>(rand()) / (static_cast<double>(RAND_MAX) + 1.0);
+                pattern[idx] = (u >= s_i);
+            }
+        }
+
+        // Check uniqueness
+        if (!patternExists(patterns, pattern))
+        {
+            patterns.push_back(std::move(pattern));
+
+            // Compute actual sparsity from the pattern we just added
+            int nb_active = 0;
+            for (bool b : patterns.back())
+            {
+                if (b) nb_active++;
+            }
+            double actual_sparsity = 1.0 - static_cast<double>(nb_active) / N;
+
+            PatternInfo info;
+            info.index = static_cast<int>(patterns.size()) - 1;
+            info.sparsity = actual_sparsity;
+            info.nb_active = nb_active;
+            metadata.patterns.push_back(info);
+        }
+    }
+
+    return {patterns, metadata};
+}
+
+void writePatternMetadata(const PatternMetadata& metadata, const std::string& filepath)
+{
+    std::ofstream file(filepath);
+    if (!file.is_open())
+    {
+        std::cerr << "Warning: Could not open " << filepath << " for writing metadata" << std::endl;
+        return;
+    }
+
+    file << "{\n";
+    file << "  \"version\": " << metadata.version << ",\n";
+    file << "  \"num_patterns\": " << metadata.num_patterns << ",\n";
+    file << "  \"network_size\": " << metadata.network_size << ",\n";
+    file << "  \"generation_method\": \"" << metadata.generation_method << "\",\n";
+    file << "  \"global_params\": {\n";
+    file << "    \"mean_sparsity\": " << metadata.mean_sparsity << ",\n";
+    file << "    \"sparsity_width\": " << metadata.sparsity_width << ",\n";
+    file << "    \"rho\": " << metadata.rho << "\n";
+    file << "  },\n";
+    file << "  \"patterns\": [\n";
+    for (size_t i = 0; i < metadata.patterns.size(); ++i)
+    {
+        const auto& p = metadata.patterns[i];
+        file << "    {\"index\": " << p.index
+             << ", \"sparsity\": " << p.sparsity
+             << ", \"nb_active\": " << p.nb_active << "}";
+        if (i < metadata.patterns.size() - 1) file << ",";
+        file << "\n";
+    }
+    file << "  ]\n";
+    file << "}\n";
+
+    file.close();
+}
+
+// ============================================================================
 // Pattern to State Conversion
 // ============================================================================
 

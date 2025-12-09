@@ -115,6 +115,157 @@ def generate_patterns(k: int, n: int, sparsity: float = 0.5, rho: float = 0.5) -
     return generate_patterns_old(k, n, sparsity=sparsity, rho=rho)
 
 
+def generate_patterns_heterogeneous(
+    k: int,
+    n: int,
+    mean_sparsity: float = 0.5,
+    sparsity_width: float = 0.2,
+    rho: float = 0.5
+) -> tuple[np.ndarray, List[Dict[str, Any]]]:
+    """
+    Generate patterns with heterogeneous sparsities using new generator algorithm.
+
+    Each pattern i:
+    1. Sample sparsity_i ~ Uniform(mean - width/2, mean + width/2)
+    2. Generate pattern with P(0)=sparsity_i, P(1)=1-sparsity_i
+    3. For correlation: use shared "core" bits based on rho
+
+    Sparsity = P(0) = fraction of INACTIVE units (new convention).
+    Example: mean_sparsity=0.8 with width=0.2 → sparsities in [0.7, 0.9]
+             meaning 10-30% of units are active.
+
+    Args:
+        k: Number of patterns to generate
+        n: Network size (neurons)
+        mean_sparsity: Center of sparsity distribution
+        sparsity_width: Full width of uniform distribution around mean
+        rho: Pattern correlation (controls how many bits are shared)
+
+    Returns:
+        patterns: np.ndarray of shape (k, n) with dtype=bool
+        per_pattern_metadata: List of dicts with per-pattern info
+            Each dict has: {"index": int, "sparsity": float, "nb_active": int}
+    """
+    # Clamp parameters
+    mean_s = float(np.clip(mean_sparsity, 0.0, 1.0))
+    half_width = sparsity_width / 2.0
+    r = float(np.clip(rho, 0.0, 1.0))
+
+    # Compute number of "core" positions that stay constant (based on rho)
+    n_core = int(r * n)
+    n_variable = n - n_core
+
+    # Generate core pattern at mean sparsity
+    core_pattern = (np.random.rand(n_core) > mean_s) if n_core > 0 else np.array([], dtype=bool)
+
+    patterns = []
+    per_pattern_metadata = []
+    seen = set()
+
+    while len(patterns) < k:
+        # Sample sparsity for this pattern
+        s_i = mean_s + np.random.uniform(-half_width, half_width)
+        s_i = float(np.clip(s_i, 0.01, 0.99))  # Avoid degenerate patterns
+
+        # Generate variable portion with this pattern's sparsity
+        variable_part = (np.random.rand(n_variable) > s_i) if n_variable > 0 else np.array([], dtype=bool)
+
+        # Combine core and variable parts
+        pattern = np.concatenate([core_pattern, variable_part])
+
+        # Shuffle to avoid positional artifacts
+        np.random.shuffle(pattern)
+
+        key = tuple(pattern.tolist())
+        if key not in seen:
+            seen.add(key)
+            patterns.append(pattern)
+
+            # Compute actual sparsity (fraction of zeros)
+            nb_active = int(pattern.sum())
+            actual_sparsity = 1.0 - (nb_active / n)
+
+            per_pattern_metadata.append({
+                "index": len(patterns) - 1,
+                "sparsity": actual_sparsity,
+                "nb_active": nb_active
+            })
+
+    return np.array(patterns, dtype=bool), per_pattern_metadata
+
+
+# =============================================================================
+# Pattern Metadata I/O
+# =============================================================================
+
+def write_pattern_metadata(metadata: Dict[str, Any], filepath: Union[str, Path]) -> None:
+    """Write pattern metadata to JSON file."""
+    filepath = Path(filepath)
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    with open(filepath, 'w') as f:
+        json.dump(metadata, f, indent=2)
+
+
+def read_pattern_metadata(filepath: Union[str, Path]) -> Optional[Dict[str, Any]]:
+    """
+    Read pattern metadata from JSON file.
+
+    Returns None if file doesn't exist (for backward compatibility).
+    """
+    filepath = Path(filepath)
+    if not filepath.exists():
+        return None
+    with open(filepath, 'r') as f:
+        return json.load(f)
+
+
+def create_pattern_metadata(
+    patterns: np.ndarray,
+    generation_params: Optional[Dict[str, Any]] = None,
+    per_pattern_data: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    """
+    Create metadata dict from patterns array.
+
+    If per_pattern_data is None, computes sparsity from patterns.
+    This allows backward-compatible metadata generation for existing patterns.
+
+    Args:
+        patterns: Pattern array (num_patterns x network_size)
+        generation_params: Optional dict with generation parameters
+            (e.g., {"method": "heterogeneous", "mean_sparsity": 0.5, ...})
+        per_pattern_data: Optional list of per-pattern dicts
+            (if None, computed from patterns)
+
+    Returns:
+        Metadata dict ready for JSON serialization
+    """
+    num_patterns, network_size = patterns.shape
+
+    # Generate per-pattern data if not provided
+    if per_pattern_data is None:
+        per_pattern_data = []
+        for i in range(num_patterns):
+            nb_active = int(patterns[i].sum())
+            sparsity = 1.0 - (nb_active / network_size)  # P(0) convention
+            per_pattern_data.append({
+                "index": i,
+                "sparsity": sparsity,
+                "nb_active": nb_active
+            })
+
+    metadata = {
+        "version": 1,
+        "num_patterns": num_patterns,
+        "network_size": network_size,
+        "generation_method": generation_params.get("method", "unknown") if generation_params else "unknown",
+        "global_params": generation_params or {},
+        "patterns": per_pattern_data
+    }
+
+    return metadata
+
+
 # =============================================================================
 # File I/O (C++ compatible formats)
 # =============================================================================
@@ -175,6 +326,7 @@ def read_parameters(filepath: Union[str, Path]) -> Dict[str, float]:
 def setup_write_experiment(
     name: str,
     patterns: Optional[np.ndarray] = None,
+    pattern_metadata: Optional[Dict[str, Any]] = None,
     params: Optional[Dict[str, Any]] = None,
     varying_params: Optional[Dict[str, List]] = None,
     output_dir: Optional[Path] = None,
@@ -188,6 +340,8 @@ def setup_write_experiment(
         name: Experiment name
         patterns: Binary patterns to store (n_patterns x network_size).
                   Required if native_pattern_generation=False.
+        pattern_metadata: Optional metadata dict for patterns (from create_pattern_metadata).
+                          If provided, will be saved alongside patterns for later use.
         params: Base simulation parameters
         varying_params: Parameters to sweep {param_name: [values]}
         output_dir: Where to save (default: data/trained_networks/name)
@@ -210,8 +364,22 @@ def setup_write_experiment(
     # Validation based on mode
     if native_pattern_generation:
         # Check required parameters exist
-        required = ["network_size", "num_patterns", "sparsity", "rho"]
         all_params = set(params.keys()) | set(varying_params.keys())
+
+        # Basic required params
+        required = ["network_size", "num_patterns"]
+
+        # Check if heterogeneous mode
+        use_heterogeneous = params.get("use_heterogeneous_sparsity", 0) > 0.5
+
+        if use_heterogeneous:
+            # Heterogeneous mode: mean_sparsity and sparsity_width have defaults
+            # rho also has a default, so no additional required params
+            pass
+        else:
+            # Fixed sparsity mode: sparsity is required
+            required.append("sparsity")
+
         missing = [p for p in required if p not in all_params]
         if missing:
             raise ValueError(
@@ -279,6 +447,12 @@ def setup_write_experiment(
 
         # Save patterns
         write_patterns(patterns, config_dir / "patterns.data")
+
+        # Save pattern metadata if provided
+        if pattern_metadata is not None:
+            metadata_path = config_dir / "pattern_metadata.json"
+            write_pattern_metadata(pattern_metadata, metadata_path)
+            config["metadata_file"] = str(metadata_path)
 
     # Save config
     config_path = config_dir / "config.json"

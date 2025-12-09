@@ -6,7 +6,6 @@
 # Creates heatmap visualizations showing:
 # - % simulations with successful recovery (all patterns before spurious)
 # - First iteration where all patterns were recovered
-
 # %% Imports
 import numpy as np
 import pandas as pd
@@ -16,8 +15,8 @@ import matplotlib as mpl
 from pathlib import Path
 import sys
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add scripts directory to path (parent.parent = scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import load_results, load_final_results, DATA_DIR
 
@@ -26,20 +25,23 @@ from utils import load_results, load_final_results, DATA_DIR
 # ==========================================================================
 
 # Experiment name (must match SR_leak_sim.py)
-SLEEP_NAME = "SR_leak_sleep"
+# SLEEP_NAME = "SR_leak_sleep"
+# SLEEP_NAME = "SR_leak_strong_sleep"
 # SLEEP_NAME = "SR_sparsity_sleep"
-
+SLEEP_NAME = "SR_heterogeneous_sparsity_sleep"
 
 # Visualization parameters
-PARAM_NAME = "leak"  # Parameter that varies
-PARAM_LATEX_SYMBOL = r"\lambda"  # LaTeX symbol for the parameter
+# PARAM_NAME = "leak"  # Parameter that varies
+# PARAM_LATEX_SYMBOL = r"\lambda"  # LaTeX symbol for the parameter
 # PARAM_NAME = "sparsity"  # Parameter that varies
 # PARAM_LATEX_SYMBOL = "s"  # LaTeX symbol for the parameter
+PARAM_NAME = "sparsity_width"  # Parameter that varies
+PARAM_LATEX_SYMBOL = r"{\DWelta}{s}"  # LaTeX symbol for the parameter
 VALUES_TO_PLOT = None  # None = plot all values, or specify list like [0.25, 0.5, 1.0]
 
 # Plot settings
 SAVE_PLOTS = True
-OUTPUT_DIR = Path("plots")
+OUTPUT_DIR = Path(__file__).parent.parent / "plots"  # scripts/plots/
 DPI = 300
 
 # %% Styling

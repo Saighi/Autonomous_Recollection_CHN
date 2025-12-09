@@ -11,6 +11,10 @@ Run this as a VS Code notebook with #%% cells.
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+import sys
+
+# Add scripts directory to path (parent.parent = scripts/)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import (
     generate_patterns_new,
@@ -200,7 +204,7 @@ corr_sym_no_inhib, lengths_sym_no_inhib = compute_correlations(traj_sym_no_inhib
 
 # %% Plot comparison of recovery - Standard transfer
 
-plots_dir = Path("scripts/plots")
+plots_dir = Path(__file__).parent.parent / "plots"  # scripts/plots/
 plots_dir.mkdir(parents=True, exist_ok=True)
 
 fig, ax = plt.subplots(1, 1, figsize=(10, 6))
