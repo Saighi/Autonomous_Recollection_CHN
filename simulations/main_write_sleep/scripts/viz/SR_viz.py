@@ -36,7 +36,7 @@ SLEEP_NAME = "SR_heterogeneous_sparsity_sleep"
 # PARAM_NAME = "sparsity"  # Parameter that varies
 # PARAM_LATEX_SYMBOL = "s"  # LaTeX symbol for the parameter
 PARAM_NAME = "sparsity_width"  # Parameter that varies
-PARAM_LATEX_SYMBOL = r"{\DWelta}{s}"  # LaTeX symbol for the parameter
+PARAM_LATEX_SYMBOL = r"{\Delta}{s}"  # LaTeX symbol for the parameter
 VALUES_TO_PLOT = None  # None = plot all values, or specify list like [0.25, 0.5, 1.0]
 
 # Plot settings

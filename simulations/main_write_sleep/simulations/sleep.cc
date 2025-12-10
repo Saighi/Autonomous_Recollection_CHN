@@ -57,6 +57,7 @@ void run_sleep(
     bool symmetric_transfer = params.count("symmetric_transfer") ? params.at("symmetric_transfer") > 0.5 : false;
     bool use_inhibition_plasticity = params.count("use_inhibition_plasticity") ? params.at("use_inhibition_plasticity") > 0.5 : true;
     bool use_full_inhibition = params.count("use_full_inhibition") ? params.at("use_full_inhibition") > 0.5 : false;
+    bool save_inhibition_matrices = params.count("save_inhibition_matrices") ? params.at("save_inhibition_matrices") > 0.5 : false;
 
     // Create simulation output directory
     std::string sim_dir = output_dir + "/sim_nb_" + std::to_string(sim_number);
@@ -149,6 +150,11 @@ void run_sleep(
                 net.pot_inhib_full_matrix(beta);
             } else {
                 net.pot_inhib_diag(beta);
+            }
+            // Save inhibition matrix if requested
+            if (save_inhibition_matrices) {
+                std::string inhib_path = sim_dir + "/inhib_matrix_iter_" + std::to_string(query_iter) + ".data";
+                writeMatrixToFile(net.inhib_matrix, inhib_path);
             }
         }
 

@@ -146,3 +146,81 @@ data/
 - `bin/write` - Generic training, reads JSON config
 - `bin/sleep` - Generic sleep, reads JSON config
 - `bin/write_leak`, `bin/sleep_leak` - Original hardcoded versions
+
+## Heterogeneous Sparsity (C++ Native Pattern Generation)
+
+### Overview
+
+The framework supports generating patterns with **heterogeneous sparsities** (different patterns have different sparsity levels) natively in C++, enabling better parallelization for large-scale experiments.
+
+### Usage in Python
+
+```python
+# Enable C++ native heterogeneous generation
+write_config = setup_write_experiment(
+    name="my_experiment",
+    patterns=None,  # Don't provide patterns - C++ will generate them
+    pattern_metadata=None,  # C++ will generate metadata too
+    params={
+        "use_heterogeneous_sparsity": 1,  # Enable heterogeneous mode
+        "mean_sparsity": 0.5,              # Center of distribution (P(0) convention)
+        "sparsity_width": 0.4,             # Full width (sparsities in [0.3, 0.7])
+        "rho": 0.3,                        # Pattern correlation
+        # ... other training params
+    },
+    varying_params={
+        "network_size": [200, 250, 300],
+        "num_patterns": [5, 8, 11],
+        # ... other swept params
+    },
+    native_pattern_generation=True  # Enable C++ native generation
+)
+```
+
+### Key Parameters
+
+- `use_heterogeneous_sparsity`: Set to 1 to enable heterogeneous mode (0 = uniform sparsity)
+- `mean_sparsity`: Center of sparsity distribution using P(0) convention (fraction inactive)
+- `sparsity_width`: Full width of uniform distribution (e.g., 0.4 → range [0.3, 0.7])
+- Pattern sparsities are uniformly distributed: `[mean - width/2, mean + width/2]`
+
+### Pattern Metadata
+
+C++ writes `pattern_metadata.json` containing per-pattern sparsity values:
+
+```json
+{
+  "patterns": [
+    {"index": 0, "sparsity": 0.32, "nb_active": 170},
+    {"index": 1, "sparsity": 0.58, "nb_active": 105},
+    ...
+  ]
+}
+```
+
+Load in Python using:
+```python
+from utils import read_pattern_metadata
+metadata = read_pattern_metadata(sim_dir / "pattern_metadata.json")
+```
+
+### Script Organization
+
+```
+scripts/
+├── SR_load/              # Large parameter sweep scripts (legacy location)
+├── explo/                # Exploratory combined scripts (simulation + viz)
+├── recovery_cinematic/   # Simulation-only scripts (data generation)
+└── viz/                  # Visualization-only scripts (plotting)
+```
+
+**Recommended pattern**: Separate simulation and visualization:
+- Put data generation in `recovery_cinematic/` (runs C++ simulations)
+- Put plotting in `viz/` (loads results, creates figures)
+
+### Example Scripts
+
+- `scripts/explo/heterogeneous_sparsity_native.py` - Single config demo with visualization
+- `scripts/recovery_cinematic/heterogeneous_nb_query_sim.py` - Multi-config sweep (200 reps)
+- `scripts/viz/heterogeneous_nb_query_viz.py` - Plots query number vs sparsity
+- `scripts/SR_heterogeneous_sparsity_sim.py` - Large sweep varying sparsity_width

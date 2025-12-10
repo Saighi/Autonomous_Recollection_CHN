@@ -1,0 +1,10 @@
+I want a script in explo which take a network of 
+size 200 and stores 5 patterns and then calculate the push 
+toward each stored from the neutral state, so I guess it would be 
+the projection of the vector pointing toward the patterns on the derivative 
+of the network at the neutral state with a good looking normalization.
+
+then display theses 5 derivative with the appropriate scale
+and plot make the plot good looking with large enough axis and text and all.
+
+everything should be rigourous and good looking enough to go into a thesis. use the kind of formattage I have in the SR_viz for the font text size and all.
