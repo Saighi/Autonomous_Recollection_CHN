@@ -59,7 +59,7 @@ plt.rcParams.update({
 
 # %% Generate patterns with heterogeneous sparsities
 sparsities = [0.40, 0.45, 0.50, 0.55, 0.60]
-N = 200
+N = 600
 M = len(sparsities)
 
 # Generate each pattern with its specific sparsity (sparsity = fraction of active units)
@@ -87,9 +87,6 @@ W = np.loadtxt(sim_dir / "weights.data")
 X = np.loadtxt(sim_dir / "patterns.data")
 v_N = np.ones(N) * 0.5
 
-# Create x-axis labels with sparsity values
-sparsity_labels = [f'{s:.2f}' for s in sparsities]
-
 # Network derivative at neutral state
 sigma = lambda x: 1.0 / (1.0 + np.exp(-x))
 f = -v_N + sigma(W @ v_N)
@@ -104,16 +101,20 @@ print("Push values at neutral state (heterogeneous sparsities):")
 for mu in range(M):
     print(f"  Pattern {mu} (s={sparsities[mu]:.2f}): P_{mu} = {P[mu]:.4f}")
 
-# %% Plot push vs sparsity
+# %% Plot push vs pattern index with sparsity annotations
 fig, ax = plt.subplots(figsize=(8, 4))
 
-ax.bar(range(M), P, facecolor='white', edgecolor='black', linewidth=2.5, width=0.6)
+bars = ax.bar(range(M), P, facecolor='white', edgecolor='black', linewidth=2.5, width=0.6)
 ax.axhline(0, color='black', linewidth=1.5)
 
-ax.set_xlabel(r'Sparsity $s$')
+# Add sparsity annotations above each bar
+for mu, (bar, s) in enumerate(zip(bars, sparsities)):
+    ax.annotate(f'$s$={s:.2f}', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                xytext=(0, 5), textcoords='offset points', ha='center', va='bottom', fontsize=15)
+
+ax.set_xlabel(r'Pattern index $\mu$')
 ax.set_ylabel(r'Push $P_\mu$')
 ax.set_xticks(range(M))
-ax.set_xticklabels(sparsity_labels)
 ax.tick_params(axis='both', which='both', bottom=True, left=True, top=False, right=False)
 
 for spine in ['bottom', 'left']:
@@ -176,7 +177,7 @@ sleep_config = setup_sleep_experiment(
     name="pattern_push_heterogeneous",
     trained_networks_dir=DATA_DIR / "trained_networks" / "pattern_push_heterogeneous",
     params={
-        "beta": 0.1, "delta": 0.01, "max_queries": M,
+        "beta": 0.15, "delta": 0.01, "max_queries": M,
         "stop_on_spurious": 0, "stop_on_all_found": 0,
         "save_inhibition_matrices": 1
     }
@@ -224,9 +225,11 @@ for t in range(num_iters):
     for spine in ['top', 'right']:
         ax.spines[spine].set_visible(False)
 
-axes[-1].set_xlabel(r'Sparsity $s$', fontsize=16)
+# Two-line x-tick labels: pattern index with sparsity below
+xtick_labels = [f'{mu}\n$(s={sparsities[mu]:.2f})$' for mu in range(M)]
+axes[-1].set_xlabel(r'Pattern index $\mu$', fontsize=16)
 axes[-1].set_xticks(range(M))
-axes[-1].set_xticklabels(sparsity_labels)
+axes[-1].set_xticklabels(xtick_labels, fontsize=12)
 plt.tight_layout()
 plt.savefig(PLOTS_DIR / 'pattern_push_heterogeneous_AR_evolution.png', dpi=300, bbox_inches='tight')
 print(f"Saved to {PLOTS_DIR / 'pattern_push_heterogeneous_AR_evolution.png'}")
