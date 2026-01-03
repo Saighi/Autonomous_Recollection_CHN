@@ -54,7 +54,7 @@ STOP_ON_ALL_FOUND = 1  # Stop when all patterns found
 
 # Experiment names
 EXPERIMENT_NAME = "SR_sparsity_sweep"
-SLEEP_NAME = "SR_sparsity_sleep"
+SLEEP_NAME = "SR_sparsity_sleep_small"
 
 # %% [markdown]
 # ## Phase 1: Build C++ Executables

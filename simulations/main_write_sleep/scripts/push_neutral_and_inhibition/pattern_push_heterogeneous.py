@@ -20,7 +20,7 @@ plt.rcParams['text.usetex'] = True
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = ['Times']
 plt.rcParams.update({
-    'font.size': 20,
+    'font.size': 25,
     'axes.labelsize': 30,
     'axes.titlesize': 30,
     'xtick.labelsize': 25,
@@ -229,11 +229,11 @@ from utils import list_simulations, build
 from tqdm import tqdm
 
 LOADS = [4, 6, 8]
-NB_REPETITIONS = 5
+NB_REPETITIONS = 30
 SPARSITY_MIN = 0.3
 SPARSITY_MAX = 0.7
 MAX_QUERIES_STATS = 200
-N = 600
+N = 200
 EXPERIMENT_NAME_STATS = "pattern_push_heterogeneous_stats"
 
 # %% Build C++ executables
