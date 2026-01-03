@@ -41,8 +41,17 @@ void run_training(
     bool has_generated_metadata = false;
 
     if (native_mode) {
-        // Seed random per-thread for unique patterns
-        srand(static_cast<unsigned>(time(nullptr)) ^ (sim_number * 1000));
+        // Seed random with deterministic value from config's seed parameter
+        // This ensures reproducible results across runs
+        unsigned int seed_value;
+        if (params.count("seed")) {
+            // Use seed from config (set via varying_params)
+            seed_value = static_cast<unsigned int>(params.at("seed"));
+        } else {
+            // Fallback: use sim_number for unique patterns
+            seed_value = static_cast<unsigned int>(sim_number);
+        }
+        srand(seed_value);
 
         int network_size = static_cast<int>(params.at("network_size"));
         int num_patterns = static_cast<int>(params.at("num_patterns"));

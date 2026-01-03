@@ -504,6 +504,107 @@ std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, d
     return patterns;
 }
 
+// Thread-safe version using explicit random number generator
+std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho, bool use_old_patterns, std::mt19937& rng)
+{
+    // Clamp rho
+    if (rho < 0.0) rho = 0.0;
+    else if (rho > 1.0) rho = 1.0;
+
+    std::vector<std::vector<bool>> patterns;
+    patterns.reserve(static_cast<size_t>(K));
+
+    // Distributions for thread-safe random number generation
+    std::uniform_real_distribution<double> uniform_01(0.0, 1.0);
+
+    if (use_old_patterns)
+    {
+        // ---------------- OLD MODE ----------------
+        const double tol = 1e-6;
+        if (std::abs(sparsity - 0.5) > tol) sparsity = 0.5;
+
+        int nb_winners = std::max(1, static_cast<int>(sparsity * N));
+        int numFlips = static_cast<int>((1.0 - rho) * nb_winners);
+
+        std::vector<bool> base(N, false);
+        for (int i = 0; i < nb_winners; ++i) base[i] = true;
+
+        while (patterns.size() < static_cast<size_t>(K))
+        {
+            std::vector<bool> pattern = base;
+
+            for (int f = 0; f < numFlips; ++f)
+            {
+                std::vector<int> ones, zeros;
+                ones.reserve(N);
+                zeros.reserve(N);
+                for (int i = 0; i < N; ++i)
+                {
+                    if (pattern[i]) ones.push_back(i);
+                    else zeros.push_back(i);
+                }
+                if (!ones.empty() && !zeros.empty())
+                {
+                    std::uniform_int_distribution<int> dist_ones(0, static_cast<int>(ones.size()) - 1);
+                    std::uniform_int_distribution<int> dist_zeros(0, static_cast<int>(zeros.size()) - 1);
+                    int idx_one = ones[dist_ones(rng)];
+                    int idx_zero = zeros[dist_zeros(rng)];
+                    pattern[idx_one] = false;
+                    pattern[idx_zero] = true;
+                }
+            }
+
+            if (!patternExists(patterns, pattern))
+                patterns.push_back(std::move(pattern));
+        }
+    }
+    else
+    {
+        // ---------------- NEW MODE ----------------
+        if (sparsity < 0.0) sparsity = 0.0;
+        else if (sparsity > 1.0) sparsity = 1.0;
+
+        // Step 1: generate parent pattern
+        std::vector<bool> parent(N, false);
+        for (int i = 0; i < N; ++i)
+        {
+            double u = uniform_01(rng);
+            parent[i] = (u >= sparsity);
+        }
+
+        int k = static_cast<int>((1.0 - rho) * N);
+        if (k < 0) k = 0;
+        else if (k > N) k = N;
+
+        std::uniform_int_distribution<int> dist_N(0, N - 1);
+
+        while (patterns.size() < static_cast<size_t>(K))
+        {
+            std::vector<bool> pattern = parent;
+
+            if (k > 0)
+            {
+                std::unordered_set<int> indices;
+                while (static_cast<int>(indices.size()) < k)
+                {
+                    indices.insert(dist_N(rng));
+                }
+
+                for (int idx : indices)
+                {
+                    double u = uniform_01(rng);
+                    pattern[idx] = (u >= sparsity);
+                }
+            }
+
+            if (!patternExists(patterns, pattern))
+                patterns.push_back(std::move(pattern));
+        }
+    }
+
+    return patterns;
+}
+
 std::vector<std::vector<bool>> loadPatterns(const std::string& filename)
 {
     std::ifstream file(filename);

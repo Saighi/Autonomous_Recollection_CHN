@@ -8,3 +8,34 @@ then display theses 5 derivative with the appropriate scale
 and plot make the plot good looking with large enough axis and text and all.
 
 everything should be rigourous and good looking enough to go into a thesis. use the kind of formattage I have in the SR_viz for the font text size and all.
+
+#New prompt
+
+Ok no it seems that the average trend is not very informative (except for beta).
+We will adopt another approach.
+in a new script in explo.
+We will do historagmes for both the average number of revisit of the same pattern in a given simulation (averaged over all patterns). the histogram is the count over all X=20 simulations.
+And the same for the number of iteration before hitting a spurious pattern.
+
+instead of testing for 8 number of pattern we will do sub plots with in row :
+6,8,10,12 patterns
+in collumn
+the beta values we where using
+so we have 4*3 histograms for both the average number of revisit of the same pattern and the nb of iteration before hitting a spurious pattern.
+
+The style should closely fit with the pattern_push_analyis. and rest of the code base, it shoud be thesis redy figures, you should stop simulations at spurious or all recovered.
+
+# NEW PROMPT
+
+ok now, we will add a script allowing a small quantification of the impact of push on the retrieval probability of patterns.
+You can check the scripts.
+
+So for 4 different correlation between patterns (use appropriate value you can check in the code base what I use usually) and 4 load (5,7,9,11) for a network of size 200 we perform AR, compute the push toward pattern (as done in the pattern push analyis), rank pattern based on there push and see which pattern at each rand has been visited. we do taht over 50 networks/simulation, then we normalize thes values and we can have a bar chart subplot of size 4*4 with the probability averaged for the 50 simulations during the whole AR. AR should stop at first spurious pattern or all recovered. copy the stille closely of pattern_push_heterogeneous. the figures should be thesis ready.
+
+Add a 4*4 figure sub plot which shows in average how the probability to go toward the pattern with most push evolve accross iterations of AR, to see if the algorithm becomes less deterministic as we explore the stored patterns.
+
+sparsity is 0.5 in all of this.
+
+Do some extensive markdwons indication about what you but dont comment the result yet as you dont have them. 
+
+put the script in push_neutral_and_inhibition

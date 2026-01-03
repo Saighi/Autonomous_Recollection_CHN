@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <cstdint>
+#include <random>
 
 // Configuration struct for simulation runs (from sleep version)
 struct SimulationConfig {
@@ -78,6 +79,8 @@ std::vector<double> generateEvenlySpacedIntegers(int a, int b, int n);
 // use_old_patterns: if true, use legacy balanced-flip generator (expects sparsity ~= 0.5)
 //                   if false, use parent+redraw generator with sparsity = P(x_i = 0)
 std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho, bool use_old_patterns);
+// Thread-safe version with explicit random number generator
+std::vector<std::vector<bool>> generatePatterns(int K, int N, double sparsity, double rho, bool use_old_patterns, std::mt19937& rng);
 std::vector<std::vector<bool>> loadPatterns(const std::string& filename);
 bool patternExists(const std::vector<std::vector<bool>>& patterns, const std::vector<bool>& pattern);
 bool areVectorsEqual(const std::vector<bool>& v1, const std::vector<bool>& v2);
@@ -111,6 +114,9 @@ struct PatternMetadata {
 // 3. Redraw k = (1-rho)*N positions using P(0) = sparsity_i
 std::pair<std::vector<std::vector<bool>>, PatternMetadata> generatePatternsHeterogeneous(
     int K, int N, double mean_sparsity, double sparsity_width, double rho);
+// Thread-safe version with explicit random number generator
+std::pair<std::vector<std::vector<bool>>, PatternMetadata> generatePatternsHeterogeneous(
+    int K, int N, double mean_sparsity, double sparsity_width, double rho, std::mt19937& rng);
 
 // Write pattern metadata to JSON file
 void writePatternMetadata(const PatternMetadata& metadata, const std::string& filepath);
