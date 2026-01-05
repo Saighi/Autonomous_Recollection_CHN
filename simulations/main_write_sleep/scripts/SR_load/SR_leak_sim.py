@@ -27,7 +27,7 @@ from utils import (
 # ==========================================================================
 
 # Network and pattern parameters
-NB_REPETITION = 20 
+NB_REPETITION = 2 
 REPETITIONS = [i for i in range(1,NB_REPETITION+1)]
 NETWORK_SIZES = np.linspace(25, 250, 20, dtype=int)  # 20 values from 25 to 250
 NUM_PATTERNS = np.arange(1, 26)  # 1 to 25 patterns
