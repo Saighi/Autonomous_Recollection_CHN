@@ -971,3 +971,151 @@ def _cleanup_sim_folders(results_dir: Path):
         shutil.rmtree(sim_dir)
 
     print(f"Removed {len(sim_dirs)} simulation folders")
+
+
+# =============================================================================
+# Visualization Utilities
+# =============================================================================
+
+def plot_density_3d_bw(data_dict, xlabel='Value', ylabel='Parameter', zlabel='Probability density',
+                       depth_spacing=1.0, alpha=0.6, n_points=200,
+                       bandwidth=None, view_elev=20, view_azim=60,
+                       figsize=(10, 8), xlim=None):
+    """
+    3D density plot with black/white styling for comparing distributions.
+
+    Creates a 3D visualization where each parameter value gets its own
+    density curve, stacked along the y-axis for visual comparison.
+
+    Parameters:
+    -----------
+    data_dict : dict
+        Mapping of labels (floats/ints) to data arrays.
+        Example: {0.5: weights_array_05, 1.0: weights_array_10, ...}
+    xlabel : str
+        X-axis label (the measured quantity)
+    ylabel : str
+        Y-axis label (the parameter being varied)
+    depth_spacing : float
+        Spacing between density curves along y-axis
+    alpha : float
+        Fill transparency (0=transparent, 1=opaque)
+    n_points : int
+        Number of points for density curve smoothness
+    bandwidth : float, optional
+        KDE bandwidth. Options:
+        - None: Use scipy's default (Scott's rule)
+        - 'scott': Scott's rule
+        - 'silverman': Silverman's rule
+        - float: Manual bandwidth value
+    view_elev, view_azim : float
+        3D viewing angles (elevation and azimuth in degrees)
+    figsize : tuple
+        Figure size (width, height)
+    xlim : tuple, optional
+        X-axis limits as (min, max). If None, auto-computed from data.
+
+    Returns:
+    --------
+    fig, ax : matplotlib figure and 3D axis
+    """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+    from scipy.stats import gaussian_kde
+
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Sort by label for consistent ordering
+    sorted_items = sorted(data_dict.items(), key=lambda x: x[0])
+    labels = [item[0] for item in sorted_items]
+    datasets = [item[1] for item in sorted_items]
+
+    n_curves = len(sorted_items)
+
+    # Find global x-range for consistent axis
+    if xlim is not None:
+        x_plot_min, x_plot_max = xlim
+    else:
+        all_data = np.concatenate(datasets)
+        x_min, x_max = all_data.min(), all_data.max()
+        x_range = x_max - x_min
+        x_plot_min = x_min - 0.1 * x_range
+        x_plot_max = x_max + 0.1 * x_range
+    x_points = np.linspace(x_plot_min, x_plot_max, n_points)
+
+    max_density = 0
+
+    for i, (label, data) in enumerate(sorted_items):
+        # Compute KDE
+        if len(data) > 1:
+            kde = gaussian_kde(data)
+
+            # Apply bandwidth setting
+            if bandwidth is not None:
+                if isinstance(bandwidth, str):
+                    if bandwidth.lower() == 'scott':
+                        kde.set_bandwidth(bw_method='scott')
+                    elif bandwidth.lower() == 'silverman':
+                        kde.set_bandwidth(bw_method='silverman')
+                elif isinstance(bandwidth, (int, float)):
+                    kde.set_bandwidth(bw_method=bandwidth)
+
+            density = kde(x_points)
+        else:
+            density = np.zeros_like(x_points)
+            if len(data) == 1:
+                closest_idx = np.argmin(np.abs(x_points - data[0]))
+                density[closest_idx] = 1.0
+
+        max_density = max(max_density, density.max())
+        y_pos = i * depth_spacing
+
+        # Create y-array for plotting
+        y_curve = np.full_like(x_points, y_pos)
+
+        # Plot density curve (black line, thick)
+        ax.plot(x_points, y_curve, density, color='black', linewidth=2.5)
+
+        # Create filled polygon vertices
+        verts = []
+        for j in range(len(x_points)):
+            verts.append([x_points[j], y_pos, density[j]])
+        # Close polygon along baseline
+        for j in reversed(range(len(x_points))):
+            verts.append([x_points[j], y_pos, 0])
+
+        # Add filled polygon (uniform gray fill, black edge)
+        poly = Poly3DCollection([verts], alpha=alpha,
+                                facecolor='0.7',
+                                edgecolor='black',
+                                linewidth=0.5)
+        ax.add_collection3d(poly)
+
+    # Axis labels
+    ax.set_xlabel(xlabel, fontsize=20, labelpad=15)
+    ax.set_ylabel(ylabel, fontsize=20, labelpad=15)
+    # Use text2D for zlabel (set_zlabel gets clipped)
+    ax.set_zlabel('')
+    ax.text2D(-0.12, 0.5, zlabel, transform=ax.transAxes, fontsize=20, rotation=90, va='center')
+
+    # Y-tick labels (parameter values)
+    y_ticks = [i * depth_spacing for i in range(n_curves)]
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels([f'{l}' for l in labels], fontsize=16)
+    ax.tick_params(axis='x', labelsize=16)
+    ax.tick_params(axis='z', labelsize=16)
+
+    # Viewing angle
+    ax.view_init(elev=view_elev, azim=view_azim)
+
+    # Invert x-axis so higher values are on the right
+    ax.invert_xaxis()
+
+    # Set aspect ratio
+    ax.set_box_aspect([1, depth_spacing * 0.8, 0.6])
+
+    # Wide margins to prevent zlabel clipping
+    plt.subplots_adjust(left=0.15, right=0.85, bottom=0.1, top=0.9)
+    return fig, ax
