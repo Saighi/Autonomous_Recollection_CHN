@@ -9,7 +9,9 @@
       "Bash(grep:*)",
       "Bash(cat:*)",
       "Bash(pip3 install:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(xargs grep:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

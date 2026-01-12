@@ -7,7 +7,7 @@ OBJ_DIR = obj
 BIN_DIR = bin
 
 # Core library object files
-CORE_OBJS = $(OBJ_DIR)/network.o $(OBJ_DIR)/utils.o
+CORE_OBJS = $(OBJ_DIR)/network.o $(OBJ_DIR)/utils.o $(OBJ_DIR)/discrete_hopfield.o
 
 # Auto-discover simulation sources and derive executable names
 SIM_SOURCES = $(wildcard $(SIM_DIR)/*.cc)
@@ -28,6 +28,9 @@ $(OBJ_DIR)/network.o: $(SRC_DIR)/network.cc $(INCLUDE_DIR)/network.hpp
 $(OBJ_DIR)/utils.o: $(SRC_DIR)/utils.cc $(INCLUDE_DIR)/utils.hpp $(INCLUDE_DIR)/network.hpp
 	$(CC) -c $(CFLAGS) $< -o $@ -I$(INCLUDE_DIR)
 
+$(OBJ_DIR)/discrete_hopfield.o: $(SRC_DIR)/discrete_hopfield.cc $(INCLUDE_DIR)/discrete_hopfield.hpp
+	$(CC) -c $(CFLAGS) $< -o $@ -I$(INCLUDE_DIR)
+
 # Build any simulation: bin/X from simulations/X.cc
 $(BIN_DIR)/%: $(SIM_DIR)/%.cc $(CORE_OBJS)
 	$(CC) $(CFLAGS) $< -o $@ -I$(INCLUDE_DIR) $(CORE_OBJS)
@@ -42,6 +45,12 @@ consolidate: $(BIN_DIR)/consolidate
 write: $(BIN_DIR)/write
 
 sleep: $(BIN_DIR)/sleep
+
+query: $(BIN_DIR)/query
+
+dhn_train: $(BIN_DIR)/dhn_train
+
+dhn_query: $(BIN_DIR)/dhn_query
 
 # Run targets
 run_write: $(BIN_DIR)/write
@@ -67,8 +76,11 @@ list:
 help:
 	@echo "Usage:"
 	@echo "  make            - Build all simulations"
-	@echo "  make write      - Build only write simulation"
-	@echo "  make sleep      - Build only sleep simulation"
+	@echo "  make write      - Build only write simulation (CHN training)"
+	@echo "  make sleep      - Build only sleep simulation (CHN retrieval)"
+	@echo "  make query      - Build only query simulation (CHN partial cue)"
+	@echo "  make dhn_train  - Build DHN training (Hebbian/Storkey)"
+	@echo "  make dhn_query  - Build DHN partial cue query"
 	@echo "  make consolidate- Build consolidation tool (requires libsqlite3-dev)"
 	@echo "  make bin/X      - Build specific simulation X"
 	@echo "  make run_write  - Build and run write simulation"
@@ -85,4 +97,4 @@ help:
 	@echo "  ./bin/consolidate <results_dir> [output.db]"
 	@echo "  Merges all sim_nb_X folders into a single SQLite database."
 
-.PHONY: all dirs write sleep consolidate run_write run_sleep clean distclean list help
+.PHONY: all dirs write sleep query dhn_train dhn_query consolidate run_write run_sleep clean distclean list help

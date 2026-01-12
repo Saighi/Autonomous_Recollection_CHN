@@ -510,6 +510,209 @@ def setup_sleep_experiment(
     return config_path
 
 
+def setup_query_experiment(
+    name: str,
+    trained_networks_dir: Union[str, Path],
+    params: Dict[str, Any],
+    varying_params: Optional[Dict[str, List]] = None,
+    output_dir: Optional[Path] = None,
+    run_name: Optional[str] = None
+) -> Path:
+    """
+    Setup a query experiment to test partial cue recovery on pre-trained networks.
+
+    Args:
+        name: Experiment name
+        trained_networks_dir: Path to trained networks (from write experiment)
+        params: Query simulation parameters (e.g., informed_fraction, delta)
+        varying_params: Parameters to sweep (e.g., {"informed_fraction": [0.2, 0.1, 0.05, 0.02]})
+                        informed_fraction = portion of units that retain pattern values
+                        (the rest are set to neutral 0.5)
+        output_dir: Where to save results (default: data/query_results/name)
+        run_name: Optional subfolder to group runs under the same experiment
+
+    Returns:
+        Path to config file
+    """
+    if output_dir is None:
+        output_dir = DATA_DIR / "query_results" / name
+    if run_name:
+        output_dir = output_dir / run_name
+
+    config_dir = DATA_DIR / "configs" / name
+    if run_name:
+        config_dir = config_dir / run_name
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    config = {
+        "type": "query",
+        "input_dir": str(trained_networks_dir),
+        "output_dir": str(output_dir),
+        "base_params": params,
+        "varying_params": varying_params or {}
+    }
+
+    config_path = config_dir / "config.json"
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    return config_path
+
+
+def setup_dhn_train_experiment(
+    name: str,
+    params: Dict[str, Any],
+    varying_params: Optional[Dict[str, List]] = None,
+    output_dir: Optional[Path] = None,
+    run_name: Optional[str] = None
+) -> Path:
+    """
+    Setup a Discrete Hopfield Network training experiment.
+
+    Trains DHN networks using Hebbian or Storkey learning rules.
+    Patterns are generated natively in C++ based on parameters.
+
+    Args:
+        name: Experiment name
+        params: Base simulation parameters including:
+            - network_size: Number of neurons
+            - num_patterns: Number of patterns to store
+            - sparsity: Pattern sparsity (fraction of active units, default 0.5)
+            - rho: Pattern correlation (0=uncorrelated, 1=identical, default 0.5)
+            - learning_rule: 0 for Hebbian, 1 for Storkey (default 0)
+            - seed: Random seed for reproducibility (optional)
+        varying_params: Parameters to sweep {param_name: [values]}
+            Common sweeps:
+            - network_size: [100, 200, ..., 1000]
+            - num_patterns: [10, 15, ..., 100]
+            - rho: [0.1, 0.25, 0.5, 0.75, 1.0]
+            - learning_rule: [0, 1] to compare Hebbian vs Storkey
+            - seed: list(range(N)) for N repetitions
+        output_dir: Where to save trained networks (default: data/trained_networks/name)
+        run_name: Optional subfolder for grouping runs
+
+    Returns:
+        Path to config file
+
+    Example:
+        >>> config = setup_dhn_train_experiment(
+        ...     name="comparison_dhn_hebbian",
+        ...     params={"sparsity": 0.5, "learning_rule": 0},
+        ...     varying_params={
+        ...         "network_size": [100, 200, 300],
+        ...         "num_patterns": [10, 20, 30],
+        ...         "rho": [0.1, 0.5, 1.0],
+        ...         "seed": list(range(2))  # 2 repetitions
+        ...     }
+        ... )
+        >>> run_cpp("dhn_train", config)
+    """
+    if params is None:
+        params = {}
+    if varying_params is None:
+        varying_params = {}
+
+    # Validate required parameters
+    all_params = set(params.keys()) | set(varying_params.keys())
+    required = ["network_size", "num_patterns"]
+    missing = [p for p in required if p not in all_params]
+    if missing:
+        raise ValueError(f"DHN training requires: {missing}")
+
+    # Directory setup
+    if output_dir is None:
+        output_dir = DATA_DIR / "trained_networks" / name
+    if run_name:
+        output_dir = output_dir / run_name
+
+    config_dir = DATA_DIR / "configs" / name
+    if run_name:
+        config_dir = config_dir / run_name
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    config = {
+        "type": "dhn_train",
+        "native_pattern_generation": True,
+        "output_dir": str(output_dir),
+        "base_params": params,
+        "varying_params": varying_params
+    }
+
+    config_path = config_dir / "config.json"
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    return config_path
+
+
+def setup_dhn_query_experiment(
+    name: str,
+    trained_networks_dir: Union[str, Path],
+    params: Dict[str, Any],
+    varying_params: Optional[Dict[str, List]] = None,
+    output_dir: Optional[Path] = None,
+    run_name: Optional[str] = None
+) -> Path:
+    """
+    Setup a DHN partial cue query experiment on pre-trained DHN networks.
+
+    Tests trained DHN networks with partial cues to measure retrieval capacity.
+    For each stored pattern:
+    1. Keep informed_fraction of units with pattern values
+    2. Set remaining units to random {-1, +1}
+    3. Run asynchronous dynamics until convergence
+    4. Check if network recovers the correct pattern (or its inverse)
+
+    Args:
+        name: Experiment name
+        trained_networks_dir: Path to trained DHN networks (from dhn_train)
+        params: Query simulation parameters including:
+            - informed_fraction: Fraction of units keeping pattern values (default 0.5)
+            - nb_dynamics_steps: Number of async update sweeps (default 10)
+        varying_params: Parameters to sweep, e.g.:
+            - informed_fraction: [0.9, 0.5, 0.2, 0.1]
+        output_dir: Where to save results (default: data/query_results/name)
+        run_name: Optional subfolder for grouping runs
+
+    Returns:
+        Path to config file
+
+    Example:
+        >>> config = setup_dhn_query_experiment(
+        ...     name="comparison_dhn_hebbian_query",
+        ...     trained_networks_dir=DATA_DIR / "trained_networks" / "comparison_dhn_hebbian",
+        ...     params={"nb_dynamics_steps": 10},
+        ...     varying_params={
+        ...         "informed_fraction": [0.9, 0.5, 0.2, 0.1]
+        ...     }
+        ... )
+        >>> run_cpp("dhn_query", config)
+    """
+    if output_dir is None:
+        output_dir = DATA_DIR / "query_results" / name
+    if run_name:
+        output_dir = output_dir / run_name
+
+    config_dir = DATA_DIR / "configs" / name
+    if run_name:
+        config_dir = config_dir / run_name
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    config = {
+        "type": "dhn_query",
+        "input_dir": str(trained_networks_dir),
+        "output_dir": str(output_dir),
+        "base_params": params,
+        "varying_params": varying_params or {}
+    }
+
+    config_path = config_dir / "config.json"
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+    return config_path
+
+
 # =============================================================================
 # C++ Execution
 # =============================================================================
