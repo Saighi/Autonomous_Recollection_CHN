@@ -1,0 +1,3 @@
+we will implement a folder/project which will use elements of /mnt/c/Users/pauls/Desktop/Work/PhD/Autonomous_Recollection_CHN/simulations/main_write_sleep
+and elements of /mnt/c/Users/pauls/Desktop/Work/PhD/Autonomous_Recollection_CHN/random_explo_DHN
+
