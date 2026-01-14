@@ -11,7 +11,9 @@
       "Bash(pip3 install:*)",
       "Bash(ls:*)",
       "Bash(xargs grep:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(python diagnose_sleep_speed.py:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
