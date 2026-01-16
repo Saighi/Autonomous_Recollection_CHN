@@ -18,7 +18,7 @@ SCRIPT_DIR = Path(__file__).parent
 LOG_FILE = SCRIPT_DIR / "timing_log.txt"
 
 #%% Configuration
-NB_REPETITION = 2  # TODO: increase to 10 for final runs
+NB_REPETITION = 60  # TODO: increase to 10 for final runs
 
 EXPERIMENT_NAME = "capacity_scaling_larger"
 
@@ -47,11 +47,11 @@ SLEEP_PARAMS = {
 
 # Sweep configurations: (suffix, network_sizes, pattern_range)
 SWEEP_CONFIGS = [
-    ("small", [300, 350, 400, 450, 500], range(15, 31)),  # 15-30 patterns
-    ("large", [1000], range(25, 40)),                      # 25-39 patterns
+    ("small", [300, 350, 400, 450, 500], range(5, 40)),  # 15-30 patterns
+    ("large", [1000], range(10, 50)),                      # 25-39 patterns
 ]
 
-CORRELATIONS = [0.9, 0.75, 0.25, 0.0]
+CORRELATIONS = [0.8, 0.6, 0.4, 0.2, 0.0]
 
 #%% Build
 print("=" * 70)

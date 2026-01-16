@@ -1,0 +1,48 @@
+
+=== COMBINED WRITE+SLEEP (2026-01-14 16:58) ===
+Repetitions: 2
+
+-- Write Phase --
+  small: 6.2 min total, 3.1 min/sweep
+  large: 10.1 min total, 5.1 min/sweep
+Write total: 16.4 min
+
+-- Sleep Phase --
+  small: 0.5 min total, 0.3 min/sweep
+  large: 1.7 min total, 0.8 min/sweep
+Sleep total: 2.2 min
+
+Grand total: 18.5 min
+Estimated for 10 sweeps: 92.7 min
+
+=== COMBINED WRITE+SLEEP (2026-01-14 17:37) ===
+Repetitions: 2
+
+-- Write Phase --
+  small: 7.0 min total, 3.5 min/sweep
+  large: 11.5 min total, 5.8 min/sweep
+Write total: 18.5 min
+
+-- Sleep Phase --
+  small: 1.7 min total, 0.9 min/sweep
+  large: 5.8 min total, 2.9 min/sweep
+Sleep total: 7.6 min
+
+Grand total: 26.1 min
+Estimated for 10 sweeps: 130.4 min
+
+=== COMBINED WRITE+SLEEP (2026-01-14 21:27) ===
+Repetitions: 10
+
+-- Write Phase --
+  small: 31.2 min total, 3.1 min/sweep
+  large: 59.8 min total, 6.0 min/sweep
+Write total: 91.0 min
+
+-- Sleep Phase --
+  small: 17.5 min total, 1.7 min/sweep
+  large: 101.4 min total, 10.1 min/sweep
+Sleep total: 118.9 min
+
+Grand total: 209.9 min
+Estimated for 10 sweeps: 209.9 min
