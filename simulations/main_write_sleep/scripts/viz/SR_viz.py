@@ -25,18 +25,18 @@ from utils import load_results, load_final_results, DATA_DIR
 # ==========================================================================
 
 # Experiment name (must match SR_leak_sim.py)
-# SLEEP_NAME = "SR_leak_sleep"
-SLEEP_NAME = "comparison_chn_cpp_sleep"
+SLEEP_NAME = "SR_leak_sleep"
+# SLEEP_NAME = "comparison_chn_cpp_sleep"
 # SLEEP_NAME = "SR_leak_strong_sleep"
 # SLEEP_NAME = "SR_sparsity_sleep"
 #SLEEP_NAME = "SR_sparsity_sleep_small"
 # SLEEP_NAME = "SR_heterogeneous_sparsity_sleep"
 # SLEEP_NAME = "SR_heterogeneous_sparsity_sleep_small"
 # Visualization parameters
-# PARAM_NAME = "leak"  # Parameter that varies
-PARAM_NAME = "rho"  # Parameter that varies
-# PARAM_LATEX_SYMBOL = r"1/r"  # LaTeX symbol for the parameter
-PARAM_LATEX_SYMBOL = r"\rho"  # LaTeX symbol for the parameter
+PARAM_NAME = "leak"  # Parameter that varies
+# PARAM_NAME = "rho"  # Parameter that varies
+PARAM_LATEX_SYMBOL = r"1/r"  # LaTeX symbol for the parameter
+# PARAM_LATEX_SYMBOL = r"\rho"  # LaTeX symbol for the parameter
 # PARAM_NAME = "sparsity"  # Parameter that varies
 # PARAM_LATEX_SYMBOL = "s"  # LaTeX symbol for the parameter
 # PARAM_NAME = "sparsity_width"  # Parameter that varies

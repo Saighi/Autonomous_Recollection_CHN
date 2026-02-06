@@ -5,7 +5,7 @@
  * For each stored pattern:
  * 1. Keep informed_fraction of units with pattern values
  * 2. Set remaining units to random {-1, +1}
- * 3. Run asynchronous dynamics until convergence
+ * 3. Run dynamics (synchronous or asynchronous) until convergence
  * 4. Check if network recovers the correct pattern (or its inverse)
  *
  * Usage: ./bin/dhn_query <config.json>
@@ -17,12 +17,18 @@
  *   "output_dir": "/path/to/query_results",
  *   "base_params": {
  *     "informed_fraction": 0.5,
- *     "nb_dynamics_steps": 10
+ *     "nb_dynamics_steps": 10,
+ *     "use_synchronous": 1
  *   },
  *   "varying_params": {
  *     "informed_fraction": [0.9, 0.5, 0.2, 0.1]
  *   }
  * }
+ *
+ * Parameters:
+ *   - use_synchronous: 1 for synchronous updates (faster, with convergence detection),
+ *                      0 for asynchronous updates (default)
+ *   - nb_dynamics_steps: max steps before stopping (default 10)
  */
 
 #include "discrete_hopfield.hpp"
@@ -63,7 +69,8 @@ void run_dhn_query(
     // Extract parameters
     int network_size = static_cast<int>(params.at("network_size"));
     double informed_fraction = params.count("informed_fraction") ? params.at("informed_fraction") : 0.5;
-    int nb_steps = params.count("nb_dynamics_steps") ? static_cast<int>(params.at("nb_dynamics_steps")) : 10;
+    int max_steps = params.count("nb_dynamics_steps") ? static_cast<int>(params.at("nb_dynamics_steps")) : 10;
+    bool use_synchronous = params.count("use_synchronous") ? (params.at("use_synchronous") > 0.5) : false;
     int num_patterns = static_cast<int>(bool_patterns.size());
 
     // Create simulation output directory
@@ -102,6 +109,7 @@ void run_dhn_query(
     std::mt19937 rng(rd());
 
     int total_success = 0;
+    int total_steps = 0;
 
     // Test each pattern
     for (int pat_idx = 0; pat_idx < num_patterns; ++pat_idx) {
@@ -109,7 +117,14 @@ void run_dhn_query(
         std::vector<double> cue = net.createPartialCue(patterns[pat_idx], informed_fraction, rng);
 
         // Run dynamics
-        std::vector<double> final_state = net.runAsynchronous(cue, nb_steps);
+        int steps_taken = max_steps;
+        std::vector<double> final_state;
+        if (use_synchronous) {
+            final_state = net.runSynchronousUntilConvergence(cue, max_steps, steps_taken);
+        } else {
+            final_state = net.runAsynchronous(cue, max_steps);
+        }
+        total_steps += steps_taken;
 
         // Check if pattern was recovered
         bool recovered = net.matchesPattern(final_state, patterns[pat_idx]);
@@ -121,24 +136,29 @@ void run_dhn_query(
         results_file << pat_idx << ","
                      << informed_fraction << ","
                      << (recovered ? 1 : 0) << ","
-                     << nb_steps << std::endl;
+                     << steps_taken << std::endl;
     }
 
     results_file.close();
 
     // Compute success rate
     double success_rate = static_cast<double>(total_success) / static_cast<double>(num_patterns);
+    double avg_steps = static_cast<double>(total_steps) / static_cast<double>(num_patterns);
 
     // Save parameters with success metrics
     params["num_patterns"] = static_cast<double>(num_patterns);
     params["informed_fraction"] = informed_fraction;
     params["query_success_rate"] = success_rate;
     params["query_total_success"] = static_cast<double>(total_success);
+    params["query_avg_steps"] = avg_steps;
+    params["use_synchronous"] = use_synchronous ? 1.0 : 0.0;
     createParameterFile(sim_dir, params);
 
     std::cout << "Sim " << sim_number << ": " << total_success << "/" << num_patterns
               << " patterns recovered (" << (success_rate * 100) << "%) "
-              << "with " << (informed_fraction * 100) << "% informed" << std::endl;
+              << "with " << (informed_fraction * 100) << "% informed"
+              << (use_synchronous ? " [sync, avg " + std::to_string(avg_steps) + " steps]" : " [async]")
+              << std::endl;
 }
 
 

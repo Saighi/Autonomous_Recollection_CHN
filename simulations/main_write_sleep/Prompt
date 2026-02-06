@@ -39,3 +39,41 @@ sparsity is 0.5 in all of this.
 Do some extensive markdwons indication about what you but dont comment the result yet as you dont have them. 
 
 put the script in push_neutral_and_inhibition
+
+# NEW PROMPT
+
+OK now the final vizualization of the comparison between our method (Autonomous recollection in CHN) and hebbian and storkey learning rule in DHNs.
+
+this will give a new viz_comparison.py script in the compare folder (keep the old one somewhere).
+
+First we have to gather the results of our method which are a little bit scattered.
+write_sleep_chn_larger.py in larger_networks output the sleep results of AR for certain network sizes/nb patterns and specifics correlations (rho), we have to take that.
+in SR_load the script SR_rho_compatible_large.py does the same but for other network sizes (and the same rho and nb_stored patterns).
+So we have to gather both and aggregate.
+
+Then we will take the query data outputed by dhn_full_pipeline.py in the comparison folder. you should notice that we have one more big parameter we sweep on for this dhn data which is the number of informed units, more on that later.
+
+perfect we have all the data, now we will be able to vizualize.
+
+so what we will do is for all the networks (either from sleep results for CHNs or query results for DHNs) look at the simulations where we have been able to recover all patterns (as done in SR_viz.py in the viz folder) this is what we call a succesfull perfect recoverry and it is the only thing we are intersted in.
+
+So what we will do is similar to what is allready done in the actuall viz_comparison.py (read it) which is to take for all networks/method/rho the maximum nb_pattern for which for any nb pattern lower at this network size, we have recovered all the stored patterns in at least 90% of the simulations (repetition) done for this network. it is really what is done in viz_comparision.py. 
+
+to really illustrate this process produce a heatmap (should be publication ready and inspired on the look of other heatmap in this project) of the succesfull retrieaval percentage (as in SR viz) for the CHNs that we have gathered and place stars at the network size/nb pattern that is the largest that respect our threshold.
+
+ok now we have our measure but you should notice that for CHNs we don't have the swipe on informed units as for DHNs. This is because if sleep retrieval is succesfull the query recoverry will be successfull for any number or informed units. 
+
+So now you will produce line plots with the 90% threshold for all the technics and their respective network sizes considered. as we ttested many rho but all the same you will have one plot per rho. do one plot per nb of informed units but here for the CHN just use the same data for any of these plots as we have the same success independant from this variable. the line plots should have the same sober good looking style as in viz_comparison. 
+
+produce the same plots from 80% threshold and 50% threshold.
+
+
+ok nice but we will have to deal with one aspect.
+
+for small rho dhn networks saturate our benchmarch, which is normal. on the line plots, when it happens that the highest number of stored pattern for a given network size can be perfectly retrived with the actuall threshold tolerence on the failing attemps we have to indicate on the line plot not a point at the given value (wich would be missinformation) but find a elegant way to indicate that the performance value is higher (but not known).
+
+To still give an account of the very high performances of storkey and hebbin at low rhow I want you to plot (this is the last plot) for rho=0 (no correlation) the theoretical performance valuee of hebbian and storkey (check on the web) allong size the percormances or AR for CHNs for rho=0.
+but we have to be aware that these performances are usually obtaine with a low number of uninformed units (I think its is when the number of uniformed units tend toward 0) which tend to improve greatly the parformances of these DHN methods.
+
+create this vizualization #%% and detail everything you do in the markdown ! 
+

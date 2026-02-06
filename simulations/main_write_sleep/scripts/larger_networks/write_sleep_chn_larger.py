@@ -18,7 +18,7 @@ SCRIPT_DIR = Path(__file__).parent
 LOG_FILE = SCRIPT_DIR / "timing_log.txt"
 
 #%% Configuration
-NB_REPETITION = 60  # TODO: increase to 10 for final runs
+NB_REPETITION = 10  
 
 EXPERIMENT_NAME = "capacity_scaling_larger"
 

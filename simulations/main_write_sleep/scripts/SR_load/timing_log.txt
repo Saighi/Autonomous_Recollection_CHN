@@ -1,0 +1,56 @@
+
+=== COMBINED WRITE+SLEEP (2026-01-19 19:04) ===
+Repetitions: 10
+
+-- Write Phase --
+  compatible_large: 3.0 min total, 0.3 min/sweep
+Write total: 3.0 min
+
+-- Sleep Phase --
+  compatible_large: 2.0 min total, 0.2 min/sweep
+Sleep total: 2.0 min
+
+Grand total: 5.0 min
+Estimated for 10 sweeps: 5.0 min
+
+=== COMBINED WRITE+SLEEP (2026-01-21 15:18) ===
+Repetitions: 2
+
+-- Write Phase --
+  compatible_large: 0.0 min total, 0.0 min/sweep
+Write total: 0.0 min
+
+-- Sleep Phase --
+  compatible_large: 0.1 min total, 0.0 min/sweep
+Sleep total: 0.1 min
+
+Grand total: 0.1 min
+Estimated for 10 sweeps: 0.6 min
+
+=== COMBINED WRITE+SLEEP (2026-01-21 15:20) ===
+Repetitions: 5
+
+-- Write Phase --
+  compatible_large: 0.7 min total, 0.1 min/sweep
+Write total: 0.7 min
+
+-- Sleep Phase --
+  compatible_large: 0.4 min total, 0.1 min/sweep
+Sleep total: 0.4 min
+
+Grand total: 1.1 min
+Estimated for 10 sweeps: 2.2 min
+
+=== COMBINED WRITE+SLEEP (2026-01-21 15:25) ===
+Repetitions: 2
+
+-- Write Phase --
+  compatible_large: 0.0 min total, 0.0 min/sweep
+Write total: 0.0 min
+
+-- Sleep Phase --
+  compatible_large: 0.1 min total, 0.1 min/sweep
+Sleep total: 0.1 min
+
+Grand total: 0.2 min
+Estimated for 10 sweeps: 0.9 min

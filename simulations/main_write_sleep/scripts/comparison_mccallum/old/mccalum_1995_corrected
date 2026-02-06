@@ -1,0 +1,561 @@
+# %% [markdown]
+# # McCallum 1995 Original Protocol Reproduction (Corrected + Numba-Accelerated)
+#
+# This notebook reproduces McCallum's original pseudorehearsal experiment
+# from his thesis (Section 4.5.3, Figure 4.23).
+#
+# **Corrections applied** (see mccallum_1995_corrected.py for full details):
+# 1. Base population BP=5 learnt first
+# 2. Probes Pp=2000
+# 3. Relaxation cycles r=4N=400 for stability checks
+# 4. Inverse NOT accepted as stable
+# 5. Heteroassociative noise only (no Gaussian input noise)
+# 6. Symmetric weight updates
+# 7. Synchronous delta learning per pattern
+#
+# **Performance optimizations:**
+# - Numba JIT on async relaxation inner loop (~50-100x speedup)
+# - Numba JIT on synchronous delta update
+# - Early exit in probing once max_pseudoitems reached
+# - Early exit in relaxation on convergence
+
+# %% [markdown]
+# ## Imports and Setup
+# %%
+import numpy as np
+import numba
+from numba import njit, types
+from numba.typed import List as NumbaList
+import matplotlib.pyplot as plt
+from typing import List, Tuple
+import time
+
+plt.rcParams.update({
+    'font.size': 12,
+    'axes.labelsize': 14,
+    'axes.titlesize': 14,
+    'figure.figsize': (10, 6),
+    'figure.dpi': 100,
+})
+
+# %% [markdown]
+# ## Numba-Accelerated Core Functions
+
+# %%
+@njit(cache=False)
+def _relax_async(weights: np.ndarray, state: np.ndarray, max_cycles: int) -> np.ndarray:
+    """
+    Asynchronous relaxation until convergence or max_cycles.
+    Compiled to machine code via Numba — this is the main bottleneck.
+    """
+    size = state.shape[0]
+    for cycle in range(max_cycles):
+        changed = False
+        # Random permutation (Numba-compatible)
+        order = np.random.permutation(size)
+        for idx in range(size):
+            i = order[idx]
+            # Compute local field excluding self-connection
+            h_i = 0.0
+            for j in range(size):
+                if j != i:
+                    h_i += weights[i, j] * state[j]
+            new_val = 1.0 if h_i >= 0.0 else -1.0
+            if new_val != state[i]:
+                state[i] = new_val
+                changed = True
+        if not changed:
+            break
+    return state
+
+
+@njit(cache=False)
+def _is_stable(weights: np.ndarray, pattern: np.ndarray, max_cycles: int) -> bool:
+    """
+    Check if pattern is a fixed point. Strict identity (no inverse).
+    """
+    state = pattern.copy()
+    state = _relax_async(weights, state, max_cycles)
+    # Strict identity check
+    for i in range(state.shape[0]):
+        if state[i] != pattern[i]:
+            return False
+    return True
+
+
+@njit(cache=False)
+def _count_stable(weights: np.ndarray, patterns: np.ndarray, M: int, max_cycles: int) -> int:
+    """Count how many of the first M patterns are stable fixed points."""
+    count = 0
+    for mu in range(M):
+        if _is_stable(weights, patterns[mu], max_cycles):
+            count += 1
+    return count
+
+
+@njit(cache=False)
+def _probe_for_pseudoitems(
+    weights: np.ndarray,
+    size: int,
+    n_probes: int,
+    max_items: int,
+    max_cycles: int
+) -> np.ndarray:
+    """
+    Probe network to find unique stable states (pseudoitems).
+    Returns an array of shape (n_found, size).
+
+    Early exit: stops as soon as max_items unique pseudoitems are found.
+
+    Uniqueness check: uses a simple O(n^2) comparison against collected items
+    (and their inverses). With max_items=256 this is fast enough.
+    """
+    # Pre-allocate output (worst case: max_items)
+    collected = np.empty((max_items, size), dtype=np.float64)
+    n_found = 0
+
+    for probe in range(n_probes):
+        # Early exit once we have enough
+        if n_found >= max_items:
+            break
+
+        # Random bipolar probe
+        state = np.empty(size, dtype=np.float64)
+        for i in range(size):
+            state[i] = 1.0 if np.random.random() < 0.5 else -1.0
+
+        # Relax to stable state
+        state = _relax_async(weights, state, max_cycles)
+
+        # Check uniqueness against already collected items (and inverses)
+        is_duplicate = False
+        for k in range(n_found):
+            # Check exact match
+            match = True
+            inv_match = True
+            for i in range(size):
+                if state[i] != collected[k, i]:
+                    match = False
+                if state[i] != -collected[k, i]:
+                    inv_match = False
+                if not match and not inv_match:
+                    break
+            if match or inv_match:
+                is_duplicate = True
+                break
+
+        if not is_duplicate:
+            collected[n_found] = state
+            n_found += 1
+
+    return collected[:n_found]
+
+
+@njit(cache=False)
+def _apply_heteroassociative_noise(pattern: np.ndarray, nu_h: float) -> np.ndarray:
+    """Flip nu_h fraction of randomly chosen bits."""
+    noisy = pattern.copy()
+    size = pattern.shape[0]
+    n_flip = int(round(nu_h * size))
+
+    # Fisher-Yates partial shuffle to pick n_flip unique indices
+    indices = np.arange(size)
+    for i in range(n_flip):
+        j = i + int(np.random.random() * (size - i))
+        indices[i], indices[j] = indices[j], indices[i]
+
+    for i in range(n_flip):
+        noisy[indices[i]] *= -1.0
+    return noisy
+
+
+@njit(cache=False)
+def _train_delta_synchronous(
+    weights: np.ndarray,
+    training_patterns: np.ndarray,
+    n_patterns: int,
+    new_pattern_idx: int,
+    eta: float,
+    max_epochs: int,
+    error_criterion: float,
+    nu_h: float,
+    size: int
+) -> Tuple[np.ndarray, int]:
+    """
+    Synchronous delta learning (CORRECTION #7).
+    - Compute all outputs from current weights, then update.
+    - Only new pattern receives heteroassociative noise (CORRECTION #5).
+    - Weight updates are symmetrised (CORRECTION #6).
+    """
+    smoothed_error = 1.0
+
+    for epoch in range(max_epochs):
+        # Random presentation order
+        order = np.random.permutation(n_patterns)
+        epoch_errors = 0.0
+
+        for idx_pos in range(n_patterns):
+            idx = order[idx_pos]
+            target = training_patterns[idx]
+            is_new = (idx == new_pattern_idx)
+
+            # Prepare input
+            if is_new:
+                inp = _apply_heteroassociative_noise(target, nu_h)
+            else:
+                inp = target.copy()
+
+            # SYNCHRONOUS: compute all local fields at once
+            # h_i = sum_j W_ij * inp_j  (excluding self-connection)
+            has_error = False
+            errors = np.zeros(size, dtype=np.float64)
+
+            for i in range(size):
+                h_i = 0.0
+                for j in range(size):
+                    if j != i:
+                        h_i += weights[i, j] * inp[j]
+                output_i = 1.0 if h_i >= 0.0 else -1.0
+                errors[i] = target[i] - output_i
+                if abs(errors[i]) > 0.5:
+                    has_error = True
+
+            # Apply weight updates (symmetrised)
+            if has_error:
+                for i in range(size):
+                    if abs(errors[i]) > 0.5:
+                        epoch_errors += abs(errors[i]) / 2.0
+                        for j in range(size):
+                            if i != j:
+                                # Symmetric update: both (i,j) and (j,i)
+                                delta = eta * errors[i] * inp[j] / 2.0
+                                weights[i, j] += delta
+                                weights[j, i] += delta
+
+        # Early stopping
+        smoothed_error = smoothed_error * 0.9 + epoch_errors * 0.1
+        if smoothed_error < error_criterion:
+            return weights, epoch + 1
+
+    return weights, max_epochs
+
+
+@njit(cache=False)
+def _train_base_population(
+    weights: np.ndarray,
+    base_patterns: np.ndarray,
+    n_base: int,
+    eta: float,
+    max_epochs: int,
+    error_criterion: float,
+    size: int
+) -> Tuple[np.ndarray, int]:
+    """
+    Train base population with standard delta learning.
+    No noise, no pseudorehearsal. Synchronous + symmetric.
+    """
+    smoothed_error = 1.0
+
+    for epoch in range(max_epochs):
+        order = np.random.permutation(n_base)
+        epoch_errors = 0.0
+
+        for idx_pos in range(n_base):
+            idx = order[idx_pos]
+            target = base_patterns[idx]
+
+            has_error = False
+            errors = np.zeros(size, dtype=np.float64)
+
+            for i in range(size):
+                h_i = 0.0
+                for j in range(size):
+                    if j != i:
+                        h_i += weights[i, j] * target[j]
+                output_i = 1.0 if h_i >= 0.0 else -1.0
+                errors[i] = target[i] - output_i
+                if abs(errors[i]) > 0.5:
+                    has_error = True
+
+            if has_error:
+                for i in range(size):
+                    if abs(errors[i]) > 0.5:
+                        epoch_errors += abs(errors[i]) / 2.0
+                        for j in range(size):
+                            if i != j:
+                                delta = eta * errors[i] * target[j] / 2.0
+                                weights[i, j] += delta
+                                weights[j, i] += delta
+
+        smoothed_error = smoothed_error * 0.9 + epoch_errors * 0.1
+        if smoothed_error < error_criterion:
+            return weights, epoch + 1
+
+    return weights, max_epochs
+
+
+# %% [markdown]
+# ## Protocol Runner
+
+# %%
+def run_mccallum_1995_protocol(
+    network_size: int = 100,
+    max_new_patterns: int = 95,
+    base_population_size: int = 5,
+    n_probes: int = 2000,
+    max_pseudoitems: int = 256,
+    eta: float = 0.1,
+    max_epochs: int = 500,
+    error_criterion: float = 0.001,
+    nu_h: float = 0.05,
+    verbose: bool = True
+) -> Tuple[List[int], List[int], List[int]]:
+    """
+    Run McCallum's 1995 pseudorehearsal protocol.
+    All heavy computation delegated to Numba-compiled functions.
+    """
+    N = network_size
+    max_cycles = 4 * N  # r = 4N relaxation cycles
+    total_patterns = base_population_size + max_new_patterns
+
+    # Generate all patterns as a contiguous array
+    patterns = np.random.choice([-1.0, 1.0], size=(total_patterns, N))
+    weights = np.zeros((N, N), dtype=np.float64)
+
+    patterns_learned = []
+    stable_counts = []
+    pseudoitem_counts = []
+
+    if verbose:
+        print(f"McCallum 1995 Protocol: N={N}, BP={base_population_size}, "
+              f"new={max_new_patterns}")
+        print(f"Pp={n_probes}, Pi={max_pseudoitems}, r=4N={max_cycles}")
+        print("-" * 60)
+
+    # ---- Phase 1: Learn base population ----
+    if verbose:
+        print(f"Learning base population ({base_population_size} patterns)...", end=" ")
+    t0 = time.time()
+
+    base_patterns = patterns[:base_population_size].copy()
+    weights, base_epochs = _train_base_population(
+        weights, base_patterns, base_population_size,
+        eta, max_epochs, error_criterion, N
+    )
+
+    n_stable = _count_stable(weights, patterns, base_population_size, max_cycles)
+    patterns_learned.append(base_population_size)
+    stable_counts.append(n_stable)
+    pseudoitem_counts.append(0)
+
+    if verbose:
+        print(f"{n_stable}/{base_population_size} stable, "
+              f"{base_epochs} epochs, {time.time()-t0:.1f}s")
+        print("-" * 60)
+
+    # ---- Phase 2: Incremental learning with pseudorehearsal ----
+    for step in range(max_new_patterns):
+        M = base_population_size + step + 1
+        t0 = time.time()
+
+        # Probe for pseudoitems (early exit when max_pseudoitems reached)
+        pseudoitems = _probe_for_pseudoitems(
+            weights, N, n_probes, max_pseudoitems, max_cycles
+        )
+        n_pseudo = pseudoitems.shape[0]
+
+        # Build training set: pseudoitems + new pattern
+        new_pattern = patterns[M - 1:M]  # shape (1, N)
+        training_set = np.vstack((pseudoitems, new_pattern))
+        n_training = training_set.shape[0]
+        new_idx = n_training - 1
+
+        # Train
+        weights, epochs = _train_delta_synchronous(
+            weights, training_set, n_training, new_idx,
+            eta, max_epochs, error_criterion, nu_h, N
+        )
+
+        # Count stable
+        n_stable = _count_stable(weights, patterns, M, max_cycles)
+
+        patterns_learned.append(M)
+        stable_counts.append(n_stable)
+        pseudoitem_counts.append(n_pseudo)
+
+        dt = time.time() - t0
+        if verbose and (step < 10 or (step + 1) % 10 == 0 or step == max_new_patterns - 1):
+            print(f"M={M:3d}: stable={n_stable:3d}/{M}, "
+                  f"pseudo={n_pseudo:3d}, ep={epochs:3d}, {dt:.1f}s")
+
+    if verbose:
+        print("-" * 60)
+        print("Protocol complete!")
+
+    return patterns_learned, stable_counts, pseudoitem_counts
+
+
+# %% [markdown]
+# ## Warmup JIT Compilation
+
+# %%
+print("Warming up Numba JIT (first-time compilation)...")
+t0 = time.time()
+
+# Trigger compilation with a tiny network
+_dummy_w = np.zeros((10, 10), dtype=np.float64)
+_dummy_s = np.random.choice([-1.0, 1.0], size=10)
+_relax_async(_dummy_w, _dummy_s, 5)
+_is_stable(_dummy_w, _dummy_s, 5)
+_count_stable(_dummy_w, np.random.choice([-1.0, 1.0], size=(2, 10)), 2, 5)
+_probe_for_pseudoitems(_dummy_w, 10, 10, 5, 5)
+_apply_heteroassociative_noise(_dummy_s, 0.1)
+_train_delta_synchronous(
+    _dummy_w, np.random.choice([-1.0, 1.0], size=(3, 10)), 3, 2,
+    0.1, 10, 0.001, 0.05, 10
+)
+_train_base_population(
+    _dummy_w, np.random.choice([-1.0, 1.0], size=(2, 10)), 2,
+    0.1, 10, 0.001, 10
+)
+
+print(f"JIT warmup done in {time.time()-t0:.1f}s")
+
+# %% [markdown]
+# ## Run the Experiment
+
+# %%
+print("\n" + "=" * 60)
+print("Running McCallum 1995 protocol (corrected, Numba-accelerated)")
+print("=" * 60)
+start_time = time.time()
+
+M_values, stable_values, pseudo_values = run_mccallum_1995_protocol(
+    network_size=100,
+    max_new_patterns=95,
+    base_population_size=5,
+    n_probes=2000,
+    max_pseudoitems=256,
+    verbose=True
+)
+
+elapsed = time.time() - start_time
+print(f"\nTotal time (single run): {elapsed:.1f} seconds")
+
+# %% [markdown]
+# ## Plot Results (Single Run)
+
+# %%
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+ax1 = axes[0]
+ax1.plot(M_values, stable_values, 'b-', linewidth=2, label='Pr256 (stable)')
+ax1.plot(M_values, M_values, 'k--', linewidth=1, alpha=0.5, label='Perfect recall')
+ax1.fill_between(M_values, stable_values, alpha=0.3)
+ax1.set_xlabel('Patterns Learned (M)')
+ax1.set_ylabel('Number of Stable Patterns')
+ax1.set_title('McCallum 1995 Reproduced (single run)\n'
+              r'$H_{100,\pm}$, BP=5, Pr256')
+ax1.legend(loc='upper left')
+ax1.grid(True, alpha=0.3)
+ax1.set_xlim(0, 100)
+ax1.set_ylim(0, 105)
+
+ax2 = axes[1]
+ax2.plot(M_values, pseudo_values, 'r-', linewidth=2)
+ax2.axhline(y=256, color='k', linestyle='--', alpha=0.5, label='Max (256)')
+ax2.set_xlabel('Patterns Learned (M)')
+ax2.set_ylabel('Pseudoitems Found')
+ax2.set_title('Pseudoitems per Step (Pp=2000)')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_xlim(0, 100)
+
+plt.tight_layout()
+plt.savefig('mccallum_1995_corrected_single.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# %% [markdown]
+# ## Multiple Runs
+
+# %%
+def run_multiple_trials(n_trials: int = 10, **kwargs) -> dict:
+    """Run multiple trials and collect statistics."""
+    all_stable = []
+    all_pseudo = []
+
+    print(f"Running {n_trials} trials...")
+    for trial in range(n_trials):
+        t0 = time.time()
+        M, stable, pseudo = run_mccallum_1995_protocol(verbose=False, **kwargs)
+        all_stable.append(stable)
+        all_pseudo.append(pseudo)
+        print(f"  Trial {trial+1}/{n_trials} done in {time.time()-t0:.1f}s")
+
+    all_stable = np.array(all_stable)
+    all_pseudo = np.array(all_pseudo)
+
+    return {
+        'M': M,
+        'stable_mean': all_stable.mean(axis=0),
+        'stable_std': all_stable.std(axis=0),
+        'pseudo_mean': all_pseudo.mean(axis=0),
+        'pseudo_std': all_pseudo.std(axis=0),
+    }
+
+
+print("=" * 60)
+print("Running 10 trials for averaging...")
+print("=" * 60)
+t_total = time.time()
+
+results = run_multiple_trials(
+    n_trials=10,
+    network_size=100,
+    max_new_patterns=95,
+    base_population_size=5,
+    n_probes=2000,
+    max_pseudoitems=256
+)
+
+print(f"\nTotal time (10 trials): {time.time()-t_total:.1f}s")
+
+# %% [markdown]
+# ## Plot Averaged Results
+
+# %%
+fig, ax = plt.subplots(figsize=(10, 6))
+
+M = results['M']
+mean = results['stable_mean']
+std = results['stable_std']
+
+ax.plot(M, mean, 'b-', linewidth=2, label='Mean stable (Pr256)')
+ax.fill_between(M, mean - std, mean + std, alpha=0.3, label='±1 std')
+ax.plot(M, M, 'k--', linewidth=1, alpha=0.5, label='Perfect recall')
+
+ax.set_xlabel('Patterns Learned (M)', fontsize=14)
+ax.set_ylabel('Number of Stable Patterns', fontsize=14)
+ax.set_title('McCallum 1995 Pseudorehearsal Reproduced\n'
+             r'$H_{100,\pm}$, BP=5, Pr256, 10 trials',
+             fontsize=14)
+ax.legend(loc='upper left', fontsize=11)
+ax.grid(True, alpha=0.3)
+ax.set_xlim(0, 100)
+ax.set_ylim(0, 105)
+
+plt.tight_layout()
+plt.savefig('mccallum_1995_corrected_averaged.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+# %%
+print("\n" + "=" * 60)
+print("AVERAGED RESULTS (10 trials)")
+print("=" * 60)
+print(f"Stable at M=100: {mean[-1]:.1f} ± {std[-1]:.1f}")
+if len(mean) > 45:
+    idx_50 = next(i for i, m in enumerate(M) if m >= 50)
+    print(f"Stable at M=50:  {mean[idx_50]:.1f} ± {std[idx_50]:.1f}")
+if len(mean) > 15:
+    idx_20 = next(i for i, m in enumerate(M) if m >= 20)
+    print(f"Stable at M=20:  {mean[idx_20]:.1f} ± {std[idx_20]:.1f}")   

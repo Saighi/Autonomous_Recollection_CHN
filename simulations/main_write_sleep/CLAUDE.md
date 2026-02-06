@@ -24,7 +24,10 @@ To add a new simulation: create `simulations/your_sim.cc` and run `make`. The ma
 
 ## Architecture Overview
 
-This is a neural network simulation framework for studying memory storage and sleep-based memory consolidation using Continuous Hopfield Networks (CHN).
+This is a neural network simulation framework for studying memory storage and sleep-based memory consolidation using two network types:
+
+1. **CHN (Continuous Hopfield Network)**: Sigmoid activations [0,1], batch GDA learning
+2. **DHN (Discrete Hopfield Network)**: Bipolar activations {-1,+1}, Hebbian/Storkey/delta learning
 
 ### Core Components
 
@@ -92,6 +95,23 @@ Both simulations use `generateCombinations()` to create Cartesian products of pa
 - `delta`: Integration timestep
 - `noise_dynamics`: Enable stochastic noise in network dynamics
 - `stddev_dynamics`: Noise standard deviation for stochastic dynamics
+
+### DHN Components
+
+**DiscreteHopfield class** (`include/discrete_hopfield.hpp`, `src/discrete_hopfield.cc`):
+- Bipolar {-1,+1} activations, asymmetric weights, zero diagonal
+- AVX2-optimized dot products (`avxDotProduct`, `avxDotProductNoDiag`)
+- Learning rules:
+  - `trainHebbian()`: W_ij += (1/N) * xi_i * xi_j (capacity ~13.8% N)
+  - `trainStorkey()`: W_ij += (1/N) * [xi_i*xi_j - xi_i*h_j - h_i*xi_j] (capacity ~42% N)
+- Dynamics: `runSynchronous()`, `runAsynchronous()`, `runSynchronousUntilConvergence()`
+- Query: `createPartialCue()` + `matchesPattern()` (matches pattern OR its inverse)
+
+**DHN Simulations**:
+- `dhn_train.cc`: Train networks with Hebbian (learning_rule=0) or Storkey (learning_rule=1)
+- `dhn_query.cc`: Query trained networks with partial cues (informed_fraction parameter)
+- `mccallum.cc`: McCallum's 2007 pseudorehearsal algorithm (delta learning + probing)
+- `ar_incremental.cc`: AR/CI incremental learning with sleep consolidation
 
 ## Python/C++ Workflow
 
@@ -224,3 +244,69 @@ scripts/
 - `scripts/recovery_cinematic/heterogeneous_nb_query_sim.py` - Multi-config sweep (200 reps)
 - `scripts/viz/heterogeneous_nb_query_viz.py` - Plots query number vs sparsity
 - `scripts/SR_heterogeneous_sparsity_sim.py` - Large sweep varying sparsity_width
+
+## McCallum Comparison Framework
+
+Compares four memory capacity methods in `scripts/comparison_mccallum/`:
+
+| Method | Network | Learning | Consolidation |
+|--------|---------|----------|---------------|
+| McCallum | DHN | Delta rule + noise | Pseudorehearsal (spurious→pseudoitem) |
+| AR (CI) | CHN | Batch GDA | Sleep (spurious→FAILURE) |
+| Hebbian | DHN | One-shot | None |
+| Storkey | DHN | One-shot | None |
+
+### Running the Comparison
+
+```bash
+# 1. Build all simulations
+make
+
+# 2. Run each method (VSCode notebook cells)
+python scripts/comparison_mccallum/mccallum_sim.py  # McCallum pseudorehearsal
+python scripts/comparison_mccallum/ar_sim.py        # AR incremental
+python scripts/comparison_mccallum/dhn_sim.py       # Hebbian + Storkey
+
+# 3. Generate publication figure
+python scripts/comparison_mccallum/viz_mccallum.py
+```
+
+### Experimental Grid
+
+- Network sizes: [50, 75, 100, 125, 150, 175, 200, 225, 250]
+- Pattern correlation ρ: [0.0, 0.2, 0.4, 0.5, 0.6]
+- Seeds: 10 per (N, ρ)
+- Success threshold θ: 0.9
+- Max patterns: 50
+
+### M* Computation
+
+M* = max M such that ≥90% of simulations achieved M*_s ≥ M
+
+```python
+def compute_M_star(M_star_list, theta=0.9):
+    for M in range(max(M_star_list), -1, -1):
+        if sum(1 for m in M_star_list if m >= M) / len(M_star_list) >= theta:
+            return M
+    return 0
+```
+
+### Key Parameters
+
+**McCallum DHN**: eta=0.1, E_max=500, nu_h=0.05 (5% noise), sigma_input=0.5, P_probes=2000, P_items=256
+
+**AR (CHN)**: leak=1.0, drive_target=6.0, learning_rate=0.0001, momentum=0.9, beta=0.1
+
+### Data Location
+
+```
+data/mccallum_results/
+├── mccallum/     # McCallum results + M_star_summary.csv
+├── ar/           # AR results + M_star_summary.csv
+├── hebbian/      # DHN Hebbian results
+└── storkey/      # DHN Storkey results
+```
+
+### Sanity Check
+
+N=100, ρ=0.0: McCallum M* ≈ 10-15, Hebbian M* ≈ 14, Storkey M* ≈ 12 (with 50% cues)

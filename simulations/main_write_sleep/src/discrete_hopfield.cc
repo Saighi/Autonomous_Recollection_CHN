@@ -236,6 +236,42 @@ std::vector<double> DiscreteHopfield::runSynchronous(const std::vector<double>& 
     return state;
 }
 
+std::vector<double> DiscreteHopfield::runSynchronousUntilConvergence(
+    const std::vector<double>& initial_state,
+    int max_steps,
+    int& steps_taken
+) {
+    std::vector<double> state = initial_state;
+    std::vector<double> new_state(size);
+
+    for (int step = 0; step < max_steps; ++step) {
+        // Compute all local fields first
+        for (int i = 0; i < size; ++i) {
+            double h_i = avxDotProductNoDiag(weight_matrix[i].data(), state.data(), size, i);
+            new_state[i] = (h_i >= 0.0) ? 1.0 : -1.0;
+        }
+
+        // Check for convergence (no unit changed)
+        bool converged = true;
+        for (int i = 0; i < size; ++i) {
+            if (new_state[i] != state[i]) {
+                converged = false;
+                break;
+            }
+        }
+
+        // Update state
+        state = new_state;
+        steps_taken = step + 1;
+
+        if (converged) {
+            return state;
+        }
+    }
+
+    return state;
+}
+
 // ============================================================================
 // Query Helpers
 // ============================================================================

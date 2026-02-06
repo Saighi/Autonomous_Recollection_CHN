@@ -101,6 +101,20 @@ public:
      */
     std::vector<double> runSynchronous(const std::vector<double>& initial_state, int steps);
 
+    /**
+     * Run synchronous dynamics until convergence (no unit changes).
+     *
+     * @param initial_state Initial state vector {-1, +1}
+     * @param max_steps Maximum number of synchronous updates
+     * @param steps_taken Output: actual number of steps taken
+     * @return Final state after convergence or max_steps
+     */
+    std::vector<double> runSynchronousUntilConvergence(
+        const std::vector<double>& initial_state,
+        int max_steps,
+        int& steps_taken
+    );
+
     // ========== Query Helpers ==========
 
     /**
