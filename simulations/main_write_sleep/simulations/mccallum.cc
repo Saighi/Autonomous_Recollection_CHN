@@ -4,11 +4,13 @@
  * Implements the pseudorehearsal method from McCallum's 2007 PhD thesis
  * "Catastrophic Forgetting and the Pseudorehearsal Solution in Hopfield Networks".
  *
- * Key features:
- * - Delta learning rule with asymmetric weights
- * - Probing phase to discover stable states (pseudoitems)
- * - Noise applied ONLY to new patterns (heteroassociative + input noise)
- * - Evaluation via 50% partial cue queries
+ * Supports three modes:
+ *   mode=0: Pseudorehearsal (probe + retrain with pseudoitems)
+ *   mode=1: Delta hetero (train new pattern with heteroassociative noise only)
+ *   mode=2: Delta gaussian (train new pattern with Gaussian input noise only)
+ *
+ * All algorithm parameters are configurable via JSON config with defaults
+ * matching the original hardcoded values for backward compatibility.
  *
  * Usage: ./bin/mccallum <config.json>
  *
@@ -20,7 +22,16 @@
  *     "network_size": 100,
  *     "max_patterns": 50,
  *     "rho": 0.0,
- *     "seed": 0
+ *     "seed": 0,
+ *     "mode": 0,
+ *     "base_pop": 0,
+ *     "max_pseudoitems": 256,
+ *     "n_probes": 2000,
+ *     "stop_on_failure": 1,
+ *     "eta": 0.1,
+ *     "max_epochs": 500,
+ *     "nu_h": 0.05,
+ *     "sigma_input": 0.5
  *   },
  *   "varying_params": {
  *     "network_size": [50, 100, 150, 200, 250],
@@ -50,16 +61,40 @@
 namespace fs = std::filesystem;
 
 // =============================================================================
-// McCallum Algorithm Parameters (from spec)
+// McCallum Algorithm Parameters
 // =============================================================================
-constexpr double ETA = 0.1;              // Delta learning rate
-constexpr int E_MAX = 500;               // Max epochs per incorporation
-constexpr double ERROR_CRITERION = 0.001; // Early stopping threshold
-constexpr double ERROR_SMOOTHING = 0.9;  // Smoothing factor for error
-constexpr double NU_H = 0.05;            // 5% heteroassociative noise
-constexpr double SIGMA_INPUT = 0.5;      // Gaussian input noise std
-constexpr int P_PROBES = 2000;           // Number of probes for pseudoitems
-constexpr int P_ITEMS = 256;             // Max pseudoitems to collect
+
+struct McCallumParams {
+    double eta             = 0.1;
+    int    max_epochs      = 500;
+    double error_criterion = 0.001;
+    double error_smoothing = 0.9;
+    double nu_h            = 0.05;
+    double sigma_input     = 0.5;
+    int    n_probes        = 2000;
+    int    max_pseudoitems = 256;
+    int    base_pop        = 0;
+    int    mode            = 0;      // 0=PR, 1=delta_hetero, 2=delta_gaussian
+    bool   stop_on_failure = true;
+
+    static McCallumParams from_config(
+        const std::unordered_map<std::string, double>& p
+    ) {
+        McCallumParams mp;
+        if (p.count("eta"))             mp.eta = p.at("eta");
+        if (p.count("max_epochs"))      mp.max_epochs = static_cast<int>(p.at("max_epochs"));
+        if (p.count("error_criterion")) mp.error_criterion = p.at("error_criterion");
+        if (p.count("error_smoothing")) mp.error_smoothing = p.at("error_smoothing");
+        if (p.count("nu_h"))            mp.nu_h = p.at("nu_h");
+        if (p.count("sigma_input"))     mp.sigma_input = p.at("sigma_input");
+        if (p.count("n_probes"))        mp.n_probes = static_cast<int>(p.at("n_probes"));
+        if (p.count("max_pseudoitems")) mp.max_pseudoitems = static_cast<int>(p.at("max_pseudoitems"));
+        if (p.count("base_pop"))        mp.base_pop = static_cast<int>(p.at("base_pop"));
+        if (p.count("mode"))            mp.mode = static_cast<int>(p.at("mode"));
+        if (p.count("stop_on_failure")) mp.stop_on_failure = static_cast<int>(p.at("stop_on_failure")) != 0;
+        return mp;
+    }
+};
 
 // =============================================================================
 // Delta Learning Rule Implementation
@@ -92,43 +127,48 @@ std::vector<double> apply_heteroassociative_noise(
 }
 
 /**
- * Train network using delta learning with McCallum's noise scheme.
+ * Train network using delta learning with configurable noise scheme.
  *
- * @param net Network to train
- * @param training_set All patterns to train on (pseudoitems + new pattern)
- * @param new_pattern_idx Index of the new pattern in training_set (-1 if no new pattern)
- * @param rng Random number generator
+ * @param net             Network to train
+ * @param training_set    All patterns to train on
+ * @param new_pattern_idx Index of the new pattern (-1 = no new pattern, no noise)
+ * @param rng             Random number generator
+ * @param mp              Algorithm parameters
+ * @param apply_hetero    Apply heteroassociative noise to new pattern
+ * @param apply_gauss     Apply Gaussian input noise to new pattern
  * @return Number of epochs trained
  */
 int train_delta_learning(
     DiscreteHopfield& net,
     const std::vector<std::vector<double>>& training_set,
     int new_pattern_idx,
-    std::mt19937& rng
+    std::mt19937& rng,
+    const McCallumParams& mp,
+    bool apply_hetero = true,
+    bool apply_gauss = true
 ) {
     int N = net.size;
     double smoothed_error = 1.0;
-    std::normal_distribution<double> input_noise(0.0, SIGMA_INPUT);
+    std::normal_distribution<double> input_noise(0.0, mp.sigma_input);
 
     // Create shuffled indices for training
     std::vector<int> order(training_set.size());
     std::iota(order.begin(), order.end(), 0);
 
-    for (int epoch = 0; epoch < E_MAX; ++epoch) {
+    for (int epoch = 0; epoch < mp.max_epochs; ++epoch) {
         std::shuffle(order.begin(), order.end(), rng);
         double epoch_errors = 0.0;
 
         for (int idx : order) {
             const std::vector<double>& target = training_set[idx];
-            bool is_new_pattern = (idx == new_pattern_idx);
+            bool is_new = (new_pattern_idx >= 0 && idx == new_pattern_idx);
 
             // Prepare input
             std::vector<double> input;
-            if (is_new_pattern) {
-                // Apply heteroassociative noise to new pattern only
-                input = apply_heteroassociative_noise(target, NU_H, rng);
+            if (is_new && apply_hetero) {
+                input = apply_heteroassociative_noise(target, mp.nu_h, rng);
             } else {
-                input = target;  // Pseudoitems: no noise
+                input = target;
             }
 
             // Update each unit
@@ -142,7 +182,7 @@ int train_delta_learning(
                 }
 
                 // Add input noise for new patterns only
-                if (is_new_pattern) {
+                if (is_new && apply_gauss) {
                     h_i += input_noise(rng);
                 }
 
@@ -152,10 +192,10 @@ int train_delta_learning(
                 // Compute error
                 double error_i = target[i] - psi_i;
 
-                if (std::abs(error_i) > 0.5) {  // error is ±2 or 0
+                if (std::abs(error_i) > 0.5) {  // error is +/-2 or 0
                     // Update weights using delta rule
                     for (int j = 0; j < N; ++j) {
-                        net.weight_matrix[i][j] += ETA * error_i * input[j];
+                        net.weight_matrix[i][j] += mp.eta * error_i * input[j];
                     }
                     net.weight_matrix[i][i] = 0.0;  // Enforce no self-connection
                     epoch_errors += std::abs(error_i) / 2.0;
@@ -164,13 +204,14 @@ int train_delta_learning(
         }
 
         // Check early stopping with smoothed error
-        smoothed_error = smoothed_error * ERROR_SMOOTHING + epoch_errors * (1.0 - ERROR_SMOOTHING);
-        if (smoothed_error < ERROR_CRITERION) {
+        smoothed_error = smoothed_error * mp.error_smoothing
+                       + epoch_errors * (1.0 - mp.error_smoothing);
+        if (smoothed_error < mp.error_criterion) {
             return epoch + 1;
         }
     }
 
-    return E_MAX;
+    return mp.max_epochs;
 }
 
 // =============================================================================
@@ -180,12 +221,6 @@ int train_delta_learning(
 /**
  * Relax network from initial state until convergence or max cycles.
  * One cycle = N random unit updates.
- *
- * @param net Network
- * @param initial Initial state
- * @param max_cycles Maximum number of cycles (each cycle = N updates)
- * @param rng Random number generator
- * @return Final stable state
  */
 std::vector<double> relax_async(
     DiscreteHopfield& net,
@@ -228,14 +263,11 @@ std::vector<double> relax_async(
 
 /**
  * Probe network to find pseudoitems (unique stable states).
- *
- * @param net Network to probe
- * @param rng Random number generator
- * @return Vector of unique stable states
  */
 std::vector<std::vector<double>> probe_for_pseudoitems(
     DiscreteHopfield& net,
-    std::mt19937& rng
+    std::mt19937& rng,
+    const McCallumParams& mp
 ) {
     int N = net.size;
     std::vector<std::vector<double>> pseudoitems;
@@ -243,7 +275,8 @@ std::vector<std::vector<double>> probe_for_pseudoitems(
 
     std::uniform_int_distribution<int> coin(0, 1);
 
-    for (int probe = 0; probe < P_PROBES && static_cast<int>(pseudoitems.size()) < P_ITEMS; ++probe) {
+    for (int probe = 0; probe < mp.n_probes
+         && static_cast<int>(pseudoitems.size()) < mp.max_pseudoitems; ++probe) {
         // Generate random probe
         std::vector<double> state(N);
         for (int i = 0; i < N; ++i) {
@@ -272,17 +305,11 @@ std::vector<std::vector<double>> probe_for_pseudoitems(
 }
 
 // =============================================================================
-// Query (50% Partial Cue)
+// Evaluation
 // =============================================================================
 
 /**
  * Query pattern with 50% partial cue (single trial).
- * Consistent with AR evaluation: spurious = failure.
- *
- * @param net Network
- * @param pattern Target pattern
- * @param rng Random number generator
- * @return True if correct pattern retrieved
  */
 bool query_pattern_50pct(
     DiscreteHopfield& net,
@@ -315,21 +342,48 @@ bool query_pattern_50pct(
     return net.matchesPattern(result, pattern);
 }
 
+/**
+ * Count how many of the first M patterns are stable fixed points.
+ * (Relax from pattern itself; check convergence to the same state.)
+ */
+int count_stable(
+    DiscreteHopfield& net,
+    const std::vector<std::vector<double>>& patterns,
+    int M,
+    std::mt19937& rng
+) {
+    int N = net.size;
+    int max_cycles = 4 * N;
+    int count = 0;
+    for (int mu = 0; mu < M; ++mu) {
+        std::vector<double> state = relax_async(net, patterns[mu], max_cycles, rng);
+        bool matches = true;
+        for (int i = 0; i < N; ++i) {
+            if (state[i] != patterns[mu][i]) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) ++count;
+    }
+    return count;
+}
+
 // =============================================================================
 // Main McCallum Simulation
 // =============================================================================
 
 /**
- * Run full McCallum pseudorehearsal simulation.
+ * Run full McCallum simulation.
  *
- * @return M* = maximum patterns successfully stored and retrieved
+ * @return M* = maximum patterns successfully stored and retrieved via query
  */
 int run_mccallum_simulation(
     int sim_number,
     const std::unordered_map<std::string, double>& params,
     const std::string& output_dir
 ) {
-    // Extract parameters
+    // Extract basic parameters
     int N = static_cast<int>(params.at("network_size"));
     int M_max = params.count("max_patterns") ? static_cast<int>(params.at("max_patterns")) : 50;
     double rho = params.count("rho") ? params.at("rho") : 0.0;
@@ -343,8 +397,13 @@ int run_mccallum_simulation(
     }
     std::mt19937 rng(seed_value);
 
+    // Build algorithm parameters from config (defaults = original hardcoded values)
+    McCallumParams mp = McCallumParams::from_config(params);
+
     std::cout << "McCallum sim " << sim_number << ": N=" << N << ", rho=" << rho
-              << ", seed=" << seed_value << std::endl;
+              << ", seed=" << seed_value << ", mode=" << mp.mode
+              << ", base_pop=" << mp.base_pop
+              << ", max_pi=" << mp.max_pseudoitems << std::endl;
 
     // Create simulation output directory
     std::string sim_dir = output_dir + "/sim_nb_" + std::to_string(sim_number);
@@ -369,36 +428,74 @@ int run_mccallum_simulation(
 
     // Track results per incorporation
     std::ofstream results_file(sim_dir + "/results.data");
-    results_file << "M,num_pseudoitems,epochs,all_queries_passed" << std::endl;
+    results_file << "M,num_pseudoitems,epochs,all_queries_passed,num_stable" << std::endl;
 
     int M_star = 0;
+    int start_M = 1;
 
-    // Incorporation loop
-    for (int M = 1; M <= M_max; ++M) {
-        // Build training set
-        std::vector<std::vector<double>> training_set;
-        int new_pattern_idx;
+    // --- Base population training (if base_pop > 0) ---
+    if (mp.base_pop > 0 && mp.base_pop <= M_max) {
+        std::vector<std::vector<double>> base_set(
+            patterns.begin(), patterns.begin() + mp.base_pop);
+        int epochs = train_delta_learning(net, base_set, -1, rng, mp, false, false);
 
-        if (M == 1) {
-            // First pattern: train alone
-            training_set.push_back(patterns[0]);
-            new_pattern_idx = 0;
-        } else {
-            // Probe for pseudoitems
-            std::vector<std::vector<double>> pseudoitems = probe_for_pseudoitems(net, rng);
+        int stable = count_stable(net, patterns, mp.base_pop, rng);
 
-            // Training set = pseudoitems + new pattern
-            training_set = std::move(pseudoitems);
-            training_set.push_back(patterns[M - 1]);
-            new_pattern_idx = static_cast<int>(training_set.size()) - 1;
+        bool queries_ok = true;
+        for (int mu = 0; mu < mp.base_pop && queries_ok; ++mu) {
+            if (!query_pattern_50pct(net, patterns[mu], rng))
+                queries_ok = false;
         }
 
-        int num_pseudoitems = static_cast<int>(training_set.size()) - 1;
+        results_file << mp.base_pop << ",0," << epochs << ","
+                     << (queries_ok ? 1 : 0) << "," << stable << std::endl;
 
-        // Train with delta learning
-        int epochs = train_delta_learning(net, training_set, new_pattern_idx, rng);
+        if (queries_ok) M_star = mp.base_pop;
+        start_M = mp.base_pop + 1;
+    }
 
-        // Query all stored patterns with 50% partial cues
+    // --- Incorporation loop ---
+    for (int M = start_M; M <= M_max; ++M) {
+        std::vector<std::vector<double>> training_set;
+        int new_pattern_idx;
+        int num_pseudoitems = 0;
+        int epochs;
+
+        if (mp.mode == 0) {
+            // ---- Pseudorehearsal: probe + retrain ----
+            if (M == 1 && mp.base_pop == 0) {
+                // First pattern: train alone
+                training_set.push_back(patterns[0]);
+                new_pattern_idx = 0;
+            } else {
+                // Probe for pseudoitems
+                auto pseudoitems = probe_for_pseudoitems(net, rng, mp);
+                training_set = std::move(pseudoitems);
+                training_set.push_back(patterns[M - 1]);
+                new_pattern_idx = static_cast<int>(training_set.size()) - 1;
+                num_pseudoitems = static_cast<int>(training_set.size()) - 1;
+            }
+            epochs = train_delta_learning(net, training_set, new_pattern_idx,
+                                          rng, mp, true, true);
+
+        } else if (mp.mode == 1) {
+            // ---- Delta hetero: single pattern, hetero noise only ----
+            training_set.push_back(patterns[M - 1]);
+            new_pattern_idx = 0;
+            epochs = train_delta_learning(net, training_set, new_pattern_idx,
+                                          rng, mp, true, false);
+
+        } else {
+            // ---- Delta gaussian: single pattern, gaussian noise only ----
+            training_set.push_back(patterns[M - 1]);
+            new_pattern_idx = 0;
+            epochs = train_delta_learning(net, training_set, new_pattern_idx,
+                                          rng, mp, false, true);
+        }
+
+        // Evaluate: stability + partial cue query
+        int stable = count_stable(net, patterns, M, rng);
+
         bool all_passed = true;
         for (int mu = 0; mu < M && all_passed; ++mu) {
             if (!query_pattern_50pct(net, patterns[mu], rng)) {
@@ -408,12 +505,13 @@ int run_mccallum_simulation(
 
         // Log results
         results_file << M << "," << num_pseudoitems << "," << epochs << ","
-                     << (all_passed ? 1 : 0) << std::endl;
+                     << (all_passed ? 1 : 0) << "," << stable << std::endl;
 
         if (all_passed) {
             M_star = M;
-        } else {
-            // Failed: M* = M - 1
+        }
+
+        if (!all_passed && mp.stop_on_failure) {
             break;
         }
     }
