@@ -234,7 +234,7 @@ probed pseudoitems preserve old memories while the new pattern is learned.
 ### 7.2 Step 1 — Run simulations
 
 ```bash
-python3 scripts/comparison_mccallum/mccallum_1995_sim_cpp.py
+python3 scripts/comparison_mccallum/mccallum_1995/sim_cpp.py
 ```
 
 This script:
@@ -271,7 +271,7 @@ This script:
 ### 7.3 Step 2 — Generate plots
 
 ```bash
-python3 scripts/comparison_mccallum/mccallum_1995_viz.py
+python3 scripts/comparison_mccallum/mccallum_1995/viz.py
 ```
 
 This script:
@@ -292,7 +292,7 @@ This script:
 
 ### 7.4 Editable knobs
 
-In `mccallum_1995_sim_cpp.py`:
+In `sim_cpp.py`:
 
 | Variable | Default | Effect |
 |----------|---------|--------|
@@ -303,7 +303,7 @@ In `mccallum_1995_sim_cpp.py`:
 | `SEED_OFFSET` | 0 | Starting seed value |
 | `RUN` | all 5 | Which conditions to run |
 
-In `mccallum_1995_viz.py`:
+In `viz.py`:
 
 | Variable | Default | Effect |
 |----------|---------|--------|

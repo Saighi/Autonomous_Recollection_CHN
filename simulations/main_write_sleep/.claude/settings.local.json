@@ -14,7 +14,8 @@
       "Bash(done)",
       "Bash(python diagnose_sleep_speed.py:*)",
       "Bash(python:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(/home/saighi/.virtualenvs/visualization/bin/python:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 # %% [markdown]
 # # McCallum 1995 — Visualization
 #
-# Loads CSV data produced by `mccallum_1995_sim.py` and generates
+# Loads CSV data produced by `sim.py` and generates
 # publication-ready figures.
 #
 # **Expected data:** `data/mccallum_results/mccallum_1995/{condition}.csv`
@@ -16,14 +16,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 _THIS_DIR = Path(__file__).resolve().parent if '__file__' in dir() else Path.cwd()
-_SCRIPTS_DIR = _THIS_DIR.parent
+_SCRIPTS_DIR = _THIS_DIR.parent.parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
 
 try:
     from utils import DATA_DIR, SCRIPT_DIR
 except ImportError:
-    DATA_DIR   = _THIS_DIR.parent.parent / "data"
-    SCRIPT_DIR = _THIS_DIR.parent
+    DATA_DIR   = _SCRIPTS_DIR.parent / "data"
+    SCRIPT_DIR = _SCRIPTS_DIR
 
 DATA_PATH = DATA_DIR / "mccallum_results" / "mccallum_1995"
 PLOT_DIR  = SCRIPT_DIR / "plots"
@@ -46,7 +46,7 @@ for cond in CONDITIONS:
     else:
         print(f"  {cond:20s}: NOT FOUND ({path})")
 
-assert len(frames) > 0, "No data found! Run mccallum_1995_sim.py first."
+assert len(frames) > 0, "No data found! Run sim.py first."
 
 # %% Compute per-step mean/std for each condition
 def summarise(df: pd.DataFrame):
@@ -81,8 +81,8 @@ fig, ax = plt.subplots(figsize=(8, 6))
 
 # Perfect recall
 M_ref = stats[next(iter(stats))]["M"].values
-ax.plot(M_ref, M_ref, color="0.45", ls="-", lw=1.8,
-        label="Perfect recall", zorder=1)
+# ax.plot(M_ref, M_ref, color="0.45", ls="-", lw=1.8,
+#         label="Perfect recall", zorder=1)
 
 # Data curves
 for cond in SHOW:

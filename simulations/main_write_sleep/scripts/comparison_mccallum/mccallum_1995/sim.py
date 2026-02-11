@@ -31,14 +31,14 @@ from numba import njit
 
 # %% Paths
 _THIS_DIR = Path(__file__).resolve().parent if '__file__' in dir() else Path.cwd()
-_SCRIPTS_DIR = _THIS_DIR.parent
+_SCRIPTS_DIR = _THIS_DIR.parent.parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
 
 # Try to import DATA_DIR from project utils; fall back to relative path
 try:
     from utils import DATA_DIR
 except ImportError:
-    DATA_DIR = _THIS_DIR.parent.parent / "data"
+    DATA_DIR = _SCRIPTS_DIR.parent / "data"
 
 OUTPUT_DIR = DATA_DIR / "mccallum_results" / "mccallum_1995"
 

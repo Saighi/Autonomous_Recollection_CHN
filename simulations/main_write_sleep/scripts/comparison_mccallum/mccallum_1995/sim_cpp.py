@@ -1,7 +1,7 @@
 # %% [markdown]
 # # McCallum 1995 — C++ Backend Simulation
 #
-# Runs the same 5 conditions as `mccallum_1995_sim.py` but delegates all
+# Runs the same 5 conditions as `sim.py` but delegates all
 # heavy computation to the shared `bin/mccallum` C++ backend.
 #
 # **Conditions:**
@@ -17,7 +17,7 @@
 #
 # **Output:** `data/mccallum_results/mccallum_1995/{condition}.csv`
 # with columns: `condition, trial, M, stable, pseudo`
-# (same format as the Numba version — compatible with `mccallum_1995_viz.py`)
+# (same format as the Numba version — compatible with `viz.py`)
 
 # %% Imports
 import sys
@@ -28,7 +28,7 @@ from pathlib import Path
 import pandas as pd
 
 _THIS_DIR = Path(__file__).resolve().parent if '__file__' in dir() else Path.cwd()
-_SCRIPTS_DIR = _THIS_DIR.parent
+_SCRIPTS_DIR = _THIS_DIR.parent.parent
 sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from utils import DATA_DIR, BIN_DIR, build, run_cpp

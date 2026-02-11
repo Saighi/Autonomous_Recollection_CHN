@@ -163,27 +163,29 @@ std::pair<bool, std::set<int>> run_sleep_phase(
 }
 
 // =============================================================================
-// Query (50% Partial Cue for CHN)
+// Query (Partial Cue for CHN)
 // =============================================================================
 
 /**
- * Query pattern with 50% partial cue (single trial).
+ * Query pattern with partial cue (single trial).
  * Consistent with AR evaluation: spurious = failure.
  *
  * @param net Network
  * @param pattern Target pattern (bool)
  * @param delta Integration timestep
+ * @param informed_fraction Fraction of units cued (1.0 = stability, 0.5 = 50% cue)
  * @param rng Random number generator
  * @return True if correct pattern retrieved
  */
-bool query_pattern_50pct_chn(
+bool query_pattern_chn(
     Network& net,
     const std::vector<bool>& pattern,
     double delta,
+    double informed_fraction,
     std::mt19937& rng
 ) {
     int N = net.size;
-    int n_informed = N / 2;
+    int n_informed = static_cast<int>(std::round(informed_fraction * N));
 
     // Create partial cue: uninformed units at neutral 0.5
     std::vector<double> cue(N, 0.5);
@@ -335,19 +337,24 @@ int run_ar_incremental_simulation(
 
     // Track results per incorporation
     std::ofstream results_file(sim_dir + "/results.data");
-    results_file << "M,sleep_success,patterns_retrieved_in_sleep,all_queries_passed" << std::endl;
+    results_file << "M,sleep_success,all_stable,all_rec95,all_rec80,all_rec50" << std::endl;
 
-    int M_star = 0;
+    // Cue levels: 1.00 (stability), 0.95, 0.80, 0.50
+    constexpr int NUM_CUE_LEVELS = 4;
+    constexpr double CUE_FRACTIONS[NUM_CUE_LEVELS] = {1.00, 0.95, 0.80, 0.50};
+    // Labels: stable, rec95, rec80, rec50
+
+    int M_star_vals[NUM_CUE_LEVELS] = {0, 0, 0, 0};  // M*_s for each cue level
+    bool alive[NUM_CUE_LEVELS] = {true, true, true, true};
+
     std::vector<std::vector<bool>> current_patterns;
 
     // Incorporation loop
     for (int M = 1; M <= M_max; ++M) {
         bool sleep_success = true;
-        int patterns_retrieved = 0;
 
         if (M > 1) {
             // Run sleep phase for consolidation BEFORE adding new pattern
-            // Sleep checks against previously trained patterns only
             net.reset_inhib();
 
             auto [success, retrieved_indices] = run_sleep_phase(
@@ -356,11 +363,10 @@ int run_ar_incremental_simulation(
             );
 
             sleep_success = success;
-            patterns_retrieved = static_cast<int>(retrieved_indices.size());
 
             if (!sleep_success) {
-                // Spurious during sleep = FAILURE
-                results_file << M << ",0," << patterns_retrieved << ",0" << std::endl;
+                // Spurious during sleep = FAILURE for all cue levels
+                results_file << M << ",0,0,0,0,0" << std::endl;
                 break;
             }
         }
@@ -368,25 +374,44 @@ int run_ar_incremental_simulation(
         // NOW add the new pattern (after successful sleep)
         current_patterns.push_back(all_patterns[M - 1]);
 
-        // Train on all current patterns (previously retrieved + new)
+        // Train on all current patterns
         train_gda(net, current_patterns, drive_target, learning_rate, momentum, leak, max_iter);
 
-        // Query all stored patterns with 50% partial cues
-        bool all_passed = true;
-        for (int mu = 0; mu < M && all_passed; ++mu) {
-            if (!query_pattern_50pct_chn(net, current_patterns[mu], delta, rng)) {
-                all_passed = false;
+        // Evaluate at all alive cue levels
+        int cue_results[NUM_CUE_LEVELS] = {0, 0, 0, 0};
+
+        for (int c = 0; c < NUM_CUE_LEVELS; ++c) {
+            if (!alive[c]) continue;
+
+            bool all_passed = true;
+            for (int mu = 0; mu < M && all_passed; ++mu) {
+                if (!query_pattern_chn(net, current_patterns[mu], delta, CUE_FRACTIONS[c], rng)) {
+                    all_passed = false;
+                }
+            }
+
+            if (all_passed) {
+                cue_results[c] = 1;
+                M_star_vals[c] = M;
+            } else {
+                alive[c] = false;
+                // Stability failure → kill all harder cues too
+                if (c == 0) {
+                    for (int k = 1; k < NUM_CUE_LEVELS; ++k) {
+                        alive[k] = false;
+                    }
+                }
             }
         }
 
-        results_file << M << "," << (sleep_success ? 1 : 0) << ","
-                     << (M == 1 ? 0 : patterns_retrieved) << ","
-                     << (all_passed ? 1 : 0) << std::endl;
+        results_file << M << "," << (sleep_success ? 1 : 0);
+        for (int c = 0; c < NUM_CUE_LEVELS; ++c) {
+            results_file << "," << cue_results[c];
+        }
+        results_file << std::endl;
 
-        if (all_passed) {
-            M_star = M;
-        } else {
-            // Query failed
+        // Check if all cue levels dead
+        if (!alive[0] && !alive[1] && !alive[2] && !alive[3]) {
             break;
         }
     }
@@ -406,15 +431,22 @@ int run_ar_incremental_simulation(
     // Save connectivity
     writeBoolMatrixToFile(connectivity, sim_dir + "/connectivity.data");
 
-    // Save parameters including M*
+    // Save parameters including M* for each cue level
     std::unordered_map<std::string, double> saved_params = params;
-    saved_params["M_star"] = static_cast<double>(M_star);
-    saved_params["patterns_attempted"] = static_cast<double>(std::min(M_star + 1, M_max));
+    saved_params["M_star_stable"] = static_cast<double>(M_star_vals[0]);
+    saved_params["M_star_rec95"] = static_cast<double>(M_star_vals[1]);
+    saved_params["M_star_rec80"] = static_cast<double>(M_star_vals[2]);
+    saved_params["M_star_rec50"] = static_cast<double>(M_star_vals[3]);
+    saved_params["M_star"] = static_cast<double>(M_star_vals[3]);  // backwards compat
+    saved_params["patterns_attempted"] = static_cast<double>(std::min(M_star_vals[0] + 1, M_max));
     createParameterFile(sim_dir, saved_params);
 
-    std::cout << "Sim " << sim_number << " complete: M* = " << M_star << std::endl;
+    std::cout << "Sim " << sim_number << " complete: M*_stable=" << M_star_vals[0]
+              << " M*_rec95=" << M_star_vals[1]
+              << " M*_rec80=" << M_star_vals[2]
+              << " M*_rec50=" << M_star_vals[3] << std::endl;
 
-    return M_star;
+    return M_star_vals[3];
 }
 
 // =============================================================================
