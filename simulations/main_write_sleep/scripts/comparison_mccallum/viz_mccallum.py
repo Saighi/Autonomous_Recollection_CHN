@@ -5,7 +5,7 @@
 # capacity methods:
 #
 # 1. **McCallum Pseudorehearsal** (DHN) - Delta learning with probing
-# 2. **AR / Continuous Incorporation** (CHN) - Sleep consolidation
+# 2. **CI / Continuous Incorporation** (CHN) - Sleep consolidation
 # 3. **Hebbian** (DHN) - One-shot outer product learning
 # 4. **Storkey** (DHN) - Incremental local field correction
 #
@@ -68,21 +68,21 @@ plt.rcParams.update({
 # Method colors - distinct and colorblind-friendly
 METHOD_COLORS = {
     'McCallum':  '#E67E22',  # Orange
-    'AR':        '#2C3E50',  # Dark blue-gray
+    'CI':        '#2C3E50',  # Dark blue-gray
     'Hebbian':   '#922B21',  # Dark burgundy
     'Storkey':   '#1E8449',  # Dark forest green
 }
 
 METHOD_MARKERS = {
     'McCallum':  'o',
-    'AR':        's',
+    'CI':        's',
     'Hebbian':   '^',
     'Storkey':   'D',
 }
 
 METHOD_LABELS = {
     'McCallum':  'McCallum (Pseudorehearsal)',
-    'AR':        'AR (Sleep Consolidation)',
+    'CI':        'CI (Sleep Consolidation)',
     'Hebbian':   'Hebbian',
     'Storkey':   'Storkey',
 }
@@ -122,7 +122,7 @@ def compute_M_star_summary(df: pd.DataFrame, method_name: str) -> pd.DataFrame:
     """Compute M* summary from raw simulation data.
 
     Handles different data formats:
-    - McCallum/AR: has 'M_star' column directly
+    - McCallum/CI: has 'M_star' column directly
     - DHN (Hebbian/Storkey): has per-pattern 'recovered' column that needs aggregation
     """
     results = []
@@ -177,7 +177,7 @@ def compute_M_star_summary(df: pd.DataFrame, method_name: str) -> pd.DataFrame:
                     })
 
     else:
-        # McCallum/AR style: already has M_star or all_queries_passed per simulation
+        # McCallum/CI style: already has M_star or all_queries_passed per simulation
         for N in df['network_size'].unique():
             for rho in df['rho'].unique():
                 subset = df[(df['network_size'] == N) & (df['rho'] == rho)]
@@ -227,12 +227,12 @@ def compute_M_star_summary(df: pd.DataFrame, method_name: str) -> pd.DataFrame:
 # %%
 # Load all method results
 mccallum_df = load_M_star_summary(DATA_BASE / "mccallum", "McCallum")
-ar_df = load_M_star_summary(DATA_BASE / "ar", "AR")
+ci_df = load_M_star_summary(DATA_BASE / "ar", "CI")
 hebbian_df = load_M_star_summary(DATA_BASE / "hebbian", "Hebbian")
 storkey_df = load_M_star_summary(DATA_BASE / "storkey", "Storkey")
 
 # Combine
-all_results = pd.concat([mccallum_df, ar_df, hebbian_df, storkey_df], ignore_index=True)
+all_results = pd.concat([mccallum_df, ci_df, hebbian_df, storkey_df], ignore_index=True)
 
 if len(all_results) > 0:
     print(f"Loaded {len(all_results)} results")
@@ -272,7 +272,7 @@ def plot_comparison_column(all_results: pd.DataFrame, save_path: Path = None):
     for ax, rho in zip(axes, rho_values):
         subset = all_results[all_results['rho'] == rho]
 
-        for method in ['Storkey', 'AR', 'McCallum', 'Hebbian']:
+        for method in ['Storkey', 'CI', 'McCallum', 'Hebbian']:
             method_data = subset[subset['method'] == method]
             if len(method_data) == 0:
                 continue
@@ -316,7 +316,7 @@ def plot_comparison_column(all_results: pd.DataFrame, save_path: Path = None):
     # Single legend at top
     handles = [Line2D([0], [0], color=METHOD_COLORS[m], marker=METHOD_MARKERS[m],
                       linewidth=2.5, markersize=9, label=METHOD_LABELS[m])
-               for m in ['Storkey', 'AR', 'McCallum', 'Hebbian']]
+               for m in ['Storkey', 'CI', 'McCallum', 'Hebbian']]
     fig.legend(handles=handles, loc='upper center', ncol=2,
                bbox_to_anchor=(0.5, 1.02), fontsize=12, frameon=True,
                fancybox=True, shadow=False)
@@ -363,7 +363,7 @@ def plot_comparison_by_N_column(all_results: pd.DataFrame, save_path: Path = Non
     for ax, N in zip(axes, N_values):
         subset = all_results[all_results['N'] == N]
 
-        for method in ['Storkey', 'AR', 'McCallum', 'Hebbian']:
+        for method in ['Storkey', 'CI', 'McCallum', 'Hebbian']:
             method_data = subset[subset['method'] == method]
             if len(method_data) == 0:
                 continue
@@ -405,7 +405,7 @@ def plot_comparison_by_N_column(all_results: pd.DataFrame, save_path: Path = Non
     # Single legend at top
     handles = [Line2D([0], [0], color=METHOD_COLORS[m], marker=METHOD_MARKERS[m],
                       linewidth=2.5, markersize=9, label=METHOD_LABELS[m])
-               for m in ['Storkey', 'AR', 'McCallum', 'Hebbian']]
+               for m in ['Storkey', 'CI', 'McCallum', 'Hebbian']]
     fig.legend(handles=handles, loc='upper center', ncol=2,
                bbox_to_anchor=(0.5, 1.02), fontsize=12, frameon=True,
                fancybox=True, shadow=False)
@@ -451,7 +451,7 @@ def print_summary_table(all_results: pd.DataFrame):
     )
 
     # Reorder columns
-    cols = [c for c in ['Storkey', 'AR', 'McCallum', 'Hebbian'] if c in pivot.columns]
+    cols = [c for c in ['Storkey', 'CI', 'McCallum', 'Hebbian'] if c in pivot.columns]
     pivot = pivot[cols]
 
     print(pivot.to_string())
@@ -497,7 +497,7 @@ def plot_method_heatmaps(all_results: pd.DataFrame, save_path: Path = None):
     rho_values = sorted(all_results['rho'].unique())
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    methods = ['Storkey', 'AR', 'McCallum', 'Hebbian']
+    methods = ['Storkey', 'CI', 'McCallum', 'Hebbian']
 
     for ax, method in zip(axes.flat, methods):
         method_data = all_results[all_results['method'] == method]
@@ -566,7 +566,7 @@ plot_method_heatmaps(all_results, output_path_heatmap)
 # 2. **High correlation degrades all methods**: At $\rho \geq 0.5$, capacity
 #    no longer scales with $N$ - all methods plateau at $M^* \approx 2-5$
 #
-# 3. **AR (Sleep Consolidation)** shows intermediate performance, benefiting
+# 3. **CI (Sleep Consolidation)** shows intermediate performance, benefiting
 #    from continuous activations but limited by the strict spurious-as-failure criterion
 #
 # 4. **McCallum Pseudorehearsal** shows similar scaling to Hebbian, as expected

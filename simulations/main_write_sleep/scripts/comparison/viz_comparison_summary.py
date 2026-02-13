@@ -1,5 +1,5 @@
 # %% [markdown]
-# # CHN vs DHN Comparison - Publication Summary Figure
+# # CI vs DHN Comparison - Publication Summary Figure
 #
 # ## Overview
 #
@@ -14,7 +14,7 @@
 #
 # ## Methods Compared
 #
-# ### 1. AR (CHN) - Autonomous Retrieval with Sleep-Based Consolidation
+# ### 1. CI (CHN) - Continuous Incorporation with Sleep-Based Consolidation
 # - **Mechanism**: Patterns are stored via gradient descent training, then retrieved
 #   autonomously during "sleep" cycles without any external cues
 # - **Success metric**: `all_recovered_before_spurious` - whether all patterns were
@@ -55,7 +55,7 @@
 #
 # **Why it fails:** Each pattern is trained to convergence independently. When pattern μ+1 is
 # trained, the weight updates overwrite the attractor basins for patterns 1..μ. This is the
-# classic "catastrophic forgetting" problem in neural networks. In contrast, AR's batch training
+# classic "catastrophic forgetting" problem in neural networks. In contrast, CI's batch training
 # simultaneously optimizes all patterns, preserving all attractor basins
 #
 # ---
@@ -110,11 +110,11 @@
 #
 # | ρ value | Expected Winner | Explanation |
 # |---------|-----------------|-------------|
-# | 0.0 | Storkey > Hebbian > AR | Uncorrelated patterns favor DHN's theoretical capacity |
-# | 0.2 | Storkey ≈ Hebbian > AR | Transition region, Storkey may saturate |
-# | 0.4 | AR competitive | AR benefits from correlation structure |
-# | 0.5 | AR outperforms DHN | Optimal regime for AR's correlation exploitation |
-# | 0.6 | AR > DHN | DHN struggles with highly correlated patterns |
+# | 0.0 | Storkey > Hebbian > CI | Uncorrelated patterns favor DHN's theoretical capacity |
+# | 0.2 | Storkey ≈ Hebbian > CI | Transition region, Storkey may saturate |
+# | 0.4 | CI competitive | CI benefits from correlation structure |
+# | 0.5 | CI outperforms DHN | Optimal regime for CI's correlation exploitation |
+# | 0.6 | CI > DHN | DHN struggles with highly correlated patterns |
 #
 # **Note on Iterative GDA**: This method shows near-zero capacity across ALL ρ values due to
 # catastrophic forgetting. It serves as a control demonstrating that sequential training fails.
@@ -122,16 +122,16 @@
 #
 # ---
 #
-# ## AR Scalability Analysis (Additional Figure)
+# ## CI Scalability Analysis (Additional Figure)
 #
 # The main comparison figure uses networks up to N=1000, whereas earlier CHN experiments
-# were limited to N=250. To demonstrate the **scalability** of the AR method for larger
-# networks, we include an additional row of plots showing AR capacity at multiple success
+# were limited to N=250. To demonstrate the **scalability** of the CI method for larger
+# networks, we include an additional row of plots showing CI capacity at multiple success
 # thresholds (20%, 50%, 90%) across all ρ values.
 #
 # ### Key Insights from Multi-Threshold Analysis
 #
-# - **Threshold robustness**: AR capacity scales consistently across different success
+# - **Threshold robustness**: CI capacity scales consistently across different success
 #   thresholds, indicating robust pattern storage
 # - **Network scaling**: The relationship between network size and capacity provides
 #   hints about asymptotic behavior for even larger networks
@@ -144,7 +144,7 @@
 # ## Output
 #
 # - **File 1**: `scripts/plots/comparison_summary.png` - Main comparison (1×5 grid)
-# - **File 2**: `scripts/plots/ar_scalability_thresholds.png` - AR scalability (1×5 grid)
+# - **File 2**: `scripts/plots/ci_scalability_thresholds.png` - CI scalability (1×5 grid)
 # - **Dimensions**: Wide format suitable for publications
 
 # %% Imports
@@ -171,14 +171,14 @@ DPI = 300
 
 # Method styles (sober color scheme, same markers/lines)
 METHOD_COLORS = {
-    'AR':            '#2C3E50',  # Dark blue-gray
+    'CI':            '#2C3E50',  # Dark blue-gray
     'Hebbian':       '#922B21',  # Dark burgundy
     'Storkey':       '#1E8449',  # Dark forest green
     'Iterative GDA': '#6C3483',  # Dark purple
 }
 
 METHOD_STYLES = {
-    'AR':            {'color': METHOD_COLORS['AR'],            'marker': 'o', 'linestyle': '-',  'markersize': 10, 'linewidth': 2.5},
+    'CI':            {'color': METHOD_COLORS['CI'],            'marker': 'o', 'linestyle': '-',  'markersize': 10, 'linewidth': 2.5},
     'Hebbian':       {'color': METHOD_COLORS['Hebbian'],       'marker': 'o', 'linestyle': '-',  'markersize': 10, 'linewidth': 2.5},
     'Storkey':       {'color': METHOD_COLORS['Storkey'],       'marker': 'o', 'linestyle': '-',  'markersize': 10, 'linewidth': 2.5},
     'Iterative GDA': {'color': METHOD_COLORS['Iterative GDA'], 'marker': 'o', 'linestyle': '--', 'markersize': 10, 'linewidth': 2.5},
@@ -189,9 +189,9 @@ RHO_VALUES = [0.0, 0.2, 0.4, 0.5, 0.6]  # Exclude 0.8 (all methods ~0 capacity)
 INFORMED_FRACTION = 0.5                   # Fixed at 50%
 SUCCESS_THRESHOLD = 0.9                   # 90% only
 
-# --- AR Scalability analysis parameters ---
+# --- CI Scalability analysis parameters ---
 # Multiple thresholds to show how capacity changes with retrieval strictness
-AR_SCALABILITY_THRESHOLDS = [0.2, 0.5, 0.9]
+CI_SCALABILITY_THRESHOLDS = [0.2, 0.5, 0.9]
 
 # Colors for different thresholds (from light to dark as threshold increases)
 THRESHOLD_COLORS = {
@@ -476,18 +476,18 @@ fig.subplots_adjust(wspace=0.08, left=0.07, right=0.98, bottom=0.16, top=0.88)
 for col_idx, rho in enumerate(RHO_VALUES):
     ax = axes[col_idx]
 
-    # --- AR (CHN) ---
+    # --- CI (CHN) ---
     if chn_df is not None:
-        ar_subset = filter_by_rho(chn_df, rho)
-        if len(ar_subset) > 0:
-            ar_pivot = compute_success_pivot(ar_subset, 'all_recovered_before_spurious')
-            ar_caps = compute_capacity_monotonic(ar_pivot, SUCCESS_THRESHOLD)
+        ci_subset = filter_by_rho(chn_df, rho)
+        if len(ci_subset) > 0:
+            ci_pivot = compute_success_pivot(ci_subset, 'all_recovered_before_spurious')
+            ci_caps = compute_capacity_monotonic(ci_pivot, SUCCESS_THRESHOLD)
 
-            x_ar = sorted(ar_caps.keys())
-            y_ar = [ar_caps[x] for x in x_ar]
+            x_ci = sorted(ci_caps.keys())
+            y_ci = [ci_caps[x] for x in x_ci]
 
-            style = METHOD_STYLES['AR']
-            ax.plot(x_ar, y_ar, label='AR', **style)
+            style = METHOD_STYLES['CI']
+            ax.plot(x_ci, y_ci, label='CI', **style)
 
     # --- Hebbian (DHN) ---
     if hebbian_df is not None:
@@ -586,7 +586,7 @@ for col_idx, rho in enumerate(RHO_VALUES):
 
     # Y-axis label only on leftmost subplot
     if col_idx == 0:
-        ax.set_ylabel('Perfect retrieval capacity\n(max patterns)')
+        ax.set_ylabel('$M^*$\n(max patterns)')
 
 # Legend in the middle subplot (ρ=0.4, index 2)
 axes[2].legend(loc='upper left', frameon=True, framealpha=0.9)
@@ -608,9 +608,9 @@ plt.show()
 # scalability for larger networks (up to N=1000, vs original experiments up to N=250)
 
 print("\n" + "=" * 70)
-print("GENERATING AR SCALABILITY FIGURE")
+print("GENERATING CI SCALABILITY FIGURE")
 print(f"  - ρ values: {RHO_VALUES}")
-print(f"  - Thresholds: {[f'{int(t*100)}%' for t in AR_SCALABILITY_THRESHOLDS]}")
+print(f"  - Thresholds: {[f'{int(t*100)}%' for t in CI_SCALABILITY_THRESHOLDS]}")
 print("=" * 70)
 
 # Create figure with 5 subplots in a single row (same layout as comparison figure)
@@ -624,12 +624,12 @@ all_capacities = []
 
 for rho in RHO_VALUES:
     if chn_df is not None:
-        ar_subset = filter_by_rho(chn_df, rho)
-        if len(ar_subset) > 0:
-            ar_pivot = compute_success_pivot(ar_subset, 'all_recovered_before_spurious')
-            for threshold in AR_SCALABILITY_THRESHOLDS:
-                ar_caps = compute_capacity_monotonic(ar_pivot, threshold)
-                all_capacities.extend(ar_caps.values())
+        ci_subset = filter_by_rho(chn_df, rho)
+        if len(ci_subset) > 0:
+            ci_pivot = compute_success_pivot(ci_subset, 'all_recovered_before_spurious')
+            for threshold in CI_SCALABILITY_THRESHOLDS:
+                ci_caps = compute_capacity_monotonic(ci_pivot, threshold)
+                all_capacities.extend(ci_caps.values())
 
 # Compute y-axis limits with some padding
 y_max = max(all_capacities) if all_capacities else 50
@@ -639,21 +639,21 @@ for col_idx, rho in enumerate(RHO_VALUES):
     ax = axes_scale[col_idx]
 
     if chn_df is not None:
-        ar_subset = filter_by_rho(chn_df, rho)
+        ci_subset = filter_by_rho(chn_df, rho)
 
-        if len(ar_subset) > 0:
-            ar_pivot = compute_success_pivot(ar_subset, 'all_recovered_before_spurious')
+        if len(ci_subset) > 0:
+            ci_pivot = compute_success_pivot(ci_subset, 'all_recovered_before_spurious')
 
-            for threshold in AR_SCALABILITY_THRESHOLDS:
-                ar_caps = compute_capacity_monotonic(ar_pivot, threshold)
+            for threshold in CI_SCALABILITY_THRESHOLDS:
+                ci_caps = compute_capacity_monotonic(ci_pivot, threshold)
 
-                x_ar = sorted(ar_caps.keys())
-                y_ar = [ar_caps[x] for x in x_ar]
+                x_ci = sorted(ci_caps.keys())
+                y_ci = [ci_caps[x] for x in x_ci]
 
                 color = THRESHOLD_COLORS[threshold]
                 label = f'{int(threshold*100)}\\%'
 
-                ax.plot(x_ar, y_ar, marker='o', linestyle='-', color=color,
+                ax.plot(x_ci, y_ci, marker='o', linestyle='-', color=color,
                        linewidth=2.5, markersize=10, label=label)
 
     # Formatting
@@ -664,7 +664,7 @@ for col_idx, rho in enumerate(RHO_VALUES):
 
     # Y-axis label only on leftmost subplot
     if col_idx == 0:
-        ax.set_ylabel('Perfect retrieval capacity\n(max patterns)')
+        ax.set_ylabel('$M^*$\n(max patterns)')
 
 # Legend in the first subplot (ρ=0.0, index 0)
 axes_scale[0].legend(loc='upper left', frameon=True, framealpha=0.9, title='Threshold')
@@ -673,7 +673,7 @@ axes_scale[0].legend(loc='upper left', frameon=True, framealpha=0.9, title='Thre
 fig_scale.text(0.515, 0.02, 'Network size $N$', ha='center', va='bottom', fontsize=24, fontweight='bold')
 
 if SAVE_PLOTS:
-    output_path_scale = OUTPUT_DIR / "ar_scalability_thresholds.png"
+    output_path_scale = OUTPUT_DIR / "ci_scalability_thresholds.png"
     plt.savefig(output_path_scale, dpi=DPI, bbox_inches='tight')
     print(f"\n  Saved to: {output_path_scale}")
 
@@ -696,14 +696,14 @@ for rho in RHO_VALUES:
     # Get capacities at N=500 (middle of range) for comparison
     target_n = 500
 
-    # AR
+    # CI
     if chn_df is not None:
-        ar_subset = filter_by_rho(chn_df, rho)
-        if len(ar_subset) > 0:
-            ar_pivot = compute_success_pivot(ar_subset, 'all_recovered_before_spurious')
-            ar_caps = compute_capacity_monotonic(ar_pivot, SUCCESS_THRESHOLD)
-            ar_cap = ar_caps.get(target_n, 'N/A')
-            print(f"  AR:      {ar_cap} patterns (N={target_n})")
+        ci_subset = filter_by_rho(chn_df, rho)
+        if len(ci_subset) > 0:
+            ci_pivot = compute_success_pivot(ci_subset, 'all_recovered_before_spurious')
+            ci_caps = compute_capacity_monotonic(ci_pivot, SUCCESS_THRESHOLD)
+            ci_cap = ci_caps.get(target_n, 'N/A')
+            print(f"  CI:      {ci_cap} patterns (N={target_n})")
 
     # Hebbian
     if hebbian_df is not None:
@@ -752,17 +752,17 @@ print("=" * 70)
 
 if SAVE_PLOTS:
     print(f"\nOutputs:")
-    print(f"  1. {OUTPUT_DIR / 'comparison_summary.png'} - Main comparison (AR vs Hebbian vs Storkey)")
-    print(f"  2. {OUTPUT_DIR / 'ar_scalability_thresholds.png'} - AR scalability analysis")
+    print(f"  1. {OUTPUT_DIR / 'comparison_summary.png'} - Main comparison (CI vs Hebbian vs Storkey)")
+    print(f"  2. {OUTPUT_DIR / 'ci_scalability_thresholds.png'} - CI scalability analysis")
 
 print("\nKey findings from comparison:")
 print("  - At low ρ (0.0-0.2): DHN methods (especially Storkey) dominate")
-print("  - At medium ρ (0.4-0.5): AR becomes competitive")
-print("  - At higher ρ (0.6): AR outperforms DHN methods")
+print("  - At medium ρ (0.4-0.5): CI becomes competitive")
+print("  - At higher ρ (0.6): CI outperforms DHN methods")
 print("  - Iterative GDA shows near-zero capacity (catastrophic forgetting)")
 
-print("\nKey findings from AR scalability:")
-print(f"  - AR capacity scales consistently across thresholds (20%-90%)")
+print("\nKey findings from CI scalability:")
+print(f"  - CI capacity scales consistently across thresholds (20%-90%)")
 print(f"  - Network sizes up to N=1000 tested (vs original N=250 limit)")
 print(f"  - Provides hints for asymptotic scaling behavior")
 

@@ -140,7 +140,7 @@ fig.supylabel("$M^*$", fontsize=30, x=-0.01)
 
 # Single legend at top
 fig.legend(*axes[0, 0].get_legend_handles_labels(),
-           loc="upper center", ncol=2, fontsize=24, frameon=False,
+           loc="upper center", ncol=2, fontsize=30, frameon=False,
            bbox_to_anchor=(0.5, 1.03))
 
 plt.tight_layout()
