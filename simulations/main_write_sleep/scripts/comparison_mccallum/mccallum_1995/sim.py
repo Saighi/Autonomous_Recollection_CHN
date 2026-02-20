@@ -77,7 +77,7 @@ cfg_256 = McCallumConfig(max_pseudoitems=256)
 cfg_512 = McCallumConfig(max_pseudoitems=512)
 cfg     = cfg_256   # shared config for delta baselines
 
-N_TRIALS = 1
+N_TRIALS = 10
 SEED     = None     # set to int for reproducibility
 # ──────────────────────────────────────────────────────────────────
 
@@ -277,6 +277,39 @@ def _train_delta_pure_hetero(weights, target, eta, max_epochs, err_crit, nu_h, N
 
 
 @njit(cache=True)
+def _train_delta_naive(weights, target, eta, max_epochs, err_crit, N):
+    """Delta learning on a single pattern — no noise at all."""
+    smooth = 1.0
+    for epoch in range(max_epochs):
+        inp = target.copy()
+        errors = np.zeros(N)
+        any_err = False
+        for i in range(N):
+            h = 0.0
+            for j in range(N):
+                if j != i:
+                    h += weights[i, j] * inp[j]
+            out = 1.0 if h >= 0.0 else -1.0
+            errors[i] = target[i] - out
+            if abs(errors[i]) > 0.5:
+                any_err = True
+        if any_err:
+            epoch_err = 0.0
+            for i in range(N):
+                if abs(errors[i]) > 0.5:
+                    epoch_err += abs(errors[i]) / 2.0
+                    for j in range(N):
+                        if i != j:
+                            weights[i, j] += eta * errors[i] * inp[j]
+            smooth = smooth * 0.9 + epoch_err * 0.1
+        else:
+            smooth = smooth * 0.9
+        if smooth < err_crit:
+            return weights, epoch + 1
+    return weights, max_epochs
+
+
+@njit(cache=True)
 def _train_delta_pure_gaussian(weights, target, eta, max_epochs, err_crit, sigma, N):
     smooth = 1.0
     for epoch in range(max_epochs):
@@ -322,6 +355,7 @@ _train_base(_w, _p, 2, 0.1, 2, 0.001, 5)
 _train_delta_pr(_w, _p, 2, 1, 0.1, 2, 0.001, 0.05, 0.5, True, False, 5)
 _train_delta_pure_hetero(_w, _s, 0.1, 2, 0.001, 0.05, 5)
 _train_delta_pure_gaussian(_w, _s, 0.1, 2, 0.001, 0.5, 5)
+_train_delta_naive(_w, _s, 0.1, 2, 0.001, 5)
 del _w, _s, _p
 print(f"done ({time.time()-t0:.1f}s)")
 
@@ -422,6 +456,33 @@ def run_delta_gaussian(cfg: McCallumConfig, seed=None, verbose=False) -> RunResu
     return RunResult(M_list, stable_list, pseudo_list, cfg)
 
 
+def run_delta_naive(cfg: McCallumConfig, seed=None, verbose=False) -> RunResult:
+    """Iterative delta learning on each new pattern — no rehearsal, no noise."""
+    if seed is not None:
+        np.random.seed(seed)
+    N, r = cfg.network_size, cfg.max_cycles
+    patterns = np.random.choice([-1.0, 1.0], size=(cfg.total_patterns, N))
+    weights = np.zeros((N, N))
+    M_list, stable_list, pseudo_list = [], [], []
+
+    weights, _ = _train_base(weights, patterns[:cfg.base_pop].copy(),
+                             cfg.base_pop, cfg.eta, cfg.max_epochs,
+                             cfg.error_criterion, N)
+    ns = _count_stable(weights, patterns, cfg.base_pop, r)
+    M_list.append(cfg.base_pop); stable_list.append(ns); pseudo_list.append(0)
+
+    for step in range(cfg.max_new):
+        M = cfg.base_pop + step + 1
+        weights, _ = _train_delta_naive(
+            weights, patterns[M-1], cfg.eta, cfg.max_epochs,
+            cfg.error_criterion, N)
+        ns = _count_stable(weights, patterns, M, r)
+        M_list.append(M); stable_list.append(ns); pseudo_list.append(0)
+        if verbose and (step < 5 or (step+1) % 10 == 0 or step == cfg.max_new-1):
+            print(f"  Naive M={M:3d}: stable={ns:3d}/{M}")
+    return RunResult(M_list, stable_list, pseudo_list, cfg)
+
+
 # %% CSV helpers
 def save_condition_csv(condition: str, results_list: List[RunResult], out_dir: Path):
     """Save per-trial time series: condition, trial, M, stable, pseudo."""
@@ -474,6 +535,9 @@ run_and_save("delta_hetero", run_delta_hetero, cfg, N_TRIALS, SEED, OUTPUT_DIR)
 
 # %% Delta (Gaussian)
 run_and_save("delta_gaussian", run_delta_gaussian, cfg, N_TRIALS, SEED, OUTPUT_DIR)
+
+# %% Naive (no rehearsal)
+run_and_save("naive", run_delta_naive, cfg, N_TRIALS, SEED, OUTPUT_DIR)
 
 # %% Done
 print(f"\n{'='*60}")

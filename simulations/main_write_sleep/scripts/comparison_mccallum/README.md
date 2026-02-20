@@ -134,7 +134,7 @@ After successful sleep:
 
 ### Evaluation
 
-Same as McCallum: 50% partial cue queries.
+50% partial cue queries.
 
 ## Computing M*
 

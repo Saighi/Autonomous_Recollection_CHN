@@ -25,7 +25,7 @@ from utils import load_results, load_final_results, DATA_DIR
 # ==========================================================================
 
 # Experiment name (must match SR_leak_sim.py)
-SLEEP_NAME = "SR_leak_sleep"
+SLEEP_NAME = "SR_leak_strong_sleep"
 # SLEEP_NAME = "comparison_chn_cpp_sleep"
 # SLEEP_NAME = "SR_leak_strong_sleep"
 # SLEEP_NAME = "SR_sparsity_sleep"

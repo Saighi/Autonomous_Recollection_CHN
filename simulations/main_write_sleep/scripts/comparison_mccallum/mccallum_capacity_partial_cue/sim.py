@@ -43,7 +43,7 @@ OUTPUT_DIR = DATA_DIR / "mccallum_results" / "mccallum_capacity_partial_cue"
 # %% Configuration
 NETWORK_SIZES    = [50, 100, 150, 200, 250]
 RHO_VALUES       = [0.0, 0.2, 0.4, 0.6, 0.8]
-NUM_SEEDS        = 10
+NUM_SEEDS        = 20
 MAX_PATTERNS     = 50
 THETA            = 0.9   # Success threshold for M*
 

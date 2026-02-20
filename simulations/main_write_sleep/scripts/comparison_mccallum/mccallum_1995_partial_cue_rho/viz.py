@@ -69,6 +69,17 @@ for rho in RHO_VALUES:
 
 assert len(frames) > 0, "No data found! Run sim.py first."
 
+# %% Load naive CSVs for each rho
+naive_frames = {}
+for rho in RHO_VALUES:
+    csv_path = DATA_PATH / f"naive_rho_{rho:.1f}.csv"
+    if csv_path.exists():
+        naive_frames[rho] = pd.read_csv(csv_path)
+        n_trials = naive_frames[rho]["trial"].nunique()
+        print(f"  naive rho={rho:.1f}: {len(naive_frames[rho])} rows, {n_trials} trials")
+    else:
+        print(f"  naive rho={rho:.1f}: NOT FOUND ({csv_path})")
+
 # %% Aggregate mean/std across trials for each rho
 stats = {}
 for rho, df in frames.items():
@@ -83,6 +94,20 @@ for rho, df in frames.items():
         if col.endswith("_std"):
             agg[col] = agg[col].fillna(0.0)
     stats[rho] = agg
+
+# %% Aggregate naive stats
+naive_stats = {}
+for rho, df in naive_frames.items():
+    agg = df.groupby("M").agg(
+        stable_mean=("stable", "mean"),
+        stable_std=("stable", "std"),
+        rec80_mean=("recovered_80", "mean"),
+        rec80_std=("recovered_80", "std"),
+    ).reset_index()
+    for col in agg.columns:
+        if col.endswith("_std"):
+            agg[col] = agg[col].fillna(0.0)
+    naive_stats[rho] = agg
 
 # %% [markdown]
 # ## Main figure: Recovery (80% cue) vs M at different rho
@@ -112,6 +137,20 @@ for rho in RHO_VALUES:
             label=st["label"], zorder=3)
     ax.fill_between(M, y_mean - y_std, y_mean + y_std,
                     color=st["color"], alpha=0.15, zorder=2)
+
+# --- Naive baselines (dashed black) ---
+for rho in RHO_VALUES:
+    if rho not in naive_stats:
+        continue
+    s = naive_stats[rho]
+    M_n = s["M"].values
+    y_mean = s["rec80_mean"].values
+    y_std  = s["rec80_std"].values
+    lbl = r"Without rehearsal" if rho == RHO_VALUES[0] else None
+    ax.plot(M_n, y_mean, color="black", ls="--", lw=2.0,
+            label=lbl, zorder=2)
+    ax.fill_between(M_n, y_mean - y_std, y_mean + y_std,
+                    color="black", alpha=0.08, zorder=1)
 
 ax.set_xlabel("Patterns learned ($M$)", fontsize=20)
 ax.set_ylabel("Recovered patterns (80% cue)", fontsize=20)
@@ -148,8 +187,22 @@ for rho in RHO_VALUES:
 
     ax.plot(M, y_mean, color=st["color"], ls=st["ls"], lw=st["lw"],
             label=st["label"], zorder=3)
-    ax.fill_between(M, y_mean - y_std, y_mean + y_std,
-                    color=st["color"], alpha=0.15, zorder=2)
+    # ax.fill_between(M, y_mean - y_std, y_mean + y_std,
+    #                 color=st["color"], alpha=0.25, zorder=2)
+
+# # --- Naive baselines (dashed black) ---
+# for rho in RHO_VALUES:
+#     if rho not in naive_stats:
+#         continue
+#     s = naive_stats[rho]
+#     M_n = s["M"].values
+#     y_mean = s["stable_mean"].values
+#     y_std  = s["stable_std"].values
+#     lbl = r"Without rehearsal" if rho == RHO_VALUES[0] else None
+#     ax.plot(M_n, y_mean, color="black", ls="--", lw=2.0,
+#             label=lbl, zorder=2)
+#     ax.fill_between(M_n, y_mean - y_std, y_mean + y_std,
+#                     color="black", alpha=0.08, zorder=1)
 
 ax.set_xlabel("Patterns learned ($M$)", fontsize=20)
 ax.set_ylabel("Stable patterns", fontsize=20)

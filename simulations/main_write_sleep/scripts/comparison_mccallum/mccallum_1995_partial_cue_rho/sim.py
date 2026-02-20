@@ -309,6 +309,39 @@ def _train_delta_pr(weights, patterns, n_pat, new_idx,
     return weights, max_epochs
 
 
+@njit(cache=True)
+def _train_delta_naive(weights, target, eta, max_epochs, err_crit, N):
+    """Delta learning on a single pattern — no noise at all."""
+    smooth = 1.0
+    for epoch in range(max_epochs):
+        inp = target.copy()
+        errors = np.zeros(N)
+        any_err = False
+        for i in range(N):
+            h = 0.0
+            for j in range(N):
+                if j != i:
+                    h += weights[i, j] * inp[j]
+            out = 1.0 if h >= 0.0 else -1.0
+            errors[i] = target[i] - out
+            if abs(errors[i]) > 0.5:
+                any_err = True
+        if any_err:
+            epoch_err = 0.0
+            for i in range(N):
+                if abs(errors[i]) > 0.5:
+                    epoch_err += abs(errors[i]) / 2.0
+                    for j in range(N):
+                        if i != j:
+                            weights[i, j] += eta * errors[i] * inp[j]
+            smooth = smooth * 0.9 + epoch_err * 0.1
+        else:
+            smooth = smooth * 0.9
+        if smooth < err_crit:
+            return weights, epoch + 1
+    return weights, max_epochs
+
+
 # %% JIT warmup
 print("Compiling Numba kernels ...", end=" ", flush=True)
 t0 = time.time()
@@ -325,6 +358,7 @@ _probe_pseudoitems(_w, 5, 3, 2, 2)
 _flip_noise(_s, 0.2)
 _train_base(_w, _p, 2, 0.1, 2, 0.001, 5)
 _train_delta_pr(_w, _p, 2, 1, 0.1, 2, 0.001, 0.05, 0.5, 5)
+_train_delta_naive(_w, _s, 0.1, 2, 0.001, 5)
 del _w, _s, _p
 print(f"done ({time.time()-t0:.1f}s)")
 
@@ -420,5 +454,87 @@ for rho in RHO_VALUES:
     print(f"  Saved: {csv_path}")
 
 print(f"\n{'='*60}")
-print(f"All rho values done. Output: {OUTPUT_DIR}")
+print(f"All rho values done (Pr256). Output: {OUTPUT_DIR}")
+print(f"{'='*60}")
+
+
+# %% [markdown]
+# ## Naive baseline (without rehearsal)
+
+# %% Naive runner
+def run_naive_rho(rho, seed=None, verbose=False):
+    """Naive iterative delta (no rehearsal) with correlated patterns and 80% cue."""
+    if seed is not None:
+        np.random.seed(seed)
+
+    N = N_SIZE
+    r = MAX_CYCLES
+    total = BASE_POP + MAX_NEW
+
+    patterns = _generate_correlated_patterns(total, N, rho)
+    weights = np.zeros((N, N))
+
+    M_list, stable_list, rec80_list, pseudo_list = [], [], [], []
+
+    # --- Train base population ---
+    weights, _ = _train_base(weights, patterns[:BASE_POP].copy(),
+                             BASE_POP, ETA, MAX_EPOCHS, ERROR_CRITERION, N)
+
+    ns = _count_stable(weights, patterns, BASE_POP, r)
+    nr = _count_recovered(weights, patterns, BASE_POP, CUE_FRACTION, r)
+    M_list.append(BASE_POP)
+    stable_list.append(ns)
+    rec80_list.append(nr)
+    pseudo_list.append(0)
+
+    # --- Incremental incorporation (no rehearsal) ---
+    for step in range(MAX_NEW):
+        M = BASE_POP + step + 1
+
+        weights, _ = _train_delta_naive(
+            weights, patterns[M-1], ETA, MAX_EPOCHS, ERROR_CRITERION, N)
+
+        ns = _count_stable(weights, patterns, M, r)
+        nr = _count_recovered(weights, patterns, M, CUE_FRACTION, r)
+        M_list.append(M)
+        stable_list.append(ns)
+        rec80_list.append(nr)
+        pseudo_list.append(0)
+
+        if verbose and (step < 5 or (step+1) % 10 == 0 or step == MAX_NEW - 1):
+            print(f"  M={M:3d}: stable={ns:3d}  rec80={nr:3d}")
+
+    return M_list, stable_list, rec80_list, pseudo_list
+
+
+# %% Run naive for all rho values
+for rho in RHO_VALUES:
+    csv_path = OUTPUT_DIR / f"naive_rho_{rho:.1f}.csv"
+
+    print(f"\n{'='*60}")
+    print(f"Naive 80% cue — rho={rho:.1f}, {N_TRIALS} trials, N={N_SIZE}")
+    print(f"{'='*60}")
+
+    with open(csv_path, "w") as f:
+        f.write("trial,M,stable,recovered_80,pseudo\n")
+
+        for t in range(N_TRIALS):
+            t0 = time.time()
+            trial_seed = (SEED + t) if SEED is not None else None
+            M_list, stable_list, rec80_list, pseudo_list = run_naive_rho(
+                rho=rho, seed=trial_seed, verbose=False)
+
+            for i, M in enumerate(M_list):
+                f.write(f"{t},{M},{stable_list[i]},"
+                        f"{rec80_list[i]},{pseudo_list[i]}\n")
+
+            elapsed = time.time() - t0
+            print(f"  Trial {t+1:2d}/{N_TRIALS}: "
+                  f"stable={stable_list[-1]:3d} rec80={rec80_list[-1]:3d} "
+                  f"({elapsed:.1f}s)")
+
+    print(f"  Saved: {csv_path}")
+
+print(f"\n{'='*60}")
+print(f"All rho values done (naive). Output: {OUTPUT_DIR}")
 print(f"{'='*60}")

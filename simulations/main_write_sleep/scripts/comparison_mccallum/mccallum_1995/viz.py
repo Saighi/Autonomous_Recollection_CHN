@@ -29,11 +29,15 @@ DATA_PATH = DATA_DIR / "mccallum_results" / "mccallum_1995"
 PLOT_DIR  = SCRIPT_DIR / "plots"
 PLOT_DIR.mkdir(exist_ok=True)
 
+# ─── Plot options (edit these) ───────────────────────────────
+SHOW_VARIANCE = True   # set to False to hide ±std shaded bands
+# ─────────────────────────────────────────────────────────────
+
 # %% [markdown]
 # ## Load data
 
 # %% Load all conditions
-CONDITIONS = ["pr100", "pr256", "pr512", "delta_hetero", "delta_gaussian"]
+CONDITIONS = ["pr100", "pr256", "pr512", "delta_hetero", "delta_gaussian", "naive"]
 
 frames = {}
 for cond in CONDITIONS:
@@ -71,10 +75,11 @@ STYLE = {
     "pr100":          {"color": "#8e44ad", "ls": "-",  "lw": 2.2, "label": "Pr100"},
     "pr256":          {"color": "#2980b9", "ls": "-",  "lw": 2.2, "label": "Pr256"},
     "pr512":          {"color": "#16a085", "ls": "-",  "lw": 2.2, "label": "Pr512"},
+    "naive":          {"color": "black",   "ls": "--", "lw": 2.2, "label": "Without rehearsal"},
 }
 
 # Which conditions to show (edit to toggle)
-SHOW = ["delta_hetero", "pr100", "pr256", "pr512"]
+SHOW = ["naive", "delta_hetero", "pr100", "pr256", "pr512"]
 
 # %% Comparison plot — publication figure
 fig, ax = plt.subplots(figsize=(8, 6))
@@ -93,6 +98,11 @@ for cond in SHOW:
     ax.plot(s["M"], s["stable_mean"],
             color=st["color"], ls=st["ls"], lw=st["lw"],
             label=st["label"], zorder=2 if "delta" in cond else 3)
+    if SHOW_VARIANCE:
+        ax.fill_between(s["M"],
+                        s["stable_mean"] - s["stable_std"],
+                        s["stable_mean"] + s["stable_std"],
+                        color=st["color"], alpha=0.25, zorder=1)
 
 # Axes
 pr_maxes = [stats[c]["stable_mean"].max() for c in SHOW if c in stats]
@@ -135,7 +145,7 @@ if PR_CONDS:
     caps = {"pr100": 100, "pr256": 256, "pr512": 512}
     for cond in PR_CONDS:
         ax.axhline(caps[cond], ls="--", color=STYLE[cond]["color"],
-                    alpha=0.35, lw=1)
+                    alpha=0.8, lw=1)
 
     ax.set_xlabel("Patterns learned ($M$)", fontsize=18)
     ax.set_ylabel("Pseudoitems found", fontsize=18)

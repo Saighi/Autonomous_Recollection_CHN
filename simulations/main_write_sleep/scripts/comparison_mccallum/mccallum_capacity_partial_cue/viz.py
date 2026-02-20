@@ -31,10 +31,10 @@ PLOT_DIR.mkdir(exist_ok=True)
 # %% Style
 plt.rcParams.update({
     'font.size': 18,
-    'axes.labelsize': 22,
-    'axes.titlesize': 22,
-    'xtick.labelsize': 18,
-    'ytick.labelsize': 18,
+    'axes.labelsize': 30,
+    'axes.titlesize': 30,
+    'xtick.labelsize': 30,
+    'ytick.labelsize': 30,
     'legend.fontsize': 16,
     'figure.dpi': 150,
     'savefig.dpi': 300,
@@ -98,20 +98,22 @@ for ax_idx, rho in enumerate(rho_values):
         ax.plot(x, y, color=color, lw=lw, marker=marker, markersize=8,
                 label=label if ax_idx == 0 else None, zorder=3)
 
-    ax.set_title(r"$\rho = " + f"{rho:.1f}" + r"$", fontsize=24)
-    ax.set_xlabel("$N$", fontsize=24)
-    ax.tick_params(labelsize=20, width=1.4, length=6)
-    ax.set_xticks(N_values)
-    ax.set_ylim(0, None)
+    ax.set_title(r"$\rho = " + f"{rho:.1f}" + r"$", fontsize=30)
+    # ax.set_xlabel("$N$", fontsize=24)
+    ax.tick_params(labelsize=25, width=1.4, length=6)
+    ax.set_xticks(N_values[::2])
+    ax.set_ylim(0, df["M_star"].max()+1)
 
     for spine in ax.spines.values():
         spine.set_linewidth(1.2)
+        
+fig.text(0.5, -0.1, 'Network size $N$', ha='center', va='bottom', fontsize=30)
 
-axes[0].set_ylabel("$M^*$", fontsize=24)
+axes[0].set_ylabel("$M^*$", fontsize=30)
 
 fig.legend(*axes[0].get_legend_handles_labels(),
-           loc="upper center", ncol=4, fontsize=18, frameon=False,
-           bbox_to_anchor=(0.5, 1.08))
+           loc="upper center", ncol=4, fontsize=25, frameon=False,
+           bbox_to_anchor=(0.5, 1.2))
 
 plt.tight_layout()
 save_path = PLOT_DIR / "mccallum_capacity_partial_cue.png"
@@ -146,3 +148,5 @@ for rho in rho_values:
         drop = np.mean(stable_vals) - np.mean(rec50_vals)
         pct = 100 * drop / max(np.mean(stable_vals), 1)
         print(f"    rho={rho:.1f}: {drop:.1f} patterns ({pct:.0f}%)")
+
+# %%

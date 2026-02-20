@@ -54,13 +54,23 @@ plt.rcParams.update({
 # %% [markdown]
 # ## Load data
 
-# %% Load CSV
+# %% Load CSV — Pr256
 csv_path = DATA_PATH / "pr256_partial_cue.csv"
 assert csv_path.exists(), f"Data not found: {csv_path}\nRun sim.py first."
 
 df = pd.read_csv(csv_path)
 n_trials = df["trial"].nunique()
-print(f"Loaded {len(df)} rows, {n_trials} trials")
+print(f"Pr256: {len(df)} rows, {n_trials} trials")
+
+# %% Load CSV — Naive baseline
+csv_path_naive = DATA_PATH / "naive_partial_cue.csv"
+df_naive = None
+if csv_path_naive.exists():
+    df_naive = pd.read_csv(csv_path_naive)
+    n_trials_naive = df_naive["trial"].nunique()
+    print(f"Naive: {len(df_naive)} rows, {n_trials_naive} trials")
+else:
+    print(f"Naive: NOT FOUND ({csv_path_naive}) — will plot without it")
 
 # %% Aggregate mean/std across trials
 agg = df.groupby("M").agg(
@@ -84,6 +94,26 @@ for col in agg.columns:
 
 M = agg["M"].values
 
+# %% Aggregate naive baseline
+agg_naive = None
+if df_naive is not None:
+    agg_naive = df_naive.groupby("M").agg(
+        stable_mean=("stable", "mean"),
+        stable_std=("stable", "std"),
+        rec95_mean=("recovered_95", "mean"),
+        rec95_std=("recovered_95", "std"),
+        rec90_mean=("recovered_90", "mean"),
+        rec90_std=("recovered_90", "std"),
+        rec80_mean=("recovered_80", "mean"),
+        rec80_std=("recovered_80", "std"),
+        rec50_mean=("recovered_50", "mean"),
+        rec50_std=("recovered_50", "std"),
+        pseudo_mean=("pseudo", "mean"),
+    ).reset_index()
+    for col in agg_naive.columns:
+        if col.endswith("_std"):
+            agg_naive[col] = agg_naive[col].fillna(0.0)
+
 # %% [markdown]
 # ## Main figure: Recovery vs M at different cue levels
 
@@ -99,13 +129,33 @@ LINES = [
 # %% Plot
 fig, ax = plt.subplots(figsize=(8, 6))
 
+# --- Pr256 lines ---
 for mean_col, std_col, color, ls, lw, label in LINES:
     y_mean = agg[mean_col].values
     y_std  = agg[std_col].values
 
     ax.plot(M, y_mean, color=color, ls=ls, lw=lw, label=label, zorder=3)
     ax.fill_between(M, y_mean - y_std, y_mean + y_std,
-                    color=color, alpha=0.15, zorder=2)
+                    color=color, alpha=0.25, zorder=2)
+
+# --- Naive baseline (dashed black) ---
+NAIVE_LINES = [
+    # ("stable_mean", "stable_std", "Stability (naive)"),
+    # ("rec95_mean",  "rec95_std",  "95% cue (naive)"),
+    # ("rec90_mean",  "rec90_std",  "90% cue (naive)"),
+    # ("rec80_mean",  "rec80_std",  "80% cue (naive)"),
+    # ("rec50_mean",  "rec50_std",  "50% cue (naive)"),
+]
+
+if agg_naive is not None:
+    for mean_col, std_col, label in NAIVE_LINES:
+        M_n = agg_naive["M"].values
+        y_mean = agg_naive[mean_col].values
+        y_std  = agg_naive[std_col].values
+        ax.plot(M_n, y_mean, color="black", ls="--", lw=2.0,
+                label=label, zorder=2)
+        ax.fill_between(M_n, y_mean - y_std, y_mean + y_std,
+                        color="black", alpha=0.08, zorder=1)
 
 ax.set_xlabel("Patterns learned ($M$)", fontsize=20)
 ax.set_ylabel("Recovered patterns", fontsize=20)

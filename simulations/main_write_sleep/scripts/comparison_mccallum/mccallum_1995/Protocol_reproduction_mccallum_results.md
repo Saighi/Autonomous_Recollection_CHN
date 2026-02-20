@@ -352,3 +352,7 @@ alongside:
 | AR (CI) | CHN | Batch GDA | Sleep (spurious = failure) |
 | Hebbian | DHN | One-shot Hebbian | None |
 | Storkey | DHN | One-shot Storkey | None |
+
+## 11. ACTUAL RESULTS OBSERVATIONS
+
+We see that the number of stable states increase with pseudorehearsal compared to the control condition without rehearsal on pseudoitems. the more pseudoitems are revisited, the more stable states we have in average at the end of the simulation (when the 100 patterns have been tryed to be added to the network) and the average number of stable states correspond approximatly to the results of mccallum. But we don't have the "low number of stored pattern effect" whereby for a low number of stored pattern/low load p<0.14N, all patterns become succesfully stable states when doing rehearsal on pseudoitems. This create a big bump for low number of stored patterns in mccallum data. In our case for low number of patterns we have a smaller "bump" than in the data of mccallum and then as we add more patterns we have more stable states. Many conditions have been tested , changing the noise, the gaussian and the Heteroassociative noise and other aspect of the training and querying protocol but still the bump stay small. But anyway the most important is the scaling with the number of pseudo itemps and having the same ordre de grandeur for the average number of retrieve stable state and we have that.  
